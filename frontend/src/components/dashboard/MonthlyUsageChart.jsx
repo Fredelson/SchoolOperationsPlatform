@@ -31,6 +31,7 @@ export default function MonthlyUsageChart() {
         borderRadius: 4,
         boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
         height: "100%",
+        minWidth: 0,
       }}
     >
       <CardContent>
@@ -38,7 +39,13 @@ export default function MonthlyUsageChart() {
           Monthly Usage
         </Typography>
 
-        <Box sx={{ width: "100%", height: 320 }}>
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            height: 320,
+          }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyUsageData}>
               <XAxis dataKey="month" />

@@ -1,15 +1,14 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher - Create Request Page
-// Uses reusable DashboardLayout, Sidebar, and Topbar
+// Uses reusable DashboardLayout, Sidebar,
+// Topbar, PageHeader, and DashboardCard
 // ============================================
 
 import { useMemo, useState } from "react";
 
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   TextField,
   MenuItem,
@@ -28,6 +27,8 @@ import SendIcon from "@mui/icons-material/Send";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
+import PageHeader from "../../components/common/PageHeader";
+import DashboardCard from "../../components/common/DashboardCard";
 
 const purposeOptions = [
   "Worksheet",
@@ -74,7 +75,10 @@ export default function CreateRequest() {
   const addDocument = () => {
     setDocuments((prev) => [
       ...prev,
-      { ...createEmptyDocument(), id: Date.now() + Math.random() },
+      {
+        ...createEmptyDocument(),
+        id: Date.now() + Math.random(),
+      },
     ]);
   };
 
@@ -124,29 +128,11 @@ export default function CreateRequest() {
       sidebar={<Sidebar role="teacher" />}
       topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
     >
-      {/* Page Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          sx={{
-            fontSize: "1.8rem",
-            fontWeight: 700,
-            color: "#0F172A",
-          }}
-        >
-          Create Photocopy Request
-        </Typography>
+      <PageHeader
+        title="Create Photocopy Request"
+        subtitle="Add multiple documents and review the approval flow before submitting."
+      />
 
-        <Typography
-          sx={{
-            color: "#64748B",
-            fontSize: "0.95rem",
-          }}
-        >
-          Add multiple documents and review the approval flow before submitting.
-        </Typography>
-      </Box>
-
-      {/* Main Grid */}
       <Box
         sx={{
           display: "grid",
@@ -157,385 +143,333 @@ export default function CreateRequest() {
           gap: 3,
         }}
       >
-        {/* Left Column */}
         <Box>
-          {/* Request Information */}
-          <Card
-            sx={{
-              borderRadius: 4,
-              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-              mb: 3,
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={3}>
-                Request Information
-              </Typography>
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: {
-                    xs: "1fr",
-                    md: "1fr 1fr",
-                  },
-                  gap: 3,
-                }}
+          <DashboardCard title="Request Information" sx={{ mb: 3 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "1fr 1fr",
+                },
+                gap: 3,
+              }}
+            >
+              <TextField
+                select
+                label="Purpose"
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                fullWidth
               >
-                <TextField
-                  select
-                  label="Purpose"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  fullWidth
-                >
-                  {purposeOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField
-                  type="date"
-                  label="Required Date"
-                  value={requiredDate}
-                  onChange={(e) => setRequiredDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-
-                {purpose === "Other" && (
-                  <TextField
-                    label="Custom Purpose"
-                    value={customPurpose}
-                    onChange={(e) => setCustomPurpose(e.target.value)}
-                    fullWidth
-                  />
-                )}
-
-                <TextField
-                  select
-                  label="Priority"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  fullWidth
-                >
-                  <MenuItem value="Normal">Normal</MenuItem>
-                  <MenuItem value="Urgent">Urgent</MenuItem>
-                </TextField>
-              </Box>
-
-              <Box sx={{ mt: 3 }}>
-                <TextField
-                  label="Remarks"
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  multiline
-                  rows={4}
-                  fullWidth
-                />
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Documents */}
-          <Card
-            sx={{
-              borderRadius: 4,
-              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 3,
-                }}
-              >
-                <Typography variant="h6" fontWeight={700}>
-                  Documents
-                </Typography>
-
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={addDocument}
-                  sx={{ textTransform: "none" }}
-                >
-                  Add Document
-                </Button>
-              </Box>
-
-              {documents.map((doc, index) => {
-                const printedPages =
-                  (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
-
-                const sheets =
-                  doc.printType === "Double-Sided"
-                    ? Math.ceil(printedPages / 2)
-                    : printedPages;
-
-                return (
-                  <Box
-                    key={doc.id}
-                    sx={{
-                      p: 2.5,
-                      mb: 3,
-                      border: "1px solid #E5E7EB",
-                      borderRadius: 3,
-                      backgroundColor: "#F8FAFC",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 2,
-                      }}
-                    >
-                      <Typography fontWeight={700}>
-                        Document #{index + 1}
-                      </Typography>
-
-                      <IconButton
-                        color="error"
-                        disabled={documents.length === 1}
-                        onClick={() => removeDocument(doc.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: {
-                          xs: "1fr",
-                          md: "1fr 1fr",
-                        },
-                        gap: 2,
-                      }}
-                    >
-                      <TextField
-                        label="Document Name"
-                        value={doc.documentName}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "documentName", e.target.value)
-                        }
-                        fullWidth
-                      />
-
-                      <Button
-                        component="label"
-                        variant="outlined"
-                        startIcon={<UploadFileIcon />}
-                        sx={{
-                          justifyContent: "flex-start",
-                          textTransform: "none",
-                          height: 56,
-                        }}
-                      >
-                        {doc.file ? doc.file.name : "Upload File"}
-                        <input
-                          hidden
-                          type="file"
-                          onChange={(e) =>
-                            updateDocument(doc.id, "file", e.target.files[0])
-                          }
-                        />
-                      </Button>
-
-                      <TextField
-                        type="number"
-                        label="Pages"
-                        value={doc.pages}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "pages", e.target.value)
-                        }
-                        fullWidth
-                      />
-
-                      <TextField
-                        type="number"
-                        label="Copies"
-                        value={doc.copies}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "copies", e.target.value)
-                        }
-                        fullWidth
-                      />
-
-                      <TextField
-                        select
-                        label="Paper Size"
-                        value={doc.paperSize}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "paperSize", e.target.value)
-                        }
-                        fullWidth
-                      >
-                        <MenuItem value="A4">A4</MenuItem>
-                        <MenuItem value="A3">A3</MenuItem>
-                      </TextField>
-
-                      <TextField
-                        select
-                        label="Print Type"
-                        value={doc.printType}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "printType", e.target.value)
-                        }
-                        fullWidth
-                      >
-                        <MenuItem value="Single-Sided">Single-Sided</MenuItem>
-                        <MenuItem value="Double-Sided">Double-Sided</MenuItem>
-                      </TextField>
-
-                      <TextField
-                        select
-                        label="Print Color"
-                        value={doc.printColor}
-                        onChange={(e) =>
-                          updateDocument(doc.id, "printColor", e.target.value)
-                        }
-                        fullWidth
-                      >
-                        <MenuItem value="Black & White">Black & White</MenuItem>
-                        <MenuItem value="Color">Color</MenuItem>
-                      </TextField>
-
-                      <Box
-                        sx={{
-                          p: 2,
-                          borderRadius: 2,
-                          backgroundColor: "#FFFFFF",
-                          border: "1px solid #E5E7EB",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Printed Pages
-                        </Typography>
-
-                        <Typography fontWeight={800}>
-                          {printedPages}
-                        </Typography>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          mt={1}
-                        >
-                          Sheets
-                        </Typography>
-
-                        <Typography fontWeight={800}>{sheets}</Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Right Column */}
-        <Box>
-          {/* Summary */}
-          <Card
-            sx={{
-              borderRadius: 4,
-              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-              mb: 3,
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={3}>
-                Request Summary
-              </Typography>
-
-              <SummaryRow label="Total Pages" value={summary.totalPages} />
-              <SummaryRow label="Total Copies" value={summary.totalCopies} />
-              <SummaryRow label="Total Sheets" value={summary.totalSheets} />
-              <SummaryRow label="A4 Sheets" value={summary.totalA4} />
-              <SummaryRow label="A3 Sheets" value={summary.totalA3} />
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography variant="body2" color="text.secondary" mb={1}>
-                Approval Route
-              </Typography>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 1,
-                }}
-              >
-                {approvalFlow.map((step) => (
-                  <Chip
-                    key={step}
-                    label={step}
-                    color={
-                      step === "HOD"
-                        ? "warning"
-                        : step === "HOS"
-                        ? "primary"
-                        : "default"
-                    }
-                  />
+                {purposeOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
                 ))}
-              </Box>
+              </TextField>
 
-              <Typography
-                sx={{
-                  mt: 2,
-                  fontSize: 13,
-                  color: "#64748B",
+              <TextField
+                type="date"
+                label="Required Date"
+                value={requiredDate}
+                onChange={(e) => setRequiredDate(e.target.value)}
+                slotProps={{
+                  inputLabel: {
+                    shrink: true,
+                  },
                 }}
-              >
-                {summary.totalSheets <= 500
-                  ? "Requests with 500 sheets or below go to HOD approval."
-                  : "Requests above 500 sheets go directly to HOS approval."}
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <Card
-            sx={{
-              borderRadius: 4,
-              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={2}>
-                Actions
-              </Typography>
-
-              <Button
                 fullWidth
-                variant="outlined"
-                startIcon={<SaveIcon />}
-                sx={{ mb: 2, textTransform: "none" }}
-              >
-                Save Draft
-              </Button>
+              />
 
-              <Button
+              {purpose === "Other" && (
+                <TextField
+                  label="Custom Purpose"
+                  value={customPurpose}
+                  onChange={(e) => setCustomPurpose(e.target.value)}
+                  fullWidth
+                />
+              )}
+
+              <TextField
+                select
+                label="Priority"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
                 fullWidth
+              >
+                <MenuItem value="Normal">Normal</MenuItem>
+                <MenuItem value="Urgent">Urgent</MenuItem>
+              </TextField>
+            </Box>
+
+            <Box sx={{ mt: 3 }}>
+              <TextField
+                label="Remarks"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                multiline
+                rows={4}
+                fullWidth
+              />
+            </Box>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Documents"
+            action={
+              <Button
                 variant="contained"
-                startIcon={<SendIcon />}
+                startIcon={<AddIcon />}
+                onClick={addDocument}
                 sx={{ textTransform: "none" }}
               >
-                Submit Request
+                Add Document
               </Button>
-            </CardContent>
-          </Card>
+            }
+          >
+            {documents.map((doc, index) => {
+              const printedPages =
+                (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
+
+              const sheets =
+                doc.printType === "Double-Sided"
+                  ? Math.ceil(printedPages / 2)
+                  : printedPages;
+
+              return (
+                <Box
+                  key={doc.id}
+                  sx={{
+                    p: 2.5,
+                    mb: 3,
+                    border: "1px solid #E5E7EB",
+                    borderRadius: 3,
+                    backgroundColor: "#F8FAFC",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
+                  >
+                    <Typography fontWeight={700}>
+                      Document #{index + 1}
+                    </Typography>
+
+                    <IconButton
+                      color="error"
+                      disabled={documents.length === 1}
+                      onClick={() => removeDocument(doc.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        md: "1fr 1fr",
+                      },
+                      gap: 2,
+                    }}
+                  >
+                    <TextField
+                      label="Document Name"
+                      value={doc.documentName}
+                      onChange={(e) =>
+                        updateDocument(
+                          doc.id,
+                          "documentName",
+                          e.target.value
+                        )
+                      }
+                      fullWidth
+                    />
+
+                    <Button
+                      component="label"
+                      variant="outlined"
+                      startIcon={<UploadFileIcon />}
+                      sx={{
+                        justifyContent: "flex-start",
+                        textTransform: "none",
+                        height: 56,
+                      }}
+                    >
+                      {doc.file ? doc.file.name : "Upload File"}
+                      <input
+                        hidden
+                        type="file"
+                        onChange={(e) =>
+                          updateDocument(doc.id, "file", e.target.files[0])
+                        }
+                      />
+                    </Button>
+
+                    <TextField
+                      type="number"
+                      label="Pages"
+                      value={doc.pages}
+                      onChange={(e) =>
+                        updateDocument(doc.id, "pages", e.target.value)
+                      }
+                      fullWidth
+                    />
+
+                    <TextField
+                      type="number"
+                      label="Copies"
+                      value={doc.copies}
+                      onChange={(e) =>
+                        updateDocument(doc.id, "copies", e.target.value)
+                      }
+                      fullWidth
+                    />
+
+                    <TextField
+                      select
+                      label="Paper Size"
+                      value={doc.paperSize}
+                      onChange={(e) =>
+                        updateDocument(doc.id, "paperSize", e.target.value)
+                      }
+                      fullWidth
+                    >
+                      <MenuItem value="A4">A4</MenuItem>
+                      <MenuItem value="A3">A3</MenuItem>
+                    </TextField>
+
+                    <TextField
+                      select
+                      label="Print Type"
+                      value={doc.printType}
+                      onChange={(e) =>
+                        updateDocument(doc.id, "printType", e.target.value)
+                      }
+                      fullWidth
+                    >
+                      <MenuItem value="Single-Sided">Single-Sided</MenuItem>
+                      <MenuItem value="Double-Sided">Double-Sided</MenuItem>
+                    </TextField>
+
+                    <TextField
+                      select
+                      label="Print Color"
+                      value={doc.printColor}
+                      onChange={(e) =>
+                        updateDocument(doc.id, "printColor", e.target.value)
+                      }
+                      fullWidth
+                    >
+                      <MenuItem value="Black & White">Black & White</MenuItem>
+                      <MenuItem value="Color">Color</MenuItem>
+                    </TextField>
+
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #E5E7EB",
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Printed Pages
+                      </Typography>
+
+                      <Typography fontWeight={800}>{printedPages}</Typography>
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        mt={1}
+                      >
+                        Sheets
+                      </Typography>
+
+                      <Typography fontWeight={800}>{sheets}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              );
+            })}
+          </DashboardCard>
+        </Box>
+
+        <Box>
+          <DashboardCard title="Request Summary" sx={{ mb: 3 }}>
+            <SummaryRow label="Total Pages" value={summary.totalPages} />
+            <SummaryRow label="Total Copies" value={summary.totalCopies} />
+            <SummaryRow label="Total Sheets" value={summary.totalSheets} />
+            <SummaryRow label="A4 Sheets" value={summary.totalA4} />
+            <SummaryRow label="A3 Sheets" value={summary.totalA3} />
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Approval Route
+            </Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              {approvalFlow.map((step) => (
+                <Chip
+                  key={step}
+                  label={step}
+                  color={
+                    step === "HOD"
+                      ? "warning"
+                      : step === "HOS"
+                      ? "primary"
+                      : "default"
+                  }
+                />
+              ))}
+            </Box>
+
+            <Typography
+              sx={{
+                mt: 2,
+                fontSize: 13,
+                color: "#64748B",
+              }}
+            >
+              {summary.totalSheets <= 500
+                ? "Requests with 500 sheets or below go to HOD approval."
+                : "Requests above 500 sheets go directly to HOS approval."}
+            </Typography>
+          </DashboardCard>
+
+          <DashboardCard title="Actions">
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<SaveIcon />}
+              sx={{ mb: 2, textTransform: "none" }}
+            >
+              Save Draft
+            </Button>
+
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<SendIcon />}
+              sx={{ textTransform: "none" }}
+            >
+              Submit Request
+            </Button>
+          </DashboardCard>
         </Box>
       </Box>
     </DashboardLayout>
@@ -552,7 +486,6 @@ function SummaryRow({ label, value }) {
       }}
     >
       <Typography color="text.secondary">{label}</Typography>
-
       <Typography fontWeight={800}>{value}</Typography>
     </Box>
   );

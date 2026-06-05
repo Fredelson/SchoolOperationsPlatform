@@ -1,8 +1,8 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
 // Teacher Dashboard
 // Recent Requests Table Component
+// Uses reusable StatusChip
 // ============================================
 
 import {
@@ -11,7 +11,6 @@ import {
   Typography,
   Box,
   Button,
-  Chip,
   Table,
   TableBody,
   TableCell,
@@ -23,38 +22,10 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DownloadIcon from "@mui/icons-material/Download";
 
+import StatusChip from "../common/StatusChip";
+
 // Centralized mock data
 import { recentRequestsData } from "../../data/dashboardData";
-
-// ============================================
-// Status Color Helper
-// Converts request status into MUI Chip color
-// ============================================
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Completed":
-      return "success";
-
-    case "Approved":
-      return "success";
-
-    case "Printing":
-      return "info";
-
-    case "Pending HOD":
-      return "warning";
-
-    case "Pending HOS":
-      return "primary";
-
-    case "Rejected":
-      return "error";
-
-    default:
-      return "default";
-  }
-};
 
 // ============================================
 // Recent Requests Table Component
@@ -67,6 +38,7 @@ export default function RecentRequestsTable() {
         borderRadius: 4,
         boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
         height: "100%",
+        minWidth: 0,
       }}
     >
       <CardContent>
@@ -83,7 +55,11 @@ export default function RecentRequestsTable() {
             My Recent Requests
           </Typography>
 
-          <Button size="small" variant="outlined">
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+          >
             View All
           </Button>
         </Box>
@@ -120,11 +96,7 @@ export default function RecentRequestsTable() {
                   <TableCell>{request.pages}</TableCell>
 
                   <TableCell>
-                    <Chip
-                      label={request.status}
-                      size="small"
-                      color={getStatusColor(request.status)}
-                    />
+                    <StatusChip status={request.status} />
                   </TableCell>
 
                   <TableCell>{request.submittedDate}</TableCell>

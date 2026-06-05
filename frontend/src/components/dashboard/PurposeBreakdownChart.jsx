@@ -37,6 +37,7 @@ export default function PurposeBreakdownChart() {
     <Card
       sx={{
         height: "100%",
+        minWidth: 0,
         borderRadius: 4,
         boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
       }}
@@ -48,8 +49,14 @@ export default function PurposeBreakdownChart() {
         </Typography>
 
         {/* Responsive Chart Container */}
-        <Box sx={{ width: "100%", height: 350 }}>
-          <ResponsiveContainer>
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            height: 350,
+          }}
+        >
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={purposeBreakdownData}

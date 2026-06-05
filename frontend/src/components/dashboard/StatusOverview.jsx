@@ -22,13 +22,14 @@ export default function StatusOverview() {
 
   return (
     <Card
-      sx={{
+      sx={{           
         height: "100%",
+        minWidth: 0,
         borderRadius: 4,
         boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
       }}
     >
-      <CardContent>
+          <CardContent>
         <Typography variant="h6" fontWeight={700} mb={3}>
           Request Status Overview
         </Typography>

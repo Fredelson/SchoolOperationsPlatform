@@ -1,11 +1,11 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable KPI Grid
-// Used by Teacher, HOD, HOS, Admin dashboards
+// Uses common KPICard for all dashboard roles
 // ============================================
 
 import { Box } from "@mui/material";
-import StatCard from "./StatCard";
+import KPICard from "../common/KPICard";
 
 export default function KPIGrid({ stats = [], icons = [] }) {
   return (
@@ -23,7 +23,7 @@ export default function KPIGrid({ stats = [], icons = [] }) {
       }}
     >
       {stats.map((item, index) => (
-        <StatCard
+        <KPICard
           key={item.title}
           title={item.title}
           value={item.value}
