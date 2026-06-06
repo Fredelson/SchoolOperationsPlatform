@@ -1,48 +1,28 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// Reusable Page Header
-// Used by Teacher, HOD, HOS, Admin dashboards
-// ============================================
-
 import { Box, Typography } from "@mui/material";
 
 export default function PageHeader({ title, subtitle, action }) {
   return (
     <Box
       sx={{
+        mb: 3,
         display: "flex",
+        alignItems: "center",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        mb: 4,
         gap: 2,
       }}
     >
-      {/* Page title and subtitle */}
       <Box>
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 700,
-            color: "#0F172A",
-            mb: 1,
-          }}
-        >
+        <Typography variant="h5" fontWeight={700}>
           {title}
         </Typography>
 
         {subtitle && (
-          <Typography
-            sx={{
-              color: "#64748B",
-              fontSize: "0.95rem",
-            }}
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {subtitle}
           </Typography>
         )}
       </Box>
 
-      {/* Right-side action, example: Date Filter */}
       {action && <Box>{action}</Box>}
     </Box>
   );

@@ -1,28 +1,26 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// App Routes
-// ============================================
+// React Router
+import { Routes, Route, Navigate } from "react-router-dom";
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+// Teacher Dashboard
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import MyRequests from "./pages/teacher/MyRequests";
-import CreateRequest from "./pages/teacher/CreateRequest";
-import RequestDetails from "./pages/teacher/RequestDetails";
 
-function App() {
+// HOD Dashboard
+import HodDashboard from "./pages/hod/HodDashboard";
+
+export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<TeacherDashboard />} />
+    <Routes>
+      {/* Default page: Teacher Dashboard */}
+      <Route path="/" element={<TeacherDashboard />} />
 
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-        <Route path="/teacher/my-requests" element={<MyRequests />} />
-        <Route path="/teacher/create-request" element={<CreateRequest />} />
-        <Route path="/teacher/request-details/:id" element={<RequestDetails />} />
-      </Routes>
-    </BrowserRouter>
+      {/* Optional teacher route */}
+      <Route path="/teacher" element={<TeacherDashboard />} />
+
+      {/* HOD Dashboard */}
+      <Route path="/hod" element={<HodDashboard />} />
+
+      {/* Wrong URL fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
-
-export default App;
