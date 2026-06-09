@@ -1,26 +1,39 @@
-// React Router
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Teacher Dashboard
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-
-// HOD Dashboard
 import HodDashboard from "./pages/hod/HodDashboard";
+import LoginPage from "./pages/auth/LoginPage";
+
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 export default function App() {
   return (
-    <Routes>
-      {/* Default page: Teacher Dashboard */}
-      <Route path="/" element={<TeacherDashboard />} />
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Optional teacher route */}
-      <Route path="/teacher" element={<TeacherDashboard />} />
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* HOD Dashboard */}
-      <Route path="/hod" element={<HodDashboard />} />
+        <Route
+          path="/hod"
+          element={
+            <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+              <HodDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Wrong URL fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthProvider>
   );
 }

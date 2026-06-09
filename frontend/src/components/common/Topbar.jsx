@@ -1,8 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable Topbar
-// Full-width topbar controlled by DashboardLayout
+// Connected to AuthContext
+// Shows logged-in user name, role, and logout menu
 // ============================================
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Box,
@@ -12,6 +16,8 @@ import {
   IconButton,
   Typography,
   InputAdornment,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -19,10 +25,38 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-export default function Topbar({
-  userName = "Ahmed Khan",
-  role = "Teacher",
-}) {
+// Auth context
+import { useAuth } from "../../context/AuthContext";
+
+export default function Topbar() {
+  const navigate = useNavigate();
+
+  // Get logged-in user and logout function
+  const { user, logout } = useAuth();
+
+  // Menu state
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  // Open profile dropdown menu
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  // Close profile dropdown menu
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Logout user and redirect to login page
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // Fallback values if user is not loaded yet
+  const userName = user?.fullName || "Unknown User";
+  const role = user?.role || "Guest";
+
   return (
     <Box
       sx={{
@@ -74,7 +108,7 @@ export default function Topbar({
           </Box>
         </Box>
 
-        {/* Search */}
+        {/* Search Bar */}
         <TextField
           size="small"
           placeholder="Search requests, documents, attachments..."
@@ -93,18 +127,31 @@ export default function Topbar({
 
       {/* Right Section */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        {/* Theme icon - future feature */}
         <IconButton>
           <LightModeIcon />
         </IconButton>
 
+        {/* Notification icon - future feature */}
         <IconButton>
           <Badge badgeContent={8} color="error">
             <NotificationsNoneIcon />
           </Badge>
         </IconButton>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Avatar sx={{ width: 44, height: 44 }} />
+        {/* User Profile */}
+        <Box
+          onClick={handleMenuOpen}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            cursor: "pointer",
+          }}
+        >
+          <Avatar sx={{ width: 44, height: 44 }}>
+            {userName.charAt(0)}
+          </Avatar>
 
           <Box>
             <Typography sx={{ fontSize: 14, fontWeight: 700 }}>
@@ -118,6 +165,17 @@ export default function Topbar({
 
           <KeyboardArrowDownIcon />
         </Box>
+
+        {/* Profile Dropdown Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem disabled>{userName}</MenuItem>
+          <MenuItem disabled>{role}</MenuItem>
+          <MenuItem onClick={handleLogout}>Logout</MenuItem>
+        </Menu>
       </Box>
     </Box>
   );

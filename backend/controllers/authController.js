@@ -24,14 +24,15 @@ const login = async (req, res) => {
       .input("employeeId", sql.NVarChar, employeeId)
       .query(`
         SELECT
-          Id,
-          FullName,
+          UserId,
           EmployeeId,
+          FullName,
           SchoolEmail,
-          PasswordHash,
-          Role,
           DepartmentId,
-          SectionId,
+          Subject,
+          Role,
+          PasswordHash,
+          MustChangePassword,
           IsActive
         FROM Users
         WHERE EmployeeId = @employeeId
@@ -59,18 +60,9 @@ const login = async (req, res) => {
       });
     }
 
-    await pool
-      .request()
-      .input("userId", sql.Int, user.Id)
-      .query(`
-        UPDATE Users
-        SET LastLoginAt = GETDATE()
-        WHERE Id = @userId
-      `);
-
     const token = jwt.sign(
       {
-        id: user.Id,
+        id: user.UserId,
         employeeId: user.EmployeeId,
         role: user.Role,
       },
@@ -84,13 +76,14 @@ const login = async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user.Id,
-        fullName: user.FullName,
+        id: user.UserId,
         employeeId: user.EmployeeId,
+        fullName: user.FullName,
         schoolEmail: user.SchoolEmail,
-        role: user.Role,
         departmentId: user.DepartmentId,
-        sectionId: user.SectionId,
+        subject: user.Subject,
+        role: user.Role,
+        mustChangePassword: user.MustChangePassword,
       },
     });
   } catch (error) {
@@ -116,22 +109,20 @@ const getMe = async (req, res) => {
       .input("userId", sql.Int, req.user.id)
       .query(`
         SELECT
-          u.Id,
-          u.FullName,
+          u.UserId,
           u.EmployeeId,
+          u.FullName,
           u.SchoolEmail,
-          u.Role,
           u.DepartmentId,
           d.DepartmentName,
-          u.SectionId,
-          s.SectionName,
+          u.Subject,
+          u.Role,
+          u.MustChangePassword,
           u.IsActive,
-          u.LastLoginAt,
           u.CreatedAt
         FROM Users u
-        LEFT JOIN Departments d ON u.DepartmentId = d.Id
-        LEFT JOIN SchoolSections s ON u.SectionId = s.Id
-        WHERE u.Id = @userId
+        LEFT JOIN Departments d ON u.DepartmentId = d.DepartmentId
+        WHERE u.UserId = @userId
       `);
 
     const user = result.recordset[0];
@@ -143,17 +134,16 @@ const getMe = async (req, res) => {
     }
 
     return res.status(200).json({
-      id: user.Id,
-      fullName: user.FullName,
+      id: user.UserId,
       employeeId: user.EmployeeId,
+      fullName: user.FullName,
       schoolEmail: user.SchoolEmail,
-      role: user.Role,
       departmentId: user.DepartmentId,
       departmentName: user.DepartmentName,
-      sectionId: user.SectionId,
-      sectionName: user.SectionName,
+      subject: user.Subject,
+      role: user.Role,
+      mustChangePassword: user.MustChangePassword,
       isActive: user.IsActive,
-      lastLoginAt: user.LastLoginAt,
       createdAt: user.CreatedAt,
     });
   } catch (error) {

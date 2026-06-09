@@ -47,7 +47,7 @@ export default function TeacherDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+      topbar={<Topbar />}
     >
       {/* Page Header */}
       <PageHeader
