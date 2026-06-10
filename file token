@@ -18,3 +18,18 @@ Body (JSON)
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1wbG95ZWVJZCI6IlNBMDAwMSIsInJvbGUiOiJTdXBlckFkbWluIiwiaWF0IjoxNzgxMDE3MDUzLCJleHAiOjE3ODExMDM0NTN9.blRwyBta1BQFnl95pZGbQYlTrvYhwwr1D-XJ95Ij7EE
 
 $2b$10$fkfTy6u5eZfF3hEcnXPEtepLA6nn6MT2EyTdH3U6VSo/gTImtBQCa
+
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1wbG95ZWVJZCI6IkgxMDAxIiwicm9sZSI6IkhPRCIsImlhdCI6MTc4MTA1Njk2MiwiZXhwIjoxNzgxMTQzMzYyfQ.2ezKJD6Cjtx79Slbe7Kou8mCm60z4tEkcJRQdz8vEhI",
+  "user": {
+    "id": 5,
+    "employeeId": "H1001",
+    "fullName": "Primary HOD",
+    "schoolEmail": "hod.primary@arabunityschool.ae",
+    "departmentId": 2,
+    "subject": "English",
+    "role": "HOD",
+    "mustChangePassword": false
+  }
+}
