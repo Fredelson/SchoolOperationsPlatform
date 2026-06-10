@@ -16,6 +16,8 @@ const requestRoutes = require("./routes/requestRoutes");
 
 const app = express();
 
+const hodRoutes = require("./routes/hodRoutes");
+
 // ============================================
 // Middleware
 // ============================================
@@ -34,6 +36,8 @@ app.use(
   })
 );
 
+
+
 // ============================================
 // Health Check
 // ============================================
@@ -51,7 +55,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
-
+app.use("/api/hod", hodRoutes);
 // ============================================
 // Start Server
 // ============================================

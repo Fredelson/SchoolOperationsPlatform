@@ -1,0 +1,20 @@
+Getting token
+
+POST
+
+http://localhost:5000/api/auth/login
+
+Headers
+
+Content-Type: application/json
+
+Body (JSON)
+
+{
+  "schoolEmail": "teacher@arabunityschool.ae",
+  "password": "123456"
+}
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1wbG95ZWVJZCI6IlNBMDAwMSIsInJvbGUiOiJTdXBlckFkbWluIiwiaWF0IjoxNzgxMDE3MDUzLCJleHAiOjE3ODExMDM0NTN9.blRwyBta1BQFnl95pZGbQYlTrvYhwwr1D-XJ95Ij7EE
+
+$2b$10$fkfTy6u5eZfF3hEcnXPEtepLA6nn6MT2EyTdH3U6VSo/gTImtBQCa

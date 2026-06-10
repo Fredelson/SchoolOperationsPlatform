@@ -1,24 +1,21 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOD Dashboard Page
+// Connected to Backend API
 // ============================================
 
-// React state
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 
-// Main dashboard layout
 import DashboardLayout from "../../layouts/DashboardLayout";
 
-// Common components
 import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
 
-// MUI components
-import { Box, Alert } from "@mui/material";
+import { Box, Alert, Typography } from "@mui/material";
 
-// MUI icons
 import {
   Assignment,
   PendingActions,
@@ -28,68 +25,183 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
-// Dashboard components
 import KPIGrid from "../../components/dashboard/KPIGrid";
-// import DashboardCard from "../../components/dashboard/DashboardCard";
-// import ApprovalQueue from "../../components/dashboard/ApprovalQueue";
 import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
 import HodApprovalTrend from "../../components/dashboard/HodApprovalTrend";
 import DepartmentDistributionChart from "../../components/dashboard/DepartmentDistributionChart";
-// import SubjectAnalyticsCards from "../../components/dashboard/SubjectAnalyticsCards";
 import RecentApprovedRequests from "../../components/dashboard/RecentApprovedRequests";
 import ApprovalHistory from "../../components/dashboard/ApprovalHistory";
 import HodPendingRequestsTable from "../../components/dashboard/HodPendingRequestsTable";
 import RecentRejectedRequests from "../../components/dashboard/RecentRejectedRequests";
 
-// HOD data
-import {
-  hodDashboardStats,
-  hodApprovalQueueData,
-} from "../../data/hodDashboardData";
+import { useAuth } from "../../context/AuthContext";
+
+const API_URL = "http://localhost:5000/api";
 
 export default function HodDashboard() {
-  // Store all HOD approval requests
-  const [requests, setRequests] = useState(hodApprovalQueueData);
+  const { user, token } = useAuth();
 
-  // Store selected request for review dialog
+  // ============================================
+  // State
+  // ============================================
+
+  const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
-
-  // Control request details dialog open/close
   const [openDialog, setOpenDialog] = useState(false);
-
-  // Store HOD comment/remarks
   const [comment, setComment] = useState("");
 
-  // Open review dialog
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ============================================
+  // Fetch HOD assigned requests
+  // GET /api/hod/requests
+  // ============================================
+
+  useEffect(() => {
+    const fetchHodRequests = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await axios.get(`${API_URL}/hod/requests`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Convert backend field names to the format expected by
+        // HodPendingRequestsTable and RequestDetailsDialog.
+        const mappedRequests = response.data.map((item) => ({
+          id: item.RequestId,
+          requestNumber: item.RequestNumber,
+          teacher: item.TeacherName,
+          employeeId: item.EmployeeId,
+          department: item.DepartmentName,
+          subject: item.SubjectName,
+          purpose: item.PurposeName,
+          pages: item.TotalPages,
+          sheets: item.TotalSheets,
+          copies: item.Copies,
+          priority: item.PriorityLevel,
+          status: item.Status,
+          submittedDate: item.SubmittedAt
+            ? new Date(item.SubmittedAt).toLocaleDateString()
+            : "-",
+        }));
+
+        setRequests(mappedRequests);
+      } catch (err) {
+        console.error("Fetch HOD Requests Error:", err);
+
+        setError("Unable to load HOD requests. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchHodRequests();
+    }
+  }, [token]);
+
+  // ============================================
+  // KPI stats calculated from live request data
+  // ============================================
+
+  const hodDashboardStats = useMemo(() => {
+    const total = requests.length;
+
+    const pending = requests.filter(
+      (req) => req.status === "Pending"
+    ).length;
+
+    const approved = requests.filter((req) =>
+      req.status?.toLowerCase().includes("approved")
+    ).length;
+
+    const rejected = requests.filter((req) =>
+      req.status?.toLowerCase().includes("rejected")
+    ).length;
+
+    const forwarded = requests.filter((req) =>
+      req.status?.toLowerCase().includes("forwarded")
+    ).length;
+
+    const completed = requests.filter((req) =>
+      req.status?.toLowerCase().includes("completed")
+    ).length;
+
+    return [
+      {
+        title: "Total Requests",
+        value: total,
+        subtitle: "Assigned to you",
+      },
+      {
+        title: "Pending Review",
+        value: pending,
+        subtitle: "Awaiting HOD action",
+      },
+      {
+        title: "Approved",
+        value: approved,
+        subtitle: "Approved by HOD",
+      },
+      {
+        title: "Rejected",
+        value: rejected,
+        subtitle: "Rejected requests",
+      },
+      {
+        title: "Forwarded",
+        value: forwarded,
+        subtitle: "Forwarded to HOS",
+      },
+      {
+        title: "Completed",
+        value: completed,
+        subtitle: "Completed requests",
+      },
+    ];
+  }, [requests]);
+
+  // ============================================
+  // Open request review dialog
+  // ============================================
+
   const handleReview = (request) => {
     setSelectedRequest(request);
     setComment("");
     setOpenDialog(true);
   };
 
-  // Close review dialog
+  // ============================================
+  // Close request review dialog
+  // ============================================
+
   const handleClose = () => {
     setOpenDialog(false);
     setSelectedRequest(null);
     setComment("");
   };
 
-  // Approve request
+  // ============================================
+  // TEMPORARY FRONTEND-ONLY APPROVE
+  // Later this will call:
+  // PATCH /api/hod/requests/:id/approve
+  // ============================================
+
   const handleApprove = () => {
     setRequests((prev) =>
       prev.map((req) =>
         req.id === selectedRequest.id
           ? {
               ...req,
-
-              // If sheets are more than 500, forward to HOS
-              // If sheets are 500 or below, approve directly to Admin Printing
               status:
                 req.sheets > 500
                   ? "Forwarded to HOS"
                   : "Approved by HOD",
-
-              // Save HOD comment
               comment,
             }
           : req
@@ -99,9 +211,13 @@ export default function HodDashboard() {
     handleClose();
   };
 
-  // Return request for revision
+  // ============================================
+  // TEMPORARY FRONTEND-ONLY RETURN
+  // Later this will call:
+  // PATCH /api/hod/requests/:id/return
+  // ============================================
+
   const handleReturn = () => {
-    // Comment is required when returning
     if (!comment.trim()) {
       alert("Comment is required when returning a request.");
       return;
@@ -122,9 +238,13 @@ export default function HodDashboard() {
     handleClose();
   };
 
-  // Reject request
+  // ============================================
+  // TEMPORARY FRONTEND-ONLY REJECT
+  // Later this will call:
+  // PATCH /api/hod/requests/:id/reject
+  // ============================================
+
   const handleReject = () => {
-    // Comment is required when rejecting
     if (!comment.trim()) {
       alert("Comment is required when rejecting a request.");
       return;
@@ -145,7 +265,10 @@ export default function HodDashboard() {
     handleClose();
   };
 
-  // KPI icons matched with hodDashboardStats order
+  // ============================================
+  // KPI icons matched with stats order
+  // ============================================
+
   const icons = [
     <Assignment />,
     <PendingActions />,
@@ -158,61 +281,67 @@ export default function HodDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="hod" />}
-      topbar={<Topbar userName="Primary HOD" role="HOD" />}
+      topbar={
+        <Topbar
+          userName={user?.fullName || "HOD"}
+          role={user?.role || "HOD"}
+        />
+      }
     >
-      {/* Page Header */}
       <PageHeader
         title="HOD Dashboard"
         subtitle="Review and approve department photocopy requests."
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 
-      {/* KPI Cards */}
-      <KPIGrid stats={hodDashboardStats} icons={icons} />
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-      {/* HOD Analytics Charts */}
-      <Box
-        sx={{
-          mt: 4,
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "2fr 1fr",
-          },
-          gap: 3,
-        }}
-      >
-        <HodApprovalTrend />
-        <DepartmentDistributionChart />
-      </Box>
+      {loading ? (
+        <Typography>Loading HOD requests...</Typography>
+      ) : (
+        <>
+          <KPIGrid stats={hodDashboardStats} icons={icons} />
 
-      {/* Subject Analytics Cards */}
-      {/* <SubjectAnalyticsCards /> */}
+          <Box
+            sx={{
+              mt: 4,
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                lg: "2fr 1fr",
+              },
+              gap: 3,
+            }}
+          >
+            <HodApprovalTrend />
+            <DepartmentDistributionChart />
+          </Box>
 
-      {/* Pending Requests Table */}
-      <Box sx={{ mt: 4 }}>
-        <HodPendingRequestsTable
-          requests={requests}
-          onReview={handleReview}
-        />
-      </Box>
+          <Box sx={{ mt: 4 }}>
+            <HodPendingRequestsTable
+              requests={requests}
+              onReview={handleReview}
+            />
+          </Box>
 
-      {/* Recent Approved Requests */}
-      <Box sx={{ mt: 4 }}>
-        <RecentApprovedRequests />
-      </Box>
+          <Box sx={{ mt: 4 }}>
+            <RecentApprovedRequests />
+          </Box>
 
-      {/* Recent Rejected Requests */}
-      <Box sx={{ mt: 4 }}>
-        <RecentRejectedRequests />
-      </Box>
+          <Box sx={{ mt: 4 }}>
+            <RecentRejectedRequests />
+          </Box>
 
-      {/* Approval History */}
-      <Box sx={{ mt: 4 }}>
-        <ApprovalHistory />
-      </Box>
+          <Box sx={{ mt: 4 }}>
+            <ApprovalHistory />
+          </Box>
+        </>
+      )}
 
-      {/* Request Details Dialog */}
       <RequestDetailsDialog
         open={openDialog}
         request={selectedRequest}

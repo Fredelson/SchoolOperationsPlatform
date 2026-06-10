@@ -1,11 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher - Create Request Page
-// Uses reusable DashboardLayout, Sidebar,
-// Topbar, PageHeader, and DashboardCard
+// Connected to Backend API
 // ============================================
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import {
   Box,
@@ -16,6 +17,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  Alert,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -30,7 +32,13 @@ import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DashboardCard from "../../components/common/DashboardCard";
 
+import { useAuth } from "../../context/AuthContext";
+
+const API_URL = "http://localhost:5000/api";
+
+// Temporary purpose options until dropdowns are connected to database
 const purposeOptions = [
+  "Classwork",
   "Worksheet",
   "Board Work",
   "Baseline Assessment",
@@ -45,6 +53,7 @@ const purposeOptions = [
   "Other",
 ];
 
+// Creates one empty document row
 const createEmptyDocument = () => ({
   id: Date.now(),
   documentName: "",
@@ -57,12 +66,26 @@ const createEmptyDocument = () => ({
 });
 
 export default function CreateRequest() {
-  const [purpose, setPurpose] = useState("");
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
+
+  // ============================================
+  // Form State
+  // ============================================
+
+  const [purpose, setPurpose] = useState("Classwork");
   const [customPurpose, setCustomPurpose] = useState("");
   const [requiredDate, setRequiredDate] = useState("");
   const [priority, setPriority] = useState("Normal");
   const [remarks, setRemarks] = useState("");
   const [documents, setDocuments] = useState([createEmptyDocument()]);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // ============================================
+  // Update one document field
+  // ============================================
 
   const updateDocument = (id, field, value) => {
     setDocuments((prev) =>
@@ -71,6 +94,10 @@ export default function CreateRequest() {
       )
     );
   };
+
+  // ============================================
+  // Add new document row
+  // ============================================
 
   const addDocument = () => {
     setDocuments((prev) => [
@@ -82,11 +109,24 @@ export default function CreateRequest() {
     ]);
   };
 
+  // ============================================
+  // Remove document row
+  // Always keep at least one document
+  // ============================================
+
   const removeDocument = (id) => {
     setDocuments((prev) =>
-      prev.length === 1 ? prev : prev.filter((doc) => doc.id !== id)
+      prev.length === 1
+        ? prev
+        : prev.filter((doc) => doc.id !== id)
     );
   };
+
+  // ============================================
+  // Calculate request summary
+  // totalPages = pages x copies
+  // totalSheets changes based on single/double sided
+  // ============================================
 
   const summary = useMemo(() => {
     return documents.reduce(
@@ -104,8 +144,10 @@ export default function CreateRequest() {
           totalPages: total.totalPages + printedPages,
           totalSheets: total.totalSheets + sheets,
           totalCopies: total.totalCopies + copies,
-          totalA4: total.totalA4 + (doc.paperSize === "A4" ? sheets : 0),
-          totalA3: total.totalA3 + (doc.paperSize === "A3" ? sheets : 0),
+          totalA4:
+            total.totalA4 + (doc.paperSize === "A4" ? sheets : 0),
+          totalA3:
+            total.totalA3 + (doc.paperSize === "A3" ? sheets : 0),
         };
       },
       {
@@ -118,20 +160,108 @@ export default function CreateRequest() {
     );
   }, [documents]);
 
+  // ============================================
+  // Approval route preview
+  // <= 500 sheets goes to HOD
+  // > 500 sheets goes to HOS
+  // ============================================
+
   const approvalFlow =
     summary.totalSheets <= 500
       ? ["Teacher", "HOD", "Admin Printing"]
       : ["Teacher", "HOS", "Admin Printing"];
 
+  // ============================================
+  // Submit Request
+  // Calls backend:
+  // POST /api/requests
+  //
+  // Temporary fixed IDs:
+  // departmentId = 1
+  // subjectId = 1
+  // purposeId = 1
+  //
+  // Later we will connect these to database dropdowns.
+  // ============================================
+
+  const handleSubmitRequest = async () => {
+    try {
+      setError("");
+
+      if (!token) {
+        setError("You are not logged in.");
+        return;
+      }
+
+      if (!purpose) {
+        setError("Please select a purpose.");
+        return;
+      }
+
+      if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
+        setError("Total pages and sheets must be greater than zero.");
+        return;
+      }
+
+      setSubmitting(true);
+
+      const mainDocument = documents[0];
+
+      const payload = {
+        departmentId: user?.departmentId || 1,
+        subjectId: 1,
+        purposeId: 1,
+        copies: Number(mainDocument.copies),
+        totalPages: summary.totalPages,
+        totalSheets: summary.totalSheets,
+        priorityLevel: priority,
+      };
+
+      const response = await axios.post(
+        `${API_URL}/requests`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Request Created:", response.data);
+
+      navigate("/teacher/my-requests");
+    } catch (err) {
+      console.error("Create Request Error:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to submit request. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+      topbar={
+        <Topbar
+          userName={user?.fullName || "Teacher"}
+          role={user?.role || "Teacher"}
+        />
+      }
     >
       <PageHeader
         title="Create Photocopy Request"
         subtitle="Add multiple documents and review the approval flow before submitting."
       />
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       <Box
         sx={{
@@ -230,7 +360,8 @@ export default function CreateRequest() {
           >
             {documents.map((doc, index) => {
               const printedPages =
-                (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
+                (Number(doc.pages) || 0) *
+                (Number(doc.copies) || 0);
 
               const sheets =
                 doc.printType === "Double-Sided"
@@ -307,7 +438,11 @@ export default function CreateRequest() {
                         hidden
                         type="file"
                         onChange={(e) =>
-                          updateDocument(doc.id, "file", e.target.files[0])
+                          updateDocument(
+                            doc.id,
+                            "file",
+                            e.target.files[0]
+                          )
                         }
                       />
                     </Button>
@@ -317,7 +452,11 @@ export default function CreateRequest() {
                       label="Pages"
                       value={doc.pages}
                       onChange={(e) =>
-                        updateDocument(doc.id, "pages", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "pages",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     />
@@ -327,7 +466,11 @@ export default function CreateRequest() {
                       label="Copies"
                       value={doc.copies}
                       onChange={(e) =>
-                        updateDocument(doc.id, "copies", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "copies",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     />
@@ -337,7 +480,11 @@ export default function CreateRequest() {
                       label="Paper Size"
                       value={doc.paperSize}
                       onChange={(e) =>
-                        updateDocument(doc.id, "paperSize", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "paperSize",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
@@ -350,12 +497,20 @@ export default function CreateRequest() {
                       label="Print Type"
                       value={doc.printType}
                       onChange={(e) =>
-                        updateDocument(doc.id, "printType", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "printType",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
-                      <MenuItem value="Single-Sided">Single-Sided</MenuItem>
-                      <MenuItem value="Double-Sided">Double-Sided</MenuItem>
+                      <MenuItem value="Single-Sided">
+                        Single-Sided
+                      </MenuItem>
+                      <MenuItem value="Double-Sided">
+                        Double-Sided
+                      </MenuItem>
                     </TextField>
 
                     <TextField
@@ -363,11 +518,17 @@ export default function CreateRequest() {
                       label="Print Color"
                       value={doc.printColor}
                       onChange={(e) =>
-                        updateDocument(doc.id, "printColor", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "printColor",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
-                      <MenuItem value="Black & White">Black & White</MenuItem>
+                      <MenuItem value="Black & White">
+                        Black & White
+                      </MenuItem>
                       <MenuItem value="Color">Color</MenuItem>
                     </TextField>
 
@@ -379,11 +540,16 @@ export default function CreateRequest() {
                         border: "1px solid #E5E7EB",
                       }}
                     >
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
                         Printed Pages
                       </Typography>
 
-                      <Typography fontWeight={800}>{printedPages}</Typography>
+                      <Typography fontWeight={800}>
+                        {printedPages}
+                      </Typography>
 
                       <Typography
                         variant="body2"
@@ -456,6 +622,7 @@ export default function CreateRequest() {
               fullWidth
               variant="outlined"
               startIcon={<SaveIcon />}
+              disabled
               sx={{ mb: 2, textTransform: "none" }}
             >
               Save Draft
@@ -465,9 +632,11 @@ export default function CreateRequest() {
               fullWidth
               variant="contained"
               startIcon={<SendIcon />}
+              onClick={handleSubmitRequest}
+              disabled={submitting}
               sx={{ textTransform: "none" }}
             >
-              Submit Request
+              {submitting ? "Submitting..." : "Submit Request"}
             </Button>
           </DashboardCard>
         </Box>
@@ -475,6 +644,11 @@ export default function CreateRequest() {
     </DashboardLayout>
   );
 }
+
+// ============================================
+// Reusable Summary Row
+// Displays summary label and value
+// ============================================
 
 function SummaryRow({ label, value }) {
   return (

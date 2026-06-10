@@ -1,11 +1,10 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher - My Requests Page
-// Uses reusable DashboardLayout, Sidebar,
-// Topbar, PageHeader, DashboardCard,
-// DataTableCard, and StatusChip
+// Connected to Backend API
 // ============================================
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   TextField,
@@ -19,6 +18,8 @@ import {
   TableRow,
   InputAdornment,
   IconButton,
+  Alert,
+  Typography,
 } from "@mui/material";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -27,9 +28,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
 
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
-
 import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
@@ -37,27 +38,94 @@ import DashboardCard from "../../components/common/DashboardCard";
 import DataTableCard from "../../components/common/DataTableCard";
 import StatusChip from "../../components/common/StatusChip";
 
-import { recentRequestsData } from "../../data/dashboardData";
+import { useAuth } from "../../context/AuthContext";
 
-// ============================================
-// My Requests Page
-// ============================================
+const API_URL = "http://localhost:5000/api";
 
 export default function MyRequests() {
   const navigate = useNavigate();
+  const { user, token } = useAuth();
+
+  const [requests, setRequests] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [purposeFilter, setPurposeFilter] = useState("All");
+  const [searchText, setSearchText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch logged-in teacher requests
+// ============================================
+// Fetch logged-in teacher requests
+// ============================================
+
+useEffect(() => {
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      console.log("TOKEN:", token);
+
+      const response = await axios.get(
+        `${API_URL}/requests/my-requests`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("API RESPONSE:", response.data);
+
+      setRequests(response.data);
+    } catch (err) {
+      console.error("Fetch My Requests Error:", err);
+      setError("Unable to load requests. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (token) {
+    fetchRequests();
+  }
+}, [token]);
+
+  const filteredRequests = useMemo(() => {
+    return requests.filter((request) => {
+      const requestNumber = request.RequestNumber || "";
+      const purpose = request.PurposeName || "";
+      const status = request.Status || "";
+
+      const matchesSearch =
+        requestNumber.toLowerCase().includes(searchText.toLowerCase()) ||
+        purpose.toLowerCase().includes(searchText.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "All" || status === statusFilter;
+
+      const matchesPurpose =
+        purposeFilter === "All" || purpose === purposeFilter;
+
+      return matchesSearch && matchesStatus && matchesPurpose;
+    });
+  }, [requests, searchText, statusFilter, purposeFilter]);
 
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+      topbar={
+        <Topbar
+          userName={user?.fullName || "Teacher"}
+          role={user?.role || "Teacher"}
+        />
+      }
     >
-      {/* Page Header */}
       <PageHeader
         title="My Requests"
         subtitle="View, monitor, and manage your photocopy requests."
       />
 
-      {/* Filters Section */}
       <DashboardCard title="Filters">
         <Box
           sx={{
@@ -70,10 +138,11 @@ export default function MyRequests() {
             alignItems: "center",
           }}
         >
-          {/* Search */}
           <TextField
             size="small"
             placeholder="Search request ID or purpose..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             slotProps={{
               input: {
                 startAdornment: (
@@ -85,29 +154,30 @@ export default function MyRequests() {
             }}
           />
 
-          {/* Status Filter */}
           <TextField
             select
             size="small"
             label="Status"
-            defaultValue="All"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <MenuItem value="All">All</MenuItem>
-            <MenuItem value="Pending HOD">Pending HOD</MenuItem>
-            <MenuItem value="Pending HOS">Pending HOS</MenuItem>
+            <MenuItem value="Pending">Pending</MenuItem>
             <MenuItem value="Approved">Approved</MenuItem>
+            <MenuItem value="Rejected">Rejected</MenuItem>
             <MenuItem value="Printing">Printing</MenuItem>
             <MenuItem value="Completed">Completed</MenuItem>
           </TextField>
 
-          {/* Purpose Filter */}
           <TextField
             select
             size="small"
             label="Purpose"
-            defaultValue="All"
+            value={purposeFilter}
+            onChange={(e) => setPurposeFilter(e.target.value)}
           >
             <MenuItem value="All">All</MenuItem>
+            <MenuItem value="Classwork">Classwork</MenuItem>
             <MenuItem value="Worksheet">Worksheet</MenuItem>
             <MenuItem value="Homework">Homework</MenuItem>
             <MenuItem value="Friday Exam">Friday Exam</MenuItem>
@@ -116,110 +186,97 @@ export default function MyRequests() {
             </MenuItem>
           </TextField>
 
-          {/* Create Request */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() =>
-              navigate("/teacher/create-request")
-            }
-            sx={{
-              textTransform: "none",
-            }}
+            onClick={() => navigate("/teacher/create-request")}
+            sx={{ textTransform: "none" }}
           >
             Create Request
           </Button>
         </Box>
       </DashboardCard>
 
-      {/* Table Section */}
+      {error && (
+        <Alert severity="error" sx={{ mt: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       <DataTableCard
         title="Request List"
-        subtitle={`Showing ${recentRequestsData.length} requests`}
+        subtitle={
+          loading
+            ? "Loading requests..."
+            : `Showing ${filteredRequests.length} requests`
+        }
         sx={{ mt: 3 }}
       >
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Request ID</TableCell>
-                <TableCell>Purpose</TableCell>
-                <TableCell>Pages</TableCell>
-                <TableCell>Sheets</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Submitted Date</TableCell>
-                <TableCell align="right">
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {recentRequestsData.map((request) => (
-                <TableRow
-                  key={request.id}
-                  hover
-                >
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                    }}
-                  >
-                    {request.id}
-                  </TableCell>
-
-                  <TableCell>
-                    {request.purpose}
-                  </TableCell>
-
-                  <TableCell>
-                    {request.pages}
-                  </TableCell>
-
-                  <TableCell>
-                    {request.sheets}
-                  </TableCell>
-
-                  <TableCell>
-                    <StatusChip
-                      status={request.status}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    {request.submittedDate}
-                  </TableCell>
-
-                  <TableCell align="right">
-                    {/* View Details */}
-                    <IconButton
-                      onClick={() =>
-                        navigate(
-                          `/teacher/request-details/${request.id}`
-                        )
-                      }
-                    >
-                      <VisibilityIcon
-                        sx={{
-                          color: "#2563EB",
-                        }}
-                      />
-                    </IconButton>
-
-                    {/* Download */}
-                    <IconButton>
-                      <DownloadIcon
-                        sx={{
-                          color: "#10B981",
-                        }}
-                      />
-                    </IconButton>
-                  </TableCell>
+        {loading ? (
+          <Typography sx={{ p: 2 }}>Loading...</Typography>
+        ) : filteredRequests.length === 0 ? (
+          <Typography sx={{ p: 2 }}>
+            No requests found.
+          </Typography>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Request ID</TableCell>
+                  <TableCell>Purpose</TableCell>
+                  <TableCell>Pages</TableCell>
+                  <TableCell>Sheets</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Submitted Date</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+
+              <TableBody>
+                {filteredRequests.map((request) => (
+                  <TableRow key={request.RequestId} hover>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      {request.RequestNumber}
+                    </TableCell>
+
+                    <TableCell>{request.PurposeName}</TableCell>
+
+                    <TableCell>{request.TotalPages}</TableCell>
+
+                    <TableCell>{request.TotalSheets}</TableCell>
+
+                    <TableCell>
+                      <StatusChip status={request.Status} />
+                    </TableCell>
+
+                    <TableCell>
+                      {request.SubmittedAt
+                        ? new Date(request.SubmittedAt).toLocaleDateString()
+                        : "-"}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <IconButton
+                        onClick={() =>
+                          navigate(
+                            `/teacher/request-details/${request.RequestId}`
+                          )
+                        }
+                      >
+                        <VisibilityIcon sx={{ color: "#2563EB" }} />
+                      </IconButton>
+
+                      <IconButton disabled>
+                        <DownloadIcon sx={{ color: "#94A3B8" }} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </DataTableCard>
     </DashboardLayout>
   );
