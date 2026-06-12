@@ -1,26 +1,59 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Recent Approved Requests Component
+// Live Backend Data Version
 // ============================================
 
-// MUI components
+// MUI Components
 import {
   Box,
   Chip,
   Typography,
 } from "@mui/material";
 
-// Reusable dashboard card
+// Reusable Dashboard Card
 import DashboardCard from "./DashboardCard";
 
-// HOD data
-import { recentApprovedRequests } from "../../data/hodDashboardData";
+// ============================================
+// Component
+// Receives requests from HodDashboard.jsx
+// ============================================
+export default function RecentApprovedRequests({
+  requests = [],
+}) {
+  // ============================================
+  // Get latest approved requests
+  // Backend status:
+  // "Approved by HOD"
+  // ============================================
+  const recentApproved = requests
+    .filter(
+      (request) =>
+        request.status?.toLowerCase() ===
+        "approved by hod"
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.rawSubmittedAt) -
+        new Date(a.rawSubmittedAt)
+    )
+    .slice(0, 5);
 
-export default function RecentApprovedRequests() {
   return (
     <DashboardCard title="Recent Approved Requests">
-      {/* Approved request list */}
-      {recentApprovedRequests.map((request) => (
+      {/* ============================================
+          Empty State
+      ============================================ */}
+      {recentApproved.length === 0 && (
+        <Typography color="text.secondary">
+          No approved requests found.
+        </Typography>
+      )}
+
+      {/* ============================================
+          Approved Requests List
+      ============================================ */}
+      {recentApproved.map((request) => (
         <Box
           key={request.id}
           sx={{
@@ -30,7 +63,9 @@ export default function RecentApprovedRequests() {
             border: "1px solid #e5e7eb",
           }}
         >
-          {/* Request number and status */}
+          {/* ============================================
+              Request Number + Status
+          ============================================ */}
           <Box
             sx={{
               display: "flex",
@@ -39,26 +74,61 @@ export default function RecentApprovedRequests() {
               mb: 1,
             }}
           >
-            <Typography fontWeight={700}>{request.id}</Typography>
+            {/* Request Number */}
+            <Typography fontWeight={700}>
+              {request.requestNumber}
+            </Typography>
 
+            {/* Status Badge */}
             <Chip
-              label={request.status}
+              label="Approved"
               color="success"
               size="small"
             />
           </Box>
 
-          {/* Teacher and department */}
-          <Typography variant="body2" color="text.secondary">
+          {/* Teacher */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Teacher: {request.teacher}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary">
+          {/* Department */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Department: {request.department}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary">
-            Date: {request.date}
+          {/* Subject */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Subject: {request.subject}
+          </Typography>
+
+          {/* Approval Comment */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Remarks:{" "}
+            {request.approvalRemarks ||
+              "Approved by HOD"}
+          </Typography>
+
+          {/* Approval Date */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Action Date:{" "}
+            {request.actionDate ||
+              request.submittedDate}
           </Typography>
         </Box>
       ))}

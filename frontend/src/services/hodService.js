@@ -1,23 +1,42 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOD Service
+// Handles all frontend API calls for HOD module
 // ============================================
 
 import api from "./api";
 
-// Dashboard KPI Data
+/**
+ * Get HOD dashboard KPI data
+ * GET /api/hod/dashboard
+ */
 export const getHodDashboard = async () => {
   const response = await api.get("/hod/dashboard");
   return response.data;
 };
 
-// Pending Requests Assigned To HOD
+/**
+ * Get requests assigned to HOD
+ * GET /api/hod/requests
+ */
 export const getHodRequests = async () => {
   const response = await api.get("/hod/requests");
   return response.data;
 };
 
-// Approve Request
+/**
+ * Get real HOD approval history
+ * GET /api/hod/approval-history
+ */
+export const getHodApprovalHistory = async () => {
+  const response = await api.get("/hod/approval-history");
+  return response.data;
+};
+
+/**
+ * Approve request
+ * PUT /api/hod/requests/:id/approve
+ */
 export const approveHodRequest = async (
   requestId,
   remarks = "Approved by HOD"
@@ -32,7 +51,10 @@ export const approveHodRequest = async (
   return response.data;
 };
 
-// Reject Request
+/**
+ * Reject request
+ * PUT /api/hod/requests/:id/reject
+ */
 export const rejectHodRequest = async (
   requestId,
   remarks = "Rejected by HOD"

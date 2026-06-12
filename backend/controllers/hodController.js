@@ -13,21 +13,54 @@ const { poolPromise, sql } = require("../config/db");
  */
 const getHodDashboard = async (req, res) => {
   try {
+    // Logged-in HOD ID from JWT
     const hodId = req.user.id;
+
+    // Connect to MSSQL
     const pool = await poolPromise;
 
+    // Count all requests assigned to this HOD or already acted by this HOD
     const result = await pool
       .request()
       .input("hodId", sql.Int, hodId)
       .query(`
         SELECT
-          COUNT(*) AS TotalRequests,
-          SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS PendingReview,
-          SUM(CASE WHEN Status = 'Approved by HOD' THEN 1 ELSE 0 END) AS Approved,
-          SUM(CASE WHEN Status = 'Rejected by HOD' THEN 1 ELSE 0 END) AS Rejected
-        FROM PhotocopyRequests
-        WHERE CurrentApproverId = @hodId
-           OR Status IN ('Approved by HOD', 'Rejected by HOD')
+          COUNT(DISTINCT r.RequestId) AS TotalRequests,
+
+          SUM(CASE 
+            WHEN r.Status = 'Pending'
+             AND r.CurrentApproverId = @hodId
+            THEN 1 ELSE 0 
+          END) AS PendingReview,
+
+          SUM(CASE 
+            WHEN r.Status = 'Approved by HOD'
+            THEN 1 ELSE 0 
+          END) AS Approved,
+
+          SUM(CASE 
+            WHEN r.Status = 'Rejected by HOD'
+            THEN 1 ELSE 0 
+          END) AS Rejected,
+
+          SUM(CASE 
+            WHEN r.Status = 'Forwarded to HOS'
+            THEN 1 ELSE 0 
+          END) AS Forwarded,
+
+          SUM(CASE 
+            WHEN r.Status = 'Completed'
+            THEN 1 ELSE 0 
+          END) AS Completed
+
+        FROM PhotocopyRequests r
+        LEFT JOIN RequestApprovals ra 
+          ON r.RequestId = ra.RequestId
+         AND ra.ApproverId = @hodId
+         AND ra.ApprovalRole = 'HOD'
+
+        WHERE r.CurrentApproverId = @hodId
+           OR ra.ApproverId = @hodId
       `);
 
     return res.status(200).json(result.recordset[0]);
@@ -42,20 +75,23 @@ const getHodDashboard = async (req, res) => {
 };
 
 /**
- * @desc    Get requests assigned to logged-in HOD
+ * @desc    Get requests assigned to logged-in HOD + requests already approved/rejected by HOD
  * @route   GET /api/hod/requests
  * @access  Private - HOD / SuperAdmin
  */
 const getHodRequests = async (req, res) => {
   try {
+    // Logged-in HOD ID from JWT
     const hodId = req.user.id;
+
+    // Connect to MSSQL
     const pool = await poolPromise;
 
     const result = await pool
       .request()
       .input("hodId", sql.Int, hodId)
       .query(`
-        SELECT
+        SELECT DISTINCT
           r.RequestId,
           r.RequestNumber,
           r.Copies,
@@ -64,17 +100,40 @@ const getHodRequests = async (req, res) => {
           r.PriorityLevel,
           r.Status,
           r.SubmittedAt,
+
           u.FullName AS TeacherName,
           u.EmployeeId,
+
           d.DepartmentName,
           s.SubjectName,
-          p.PurposeName
+          p.PurposeName,
+
+          ra.Remarks AS ApprovalRemarks,
+          ra.ApprovalStatus,
+          ra.ActionDate
+
         FROM PhotocopyRequests r
-        LEFT JOIN Users u ON r.TeacherId = u.UserId
-        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+
+        LEFT JOIN Users u 
+          ON r.TeacherId = u.UserId
+
+        LEFT JOIN Departments d 
+          ON r.DepartmentId = d.DepartmentId
+
+        LEFT JOIN Subjects s 
+          ON r.SubjectId = s.SubjectId
+
+        LEFT JOIN Purposes p 
+          ON r.PurposeId = p.PurposeId
+
+        LEFT JOIN RequestApprovals ra
+          ON r.RequestId = ra.RequestId
+         AND ra.ApproverId = @hodId
+         AND ra.ApprovalRole = 'HOD'
+
         WHERE r.CurrentApproverId = @hodId
+           OR ra.ApproverId = @hodId
+
         ORDER BY r.SubmittedAt DESC
       `);
 
@@ -96,8 +155,13 @@ const getHodRequests = async (req, res) => {
  */
 const getHodRequestById = async (req, res) => {
   try {
+    // Logged-in HOD ID
     const hodId = req.user.id;
+
+    // Request ID from URL
     const requestId = req.params.id;
+
+    // Connect to MSSQL
     const pool = await poolPromise;
 
     const result = await pool
@@ -114,20 +178,41 @@ const getHodRequestById = async (req, res) => {
           r.PriorityLevel,
           r.Status,
           r.SubmittedAt,
+
           u.FullName AS TeacherName,
           u.EmployeeId,
+
           d.DepartmentName,
           s.SubjectName,
-          p.PurposeName
+          p.PurposeName,
+
+          ra.Remarks AS ApprovalRemarks,
+          ra.ApprovalStatus,
+          ra.ActionDate
+
         FROM PhotocopyRequests r
-        LEFT JOIN Users u ON r.TeacherId = u.UserId
-        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+
+        LEFT JOIN Users u 
+          ON r.TeacherId = u.UserId
+
+        LEFT JOIN Departments d 
+          ON r.DepartmentId = d.DepartmentId
+
+        LEFT JOIN Subjects s 
+          ON r.SubjectId = s.SubjectId
+
+        LEFT JOIN Purposes p 
+          ON r.PurposeId = p.PurposeId
+
+        LEFT JOIN RequestApprovals ra
+          ON r.RequestId = ra.RequestId
+         AND ra.ApproverId = @hodId
+         AND ra.ApprovalRole = 'HOD'
+
         WHERE r.RequestId = @requestId
           AND (
             r.CurrentApproverId = @hodId
-            OR r.Status IN ('Approved by HOD', 'Rejected by HOD')
+            OR ra.ApproverId = @hodId
           )
       `);
 
@@ -149,18 +234,101 @@ const getHodRequestById = async (req, res) => {
 };
 
 /**
+ * @desc    Get HOD approval history from RequestApprovals table
+ * @route   GET /api/hod/approval-history
+ * @access  Private - HOD / SuperAdmin
+ */
+const getHodApprovalHistory = async (req, res) => {
+  try {
+    // Logged-in HOD ID
+    const hodId = req.user.id;
+
+    // Connect to MSSQL
+    const pool = await poolPromise;
+
+    // Get all approval actions made by this HOD
+    const result = await pool
+      .request()
+      .input("hodId", sql.Int, hodId)
+      .query(`
+        SELECT
+          ra.ApprovalId,
+          ra.RequestId,
+          ra.ApproverId,
+          ra.ApprovalRole,
+          ra.ApprovalStatus,
+          ra.Remarks,
+          ra.ActionDate,
+
+          r.RequestNumber,
+          r.Status AS RequestStatus,
+          r.Copies,
+          r.TotalPages,
+          r.TotalSheets,
+          r.PriorityLevel,
+          r.SubmittedAt,
+
+          u.FullName AS TeacherName,
+          u.EmployeeId,
+
+          d.DepartmentName,
+          s.SubjectName,
+          p.PurposeName
+
+        FROM RequestApprovals ra
+
+        INNER JOIN PhotocopyRequests r
+          ON ra.RequestId = r.RequestId
+
+        LEFT JOIN Users u
+          ON r.TeacherId = u.UserId
+
+        LEFT JOIN Departments d
+          ON r.DepartmentId = d.DepartmentId
+
+        LEFT JOIN Subjects s
+          ON r.SubjectId = s.SubjectId
+
+        LEFT JOIN Purposes p
+          ON r.PurposeId = p.PurposeId
+
+        WHERE ra.ApproverId = @hodId
+          AND ra.ApprovalRole = 'HOD'
+
+        ORDER BY ra.ActionDate DESC
+      `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get HOD Approval History Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching HOD approval history",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * @desc    Approve request assigned to logged-in HOD
  * @route   PUT /api/hod/requests/:id/approve
  * @access  Private - HOD / SuperAdmin
  */
 const approveHodRequest = async (req, res) => {
   try {
+    // Logged-in HOD ID
     const hodId = req.user.id;
+
+    // Request ID from URL
     const requestId = req.params.id;
+
+    // Remarks from frontend
     const { remarks } = req.body || {};
 
+    // Connect to MSSQL
     const pool = await poolPromise;
 
+    // Check if request is still pending and assigned to this HOD
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -175,10 +343,12 @@ const approveHodRequest = async (req, res) => {
 
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
-        message: "Request not found, already processed, or not assigned to this HOD",
+        message:
+          "Request not found, already processed, or not assigned to this HOD",
       });
     }
 
+    // Update request status
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -190,6 +360,7 @@ const approveHodRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
+    // Save approval history
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -237,12 +408,19 @@ const approveHodRequest = async (req, res) => {
  */
 const rejectHodRequest = async (req, res) => {
   try {
+    // Logged-in HOD ID
     const hodId = req.user.id;
+
+    // Request ID from URL
     const requestId = req.params.id;
+
+    // Remarks from frontend
     const { remarks } = req.body || {};
 
+    // Connect to MSSQL
     const pool = await poolPromise;
 
+    // Check if request is still pending and assigned to this HOD
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -257,10 +435,12 @@ const rejectHodRequest = async (req, res) => {
 
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
-        message: "Request not found, already processed, or not assigned to this HOD",
+        message:
+          "Request not found, already processed, or not assigned to this HOD",
       });
     }
 
+    // Update request status
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -272,6 +452,7 @@ const rejectHodRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
+    // Save rejection history
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -316,6 +497,7 @@ module.exports = {
   getHodDashboard,
   getHodRequests,
   getHodRequestById,
+  getHodApprovalHistory,
   approveHodRequest,
   rejectHodRequest,
 };

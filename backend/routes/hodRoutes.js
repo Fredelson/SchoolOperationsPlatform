@@ -9,6 +9,7 @@ const {
   getHodDashboard,
   getHodRequests,
   getHodRequestById,
+  getHodApprovalHistory,
   approveHodRequest,
   rejectHodRequest,
 } = require("../controllers/hodController");
@@ -20,11 +21,7 @@ const {
 
 const router = express.Router();
 
-/**
- * @desc    HOD Dashboard Statistics
- * @route   GET /api/hod/dashboard
- * @access  Private - HOD / SuperAdmin
- */
+// HOD dashboard KPI statistics
 router.get(
   "/dashboard",
   protect,
@@ -32,11 +29,16 @@ router.get(
   getHodDashboard
 );
 
-/**
- * @desc    Get all requests assigned to HOD
- * @route   GET /api/hod/requests
- * @access  Private - HOD / SuperAdmin
- */
+// HOD approval history from RequestApprovals table
+// IMPORTANT: keep this before /requests/:id
+router.get(
+  "/approval-history",
+  protect,
+  authorizeRoles("HOD", "SuperAdmin"),
+  getHodApprovalHistory
+);
+
+// Get all HOD requests
 router.get(
   "/requests",
   protect,
@@ -44,11 +46,7 @@ router.get(
   getHodRequests
 );
 
-/**
- * @desc    Get single request details
- * @route   GET /api/hod/requests/:id
- * @access  Private - HOD / SuperAdmin
- */
+// Get single HOD request details
 router.get(
   "/requests/:id",
   protect,
@@ -56,11 +54,7 @@ router.get(
   getHodRequestById
 );
 
-/**
- * @desc    Approve request
- * @route   PUT /api/hod/requests/:id/approve
- * @access  Private - HOD / SuperAdmin
- */
+// Approve request
 router.put(
   "/requests/:id/approve",
   protect,
@@ -68,11 +62,7 @@ router.put(
   approveHodRequest
 );
 
-/**
- * @desc    Reject request
- * @route   PUT /api/hod/requests/:id/reject
- * @access  Private - HOD / SuperAdmin
- */
+// Reject request
 router.put(
   "/requests/:id/reject",
   protect,

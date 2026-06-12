@@ -1,12 +1,16 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOD Approval Trend Chart
+// Live Backend Data Version
 // ============================================
 
-// MUI components
+// React
+import { useMemo } from "react";
+
+// MUI Components
 import { Card, CardContent, Typography } from "@mui/material";
 
-// Recharts components
+// Recharts Components
 import {
   ResponsiveContainer,
   BarChart,
@@ -17,10 +21,62 @@ import {
   Legend,
 } from "recharts";
 
-// HOD approval trend data
-import { hodApprovalTrendData } from "../../data/hodDashboardData";
+// ============================================
+// Component
+// Receives requests from HodDashboard.jsx
+// ============================================
+export default function HodApprovalTrend({ requests = [] }) {
+  // ============================================
+  // Build chart data from live requests
+  // ============================================
+  const chartData = useMemo(() => {
+    // Month labels for the chart
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
 
-export default function HodApprovalTrend() {
+    // Create default chart structure for all months
+    const monthlyData = months.map((month) => ({
+      month,
+      approved: 0,
+      rejected: 0,
+    }));
+
+    // Loop through all HOD requests
+    requests.forEach((request) => {
+      // Use raw backend date for accurate sorting/charting
+      const dateValue = request.rawSubmittedAt || request.submittedDate;
+
+      // Skip request if date is missing
+      if (!dateValue) return;
+
+      // Convert date value to JavaScript date
+      const date = new Date(dateValue);
+
+      // Skip invalid date
+      if (isNaN(date.getTime())) return;
+
+      // Get month index from date
+      const monthIndex = date.getMonth();
+
+      // Normalize backend status
+      const status = request.status?.toLowerCase();
+
+      // Count approved by HOD requests
+      if (status === "approved by hod") {
+        monthlyData[monthIndex].approved += 1;
+      }
+
+      // Count rejected by HOD requests
+      if (status === "rejected by hod") {
+        monthlyData[monthIndex].rejected += 1;
+      }
+    });
+
+    return monthlyData;
+  }, [requests]);
+
   return (
     <Card
       sx={{
@@ -35,19 +91,34 @@ export default function HodApprovalTrend() {
           Monthly Approval Trend
         </Typography>
 
-        {/* Responsive chart container */}
+        {/* Responsive bar chart */}
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={hodApprovalTrendData}>
+          <BarChart data={chartData}>
+            {/* Month labels */}
             <XAxis dataKey="month" />
+
+            {/* Number of requests */}
             <YAxis />
+
+            {/* Tooltip when hovering */}
             <Tooltip />
+
+            {/* Chart legend */}
             <Legend />
 
-            {/* Approved requests */}
-            <Bar dataKey="approved" fill="#10B981" radius={[6, 6, 0, 0]} />
+            {/* Approved requests bar */}
+            <Bar
+              dataKey="approved"
+              fill="#10B981"
+              radius={[6, 6, 0, 0]}
+            />
 
-            {/* Rejected requests */}
-            <Bar dataKey="rejected" fill="#EF4444" radius={[6, 6, 0, 0]} />
+            {/* Rejected requests bar */}
+            <Bar
+              dataKey="rejected"
+              fill="#EF4444"
+              radius={[6, 6, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

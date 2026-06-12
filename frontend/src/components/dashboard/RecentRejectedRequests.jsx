@@ -1,46 +1,55 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Recent Rejected Requests Component
+// Live Backend Data Version
 // ============================================
 
-// MUI components
+// MUI Components
 import { Box, Chip, Typography } from "@mui/material";
 
-// Reusable dashboard card
+// Reusable Dashboard Card
 import DashboardCard from "./DashboardCard";
 
-// Temporary rejected requests data
-const recentRejectedRequests = [
-  {
-    id: "REQ-2026-201",
-    teacher: "Ms. Lina",
-    department: "Primary",
-    reason: "Incorrect attachment uploaded.",
-    rejectedBy: "Primary HOD",
-    date: "2026-06-04",
-  },
-  {
-    id: "REQ-2026-202",
-    teacher: "Mr. Omar",
-    department: "Secondary",
-    reason: "Number of copies needs confirmation.",
-    rejectedBy: "Secondary HOD",
-    date: "2026-06-03",
-  },
-  {
-    id: "REQ-2026-203",
-    teacher: "Ms. Sara",
-    department: "FS",
-    reason: "Request details are incomplete.",
-    rejectedBy: "FS HOD",
-    date: "2026-06-02",
-  },
-];
+// ============================================
+// Component
+// Receives requests from HodDashboard.jsx
+// ============================================
+export default function RecentRejectedRequests({
+  requests = [],
+}) {
+  // ============================================
+  // Get latest rejected requests
+  // Backend status:
+  // "Rejected by HOD"
+  // ============================================
+  const recentRejected = requests
+    .filter(
+      (request) =>
+        request.status?.toLowerCase() ===
+        "rejected by hod"
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.rawSubmittedAt) -
+        new Date(a.rawSubmittedAt)
+    )
+    .slice(0, 5);
 
-export default function RecentRejectedRequests() {
   return (
     <DashboardCard title="Recent Rejected Requests">
-      {recentRejectedRequests.map((request) => (
+      {/* ============================================
+          Empty State
+      ============================================ */}
+      {recentRejected.length === 0 && (
+        <Typography color="text.secondary">
+          No rejected requests found.
+        </Typography>
+      )}
+
+      {/* ============================================
+          Rejected Requests List
+      ============================================ */}
+      {recentRejected.map((request) => (
         <Box
           key={request.id}
           sx={{
@@ -50,7 +59,9 @@ export default function RecentRejectedRequests() {
             border: "1px solid #e5e7eb",
           }}
         >
-          {/* Request ID and status */}
+          {/* ============================================
+              Request Number + Status
+          ============================================ */}
           <Box
             sx={{
               display: "flex",
@@ -59,26 +70,61 @@ export default function RecentRejectedRequests() {
               mb: 1,
             }}
           >
-            <Typography fontWeight={700}>{request.id}</Typography>
+            {/* Request Number */}
+            <Typography fontWeight={700}>
+              {request.requestNumber}
+            </Typography>
 
-            <Chip label="Rejected" color="error" size="small" />
+            {/* Status Badge */}
+            <Chip
+              label="Rejected"
+              color="error"
+              size="small"
+            />
           </Box>
 
-          {/* Rejected request details */}
-          <Typography variant="body2" color="text.secondary">
+          {/* Teacher */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Teacher: {request.teacher}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary">
+          {/* Department */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Department: {request.department}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary">
-            Reason: {request.reason}
+          {/* Subject */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Subject: {request.subject}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary">
-            By: {request.rejectedBy} • {request.date}
+          {/* Rejection Reason */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Reason:{" "}
+            {request.approvalRemarks ||
+              "Rejected by HOD"}
+          </Typography>
+
+          {/* Action Date */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Action Date:{" "}
+            {request.actionDate ||
+              request.submittedDate}
           </Typography>
         </Box>
       ))}
