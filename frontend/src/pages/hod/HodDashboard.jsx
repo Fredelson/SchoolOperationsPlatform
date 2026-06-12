@@ -305,14 +305,14 @@ export default function HodDashboard() {
       topbar={
         <Topbar
           userName={user?.fullName || "HOD"}
-          role={user?.role || "HOD"}
+          role={user?.displayRole || user?.role || "HOD"}
         />
       }
     >
       {/* Page header */}
       <PageHeader
-        title="HOD Dashboard"
-        subtitle="Review and approve department photocopy requests."
+        title={`${user?.departmentName || ""} ${user?.subject || ""} HOD Dashboard`}
+        subtitle={`Welcome back, ${user?.fullName || "HOD"}. Review ${user?.departmentName || ""} ${user?.subject || ""} photocopy requests.`}
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 

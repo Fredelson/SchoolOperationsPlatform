@@ -55,7 +55,10 @@ export default function Topbar() {
 
   // Fallback values if user is not loaded yet
   const userName = user?.fullName || "Unknown User";
-  const role = user?.role || "Guest";
+  const role =
+  user?.displayRole ||
+  user?.role ||
+  "Guest";
 
   return (
     <Box

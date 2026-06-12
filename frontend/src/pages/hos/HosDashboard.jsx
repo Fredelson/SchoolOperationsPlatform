@@ -331,8 +331,12 @@ export default function HosDashboard() {
     >
       {/* Page header */}
       <PageHeader
-        title="HOS Dashboard"
-        subtitle="Review large photocopy requests forwarded by HOD."
+        title={`${user?.displayRole || "HOS"} Dashboard`}
+        subtitle={`Welcome back, ${
+          user?.fullName || "HOS"
+        }. Review large photocopy requests for ${
+          user?.departmentName || "your department"
+        }.`}
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 

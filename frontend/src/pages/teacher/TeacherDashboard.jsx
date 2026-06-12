@@ -21,6 +21,8 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
+import { useAuth } from "../../context/AuthContext";
+
 import { dashboardStats } from "../../data/dashboardData";
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
@@ -34,6 +36,9 @@ import QuickActions from "../../components/dashboard/QuickActions";
 import PurposeUsageTrend from "../../components/dashboard/PurposeUsageTrend";
 
 export default function TeacherDashboard() {
+  // Get logged-in user
+  const { user } = useAuth();
+
   // Icons matched with dashboardStats order
   const icons = [
     <Assignment />,
@@ -47,11 +52,16 @@ export default function TeacherDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={<Topbar />}
+      topbar={
+        <Topbar
+          userName={user?.fullName || "Teacher"}
+          role={user?.displayRole || user?.role || "Teacher"}
+        />
+      }
     >
       {/* Page Header */}
       <PageHeader
-        title="Welcome Back, Ahmed Khan! 👋"
+        title={`Welcome Back, ${user?.fullName || "Teacher"}! 👋`}
         subtitle="Here's your request summary and activity overview."
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
