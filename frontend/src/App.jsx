@@ -6,6 +6,8 @@ import CreateRequest from "./pages/teacher/CreateRequest";
 import RequestDetails from "./pages/teacher/RequestDetails";
 
 import HodDashboard from "./pages/hod/HodDashboard";
+import HosDashboard from "./pages/hos/HosDashboard";
+
 import LoginPage from "./pages/auth/LoginPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -13,8 +15,10 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 export default function App() {
   return (
     <Routes>
+      {/* Public login route */}
       <Route path="/login" element={<LoginPage />} />
 
+      {/* Teacher dashboard */}
       <Route
         path="/teacher"
         element={
@@ -24,6 +28,7 @@ export default function App() {
         }
       />
 
+      {/* Teacher request list */}
       <Route
         path="/teacher/my-requests"
         element={
@@ -33,6 +38,7 @@ export default function App() {
         }
       />
 
+      {/* Create request */}
       <Route
         path="/teacher/create-request"
         element={
@@ -42,6 +48,7 @@ export default function App() {
         }
       />
 
+      {/* Teacher request details */}
       <Route
         path="/teacher/request-details/:id"
         element={
@@ -51,6 +58,7 @@ export default function App() {
         }
       />
 
+      {/* HOD dashboard */}
       <Route
         path="/hod"
         element={
@@ -60,7 +68,20 @@ export default function App() {
         }
       />
 
+      {/* HOS dashboard */}
+      <Route
+        path="/hos"
+        element={
+          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+            <HosDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Default route */}
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Unknown route */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

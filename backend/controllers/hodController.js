@@ -341,19 +341,26 @@ const approveHodRequest = async (req, res) => {
     // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Check if request is still pending and assigned to this HOD
+    // ============================================
+    // Check if request is still pending
+    // and assigned to this HOD
+    // ============================================
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("hodId", sql.Int, hodId)
       .query(`
-        SELECT RequestId
+        SELECT
+          RequestId,
+          TotalSheets,
+          DepartmentId
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hodId
           AND Status = 'Pending'
       `);
 
+    // If no request found, stop the process
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
         message:
@@ -361,24 +368,99 @@ const approveHodRequest = async (req, res) => {
       });
     }
 
-    // Update request status
+    // Get request details
+    const request = requestResult.recordset[0];
+
+    // Get total sheets from request
+    const totalSheets = request.TotalSheets;
+
+    // Get department from request
+    const departmentId = request.DepartmentId;
+
+    // ============================================
+    // Find Printing Admin
+    // Small requests go directly to Printing Admin
+    // ============================================
+    const printingAdminResult = await pool
+      .request()
+      .query(`
+        SELECT TOP 1 UserId
+        FROM Users
+        WHERE Role = 'PrintingAdmin'
+          AND IsActive = 1
+      `);
+
+    if (printingAdminResult.recordset.length === 0) {
+      return res.status(404).json({
+        message: "No active Printing Admin found.",
+      });
+    }
+
+    const printingAdminId =
+      printingAdminResult.recordset[0].UserId;
+
+    // ============================================
+    // Default next step:
+    // Approved by HOD → Printing Admin
+    // ============================================
+    let nextStatus = "Approved by HOD";
+    let nextApproverId = printingAdminId;
+    let approvalRemarks = remarks || "Approved by HOD";
+
+    // ============================================
+    // If request is more than 500 sheets,
+    // forward it to the HOS of the same department
+    // ============================================
+    if (totalSheets > 500) {
+      const hosResult = await pool
+        .request()
+        .input("departmentId", sql.Int, departmentId)
+        .query(`
+          SELECT TOP 1 UserId
+          FROM Users
+          WHERE Role = 'HOS'
+            AND DepartmentId = @departmentId
+            AND IsActive = 1
+        `);
+
+      if (hosResult.recordset.length === 0) {
+        return res.status(404).json({
+          message:
+            "No active HOS found for this request department.",
+        });
+      }
+
+      nextStatus = "Forwarded to HOS";
+      nextApproverId = hosResult.recordset[0].UserId;
+      approvalRemarks =
+        remarks || "Approved by HOD and forwarded to HOS";
+    }
+
+    // ============================================
+    // Update request status and next approver
+    // ============================================
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
+      .input("nextStatus", sql.NVarChar, nextStatus)
+      .input("nextApproverId", sql.Int, nextApproverId)
       .query(`
         UPDATE PhotocopyRequests
         SET
-          Status = 'Approved by HOD',
-          CurrentApproverId = NULL
+          Status = @nextStatus,
+          CurrentApproverId = @nextApproverId,
+          ApprovedAt = GETDATE()
         WHERE RequestId = @requestId
       `);
 
-    // Save approval history
+    // ============================================
+    // Save HOD approval history
+    // ============================================
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hodId)
-      .input("remarks", sql.NVarChar, remarks || "Approved by HOD")
+      .input("remarks", sql.NVarChar, approvalRemarks)
       .query(`
         INSERT INTO RequestApprovals
         (
@@ -400,9 +482,43 @@ const approveHodRequest = async (req, res) => {
         )
       `);
 
+    // ============================================
+    // If forwarded to HOS, create pending HOS approval
+    // ============================================
+    if (nextStatus === "Forwarded to HOS") {
+      await pool
+        .request()
+        .input("requestId", sql.Int, requestId)
+        .input("approverId", sql.Int, nextApproverId)
+        .query(`
+          INSERT INTO RequestApprovals
+          (
+            RequestId,
+            ApproverId,
+            ApprovalRole,
+            ApprovalStatus,
+            Remarks,
+            ActionDate
+          )
+          VALUES
+          (
+            @requestId,
+            @approverId,
+            'HOS',
+            'Pending',
+            NULL,
+            GETDATE()
+          )
+        `);
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Request approved successfully",
+      message:
+        nextStatus === "Forwarded to HOS"
+          ? "Request approved by HOD and forwarded to HOS."
+          : "Request approved by HOD and sent to Printing Admin.",
+      nextStatus,
     });
   } catch (error) {
     console.error("Approve HOD Request Error:", error);
