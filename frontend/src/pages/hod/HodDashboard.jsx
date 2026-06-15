@@ -46,6 +46,11 @@ import {
 export default function HodDashboard() {
   const { user } = useAuth();
 
+  // ============================================
+  // Dashboard KPI State
+  // Includes Subject Quota KPI
+  // ============================================
+
   const [dashboard, setDashboard] = useState({
     TotalRequests: 0,
     PendingReview: 0,
@@ -53,6 +58,10 @@ export default function HodDashboard() {
     Rejected: 0,
     Forwarded: 0,
     Completed: 0,
+
+    SubjectSheetLimit: 0,
+    SubjectUsedSheets: 0,
+    SubjectRemainingSheets: 0,
   });
 
   const [requests, setRequests] = useState([]);
@@ -136,6 +145,10 @@ export default function HodDashboard() {
         getHodApprovalHistory(),
       ]);
 
+      // ============================================
+      // Dashboard + Subject Quota KPIs
+      // ============================================
+
       setDashboard({
         TotalRequests: dashboardData.TotalRequests || 0,
         PendingReview: dashboardData.PendingReview || 0,
@@ -143,6 +156,11 @@ export default function HodDashboard() {
         Rejected: dashboardData.Rejected || 0,
         Forwarded: dashboardData.Forwarded || 0,
         Completed: dashboardData.Completed || 0,
+
+        SubjectSheetLimit: dashboardData.SubjectSheetLimit || 0,
+        SubjectUsedSheets: dashboardData.SubjectUsedSheets || 0,
+        SubjectRemainingSheets:
+          dashboardData.SubjectRemainingSheets || 0,
       });
 
       setRequests(requestsData.map(mapRequest));
@@ -162,39 +180,72 @@ export default function HodDashboard() {
     fetchHodData();
   }, []);
 
+  
   // ============================================
   // Dashboard KPI cards
   // ============================================
+  // ============================================
+  // HOD Dashboard KPI Cards
+  // Includes Subject Quota KPIs
+  // ============================================
+
   const hodDashboardStats = [
     {
       title: "Total Requests",
       value: dashboard.TotalRequests,
       subtitle: "All HOD Requests",
     },
+
     {
       title: "Pending Review",
       value: dashboard.PendingReview,
       subtitle: "Awaiting HOD Action",
     },
+
     {
       title: "Approved",
       value: dashboard.Approved,
       subtitle: "Approved by HOD",
     },
+
     {
       title: "Rejected",
       value: dashboard.Rejected,
       subtitle: "Rejected by HOD",
     },
+
     {
       title: "Forwarded",
       value: dashboard.Forwarded,
       subtitle: "Forwarded to HOS",
     },
+
     {
       title: "Completed",
       value: dashboard.Completed,
       subtitle: "Completed Requests",
+    },
+
+    // ============================================
+    // Subject Quota KPIs
+    // ============================================
+
+    {
+      title: "Subject Limit",
+      value: dashboard.SubjectSheetLimit,
+      subtitle: "Monthly Allocated Sheets",
+    },
+
+    {
+      title: "Used Sheets",
+      value: dashboard.SubjectUsedSheets,
+      subtitle: "Current Month Usage",
+    },
+
+    {
+      title: "Remaining Quota",
+      value: dashboard.SubjectRemainingSheets,
+      subtitle: "Available Sheets",
     },
   ];
 
@@ -204,6 +255,10 @@ export default function HodDashboard() {
     <CheckCircle />,
     <Cancel />,
     <Send />,
+    <TaskAlt />,
+
+    <Assignment />,
+    <CheckCircle />,
     <TaskAlt />,
   ];
 

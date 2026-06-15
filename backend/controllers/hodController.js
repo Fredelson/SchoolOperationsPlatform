@@ -2,22 +2,32 @@
 // ARAB UNITY SCHOOL
 // HOD Controller
 // Handles HOD dashboard, request review, approve, reject
-// Fixed duplicate approval rows issue
+// Includes Subject Print Limit quota validation
+// Includes HOD Dashboard Subject Quota KPI
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
 
 /**
- * @desc    HOD Dashboard Statistics
+ * @desc    HOD Dashboard Statistics + Subject Quota KPI
  * @route   GET /api/hod/dashboard
  * @access  Private - HOD / SuperAdmin
  */
 const getHodDashboard = async (req, res) => {
   try {
+    // Logged-in HOD ID from JWT token
     const hodId = req.user.id;
+
+    // Current month/year for monthly quota
+    const monthNumber = new Date().getMonth() + 1;
+    const yearNumber = new Date().getFullYear();
+
     const pool = await poolPromise;
 
-    const result = await pool
+    // ============================================
+    // 1. Get normal HOD dashboard KPIs
+    // ============================================
+    const dashboardResult = await pool
       .request()
       .input("hodId", sql.Int, hodId)
       .query(`
@@ -61,7 +71,47 @@ const getHodDashboard = async (req, res) => {
            OR ra.ApproverId = @hodId
       `);
 
-    return res.status(200).json(result.recordset[0]);
+    // ============================================
+    // 2. Get HOD Subject Quota KPI
+    // Reads the subject limit assigned to this HOD
+    // UsedSheets comes from SQL view vw_SubjectMonthlyUsage
+    // ============================================
+    const quotaResult = await pool
+      .request()
+      .input("hodId", sql.Int, hodId)
+      .input("monthNumber", sql.Int, monthNumber)
+      .input("yearNumber", sql.Int, yearNumber)
+      .query(`
+        SELECT
+          ISNULL(SUM(spl.SheetLimit), 0) AS SubjectSheetLimit,
+
+          ISNULL(SUM(ISNULL(su.UsedSheets, 0)), 0) AS SubjectUsedSheets,
+
+          ISNULL(
+            SUM(spl.SheetLimit - ISNULL(su.UsedSheets, 0)),
+            0
+          ) AS SubjectRemainingSheets
+
+        FROM SubjectPrintLimits spl
+
+        LEFT JOIN vw_SubjectMonthlyUsage su
+          ON su.DepartmentId = spl.DepartmentId
+         AND su.SubjectId = spl.SubjectId
+         AND su.MonthNumber = spl.MonthNumber
+         AND su.YearNumber = spl.YearNumber
+
+        WHERE spl.HodUserId = @hodId
+          AND spl.MonthNumber = @monthNumber
+          AND spl.YearNumber = @yearNumber
+      `);
+
+    // ============================================
+    // 3. Return request KPIs + quota KPIs together
+    // ============================================
+    return res.status(200).json({
+      ...dashboardResult.recordset[0],
+      ...quotaResult.recordset[0],
+    });
   } catch (error) {
     console.error("Get HOD Dashboard Error:", error);
 
@@ -347,7 +397,10 @@ const approveHodRequest = async (req, res) => {
     const { remarks } = req.body || {};
     const pool = await poolPromise;
 
-    // Check request is still pending and assigned to this HOD
+    // ============================================
+    // 1. Check request is still pending and assigned to this HOD
+    // Also get DepartmentId and SubjectId for quota validation
+    // ============================================
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -356,7 +409,8 @@ const approveHodRequest = async (req, res) => {
         SELECT
           RequestId,
           TotalSheets,
-          DepartmentId
+          DepartmentId,
+          SubjectId
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hodId
@@ -373,8 +427,63 @@ const approveHodRequest = async (req, res) => {
     const request = requestResult.recordset[0];
     const totalSheets = request.TotalSheets;
     const departmentId = request.DepartmentId;
+    const subjectId = request.SubjectId;
 
-    // Find active Printing Admin
+    // ============================================
+    // 2. Check Subject Monthly Print Limit
+    // This uses SubjectPrintLimits + vw_SubjectMonthlyUsage
+    // UsedSheets is calculated dynamically from approved/printing/completed requests
+    // ============================================
+    const monthNumber = new Date().getMonth() + 1;
+    const yearNumber = new Date().getFullYear();
+
+    const quotaResult = await pool
+      .request()
+      .input("departmentId", sql.Int, departmentId)
+      .input("subjectId", sql.Int, subjectId)
+      .input("monthNumber", sql.Int, monthNumber)
+      .input("yearNumber", sql.Int, yearNumber)
+      .query(`
+        SELECT
+          spl.SubjectLimitId,
+          spl.SheetLimit,
+          ISNULL(su.UsedSheets, 0) AS UsedSheets,
+          spl.SheetLimit - ISNULL(su.UsedSheets, 0) AS RemainingSheets
+        FROM SubjectPrintLimits spl
+
+        LEFT JOIN vw_SubjectMonthlyUsage su
+          ON su.DepartmentId = spl.DepartmentId
+         AND su.SubjectId = spl.SubjectId
+         AND su.MonthNumber = spl.MonthNumber
+         AND su.YearNumber = spl.YearNumber
+
+        WHERE spl.DepartmentId = @departmentId
+          AND spl.SubjectId = @subjectId
+          AND spl.MonthNumber = @monthNumber
+          AND spl.YearNumber = @yearNumber
+      `);
+
+    const quota = quotaResult.recordset[0];
+
+    // If no subject quota exists, block approval
+    if (!quota) {
+      return res.status(400).json({
+        message:
+          "No subject print limit found for this month. Contact HOS or Printing Admin.",
+      });
+    }
+
+    // If requested sheets exceed remaining quota, block approval
+    if (quota.RemainingSheets < totalSheets) {
+      return res.status(400).json({
+        message: `Quota exceeded. Remaining sheets: ${quota.RemainingSheets}, Requested sheets: ${totalSheets}`,
+      });
+    }
+
+    // ============================================
+    // 3. Find active Printing Admin
+    // Small requests go directly to Printing Admin after HOD approval
+    // ============================================
     const printingAdminResult = await pool.request().query(`
       SELECT TOP 1 UserId
       FROM Users
@@ -390,12 +499,15 @@ const approveHodRequest = async (req, res) => {
 
     const printingAdminId = printingAdminResult.recordset[0].UserId;
 
-    // Default route: HOD approved → Printing Admin
+    // ============================================
+    // 4. Decide next approval route
+    // Default: HOD approved → Printing Admin
+    // Large request > 500 sheets: HOD approved → HOS
+    // ============================================
     let nextStatus = "Approved by HOD";
     let nextApproverId = printingAdminId;
     let approvalRemarks = remarks || "Approved by HOD";
 
-    // Large request route: HOD approved → HOS
     if (totalSheets > 500) {
       const hosResult = await pool
         .request()
@@ -419,7 +531,11 @@ const approveHodRequest = async (req, res) => {
       approvalRemarks = remarks || "Approved by HOD and forwarded to HOS";
     }
 
-    // Update main request
+    // ============================================
+    // 5. Update main request status
+    // Note: UsedSheets will update automatically through the SQL view
+    // because the request status is now Approved by HOD / Forwarded to HOS
+    // ============================================
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -434,8 +550,10 @@ const approveHodRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // Update existing HOD pending approval row
-    // This prevents duplicate HOD Pending + HOD Approved rows
+    // ============================================
+    // 6. Update existing HOD pending approval row
+    // Prevents duplicate HOD Pending + HOD Approved rows
+    // ============================================
     const updateHodApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -453,8 +571,10 @@ const approveHodRequest = async (req, res) => {
           AND ApprovalStatus = 'Pending'
       `);
 
-    // Safety fallback:
+    // ============================================
+    // 7. Safety fallback
     // If there was no HOD pending row, insert one approved row
+    // ============================================
     if (updateHodApproval.rowsAffected[0] === 0) {
       await pool
         .request()
@@ -483,8 +603,9 @@ const approveHodRequest = async (req, res) => {
         `);
     }
 
-    // If large request, create HOS pending approval row
-    // This is correct because HOS has not acted yet
+    // ============================================
+    // 8. If large request, create HOS pending approval row
+    // ============================================
     if (nextStatus === "Forwarded to HOS") {
       await pool
         .request()
@@ -519,6 +640,13 @@ const approveHodRequest = async (req, res) => {
           ? "Request approved by HOD and forwarded to HOS."
           : "Request approved by HOD and sent to Printing Admin.",
       nextStatus,
+      quota: {
+        sheetLimit: quota.SheetLimit,
+        usedSheets: quota.UsedSheets,
+        remainingBeforeApproval: quota.RemainingSheets,
+        requestedSheets: totalSheets,
+        remainingAfterApproval: quota.RemainingSheets - totalSheets,
+      },
     });
   } catch (error) {
     console.error("Approve HOD Request Error:", error);
@@ -577,7 +705,6 @@ const rejectHodRequest = async (req, res) => {
       `);
 
     // Update existing HOD pending approval row
-    // This prevents duplicate HOD Pending + HOD Rejected rows
     const updateHodApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -595,8 +722,7 @@ const rejectHodRequest = async (req, res) => {
           AND ApprovalStatus = 'Pending'
       `);
 
-    // Safety fallback:
-    // If there was no HOD pending row, insert one rejected row
+    // Safety fallback
     if (updateHodApproval.rowsAffected[0] === 0) {
       await pool
         .request()

@@ -4,7 +4,7 @@
 // Provides dropdown data for frontend forms
 // ============================================
 
-const { poolPromise } = require("../config/db");
+const { poolPromise, sql } = require("../config/db");
 
 /**
  * @desc    Get active departments
@@ -93,8 +93,54 @@ const getPurposes = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get active HOD users by department
+ * @route   GET /api/lookups/hods?departmentId=2
+ * @access  Private
+ */
+const getHods = async (req, res) => {
+  try {
+    const departmentId = Number(req.query.departmentId);
+
+    if (!departmentId) {
+      return res.status(400).json({
+        message: "Department ID is required.",
+      });
+    }
+
+    const pool = await poolPromise;
+
+    const result = await pool
+      .request()
+      .input("departmentId", sql.Int, departmentId)
+      .query(`
+        SELECT
+          UserId,
+          FullName,
+          EmployeeId,
+          DepartmentId,
+          Subject
+        FROM Users
+        WHERE Role = 'HOD'
+          AND IsActive = 1
+          AND DepartmentId = @departmentId
+        ORDER BY FullName ASC
+      `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get HODs Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching HODs",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDepartments,
   getSubjects,
   getPurposes,
+  getHods,
 };

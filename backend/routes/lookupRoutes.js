@@ -10,6 +10,7 @@ const {
   getDepartments,
   getSubjects,
   getPurposes,
+  getHods,
 } = require("../controllers/lookupController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,5 +25,8 @@ router.get("/subjects", protect, getSubjects);
 
 // Purpose dropdown
 router.get("/purposes", protect, getPurposes);
+
+// HOD dropdown by department
+router.get("/hods", protect, getHods);
 
 module.exports = router;

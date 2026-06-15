@@ -205,9 +205,14 @@ const getSubjectLimits = async (req, res) => {
 
           ISNULL(spl.SheetLimit, 0) - ISNULL(u.UsedSheets, 0) AS RemainingSheets,
 
-          spl.HodUserId,
-          hod.FullName AS HodName,
-          hod.EmployeeId AS HodEmployeeId,
+          -- ============================================
+          -- Auto-detect HOD from Users table
+          -- If SubjectPrintLimits already has HodUserId, use that.
+          -- If not, use the HOD assigned to this department + subject.
+          -- ============================================
+          COALESCE(spl.HodUserId, assignedHod.UserId) AS HodUserId,
+          assignedHod.FullName AS HodName,
+          assignedHod.EmployeeId AS HodEmployeeId,
 
           dpl.DepartmentLimitId,
           ISNULL(dpl.SheetLimit, 0) AS DepartmentSheetLimit,
@@ -236,8 +241,18 @@ const getSubjectLimits = async (req, res) => {
          AND u.MonthNumber = @monthNumber
          AND u.YearNumber = @yearNumber
 
-        LEFT JOIN Users hod
-          ON spl.HodUserId = hod.UserId
+        OUTER APPLY (
+          SELECT TOP 1
+            hod.UserId,
+            hod.FullName,
+            hod.EmployeeId
+          FROM Users hod
+          WHERE hod.Role = 'HOD'
+            AND hod.IsActive = 1
+            AND hod.DepartmentId = d.DepartmentId
+            AND hod.Subject = s.SubjectName
+          ORDER BY hod.UserId ASC
+        ) assignedHod
 
         WHERE s.IsActive = 1
           AND d.DepartmentId = @departmentId
@@ -277,8 +292,15 @@ const upsertSubjectLimit = async (req, res) => {
 
     const { monthNumber, yearNumber } = getMonthYear(month, year);
 
-    if (!departmentId || !subjectId || !sheetLimit || Number(sheetLimit) < 0) {
-      return res.status(400).json({
+   // Allow 0 quota, but block empty/invalid/negative values
+    if (
+      !departmentId ||
+      !subjectId ||
+      sheetLimit === undefined ||
+      sheetLimit === null ||
+      Number(sheetLimit) < 0
+    ) {
+          return res.status(400).json({
         message:
           "Department ID, Subject ID, and valid sheet limit are required.",
       });

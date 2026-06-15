@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // Printing Admin - Department Limits Page
 // Allows Printing Admin to assign monthly sheet limits
+// Includes DashboardLayout, Sidebar, and Topbar
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -24,29 +25,52 @@ import {
   Alert,
 } from "@mui/material";
 
-import {
-  AccountBalance,
-  Save,
-  Refresh,
-} from "@mui/icons-material";
+import { AccountBalance, Save, Refresh } from "@mui/icons-material";
 
+// ============================================
+// Layout Components
+// ============================================
 import DashboardLayout from "../../layouts/DashboardLayout";
+import Sidebar from "../../components/sidebar/Sidebar";
+import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 
+// ============================================
+// Auth Context
+// ============================================
+import { useAuth } from "../../context/AuthContext";
+
+// ============================================
+// API Services
+// ============================================
 import {
   getDepartmentLimits,
   updateDepartmentLimit,
 } from "../../services/limitService";
 
+// ============================================
+// Theme Colors
+// ============================================
 const GREEN = "#2E8B3C";
 const NAVY = "#071B4D";
 
 export default function DepartmentLimitsPage() {
+  // ============================================
+  // Logged-in User
+  // ============================================
+  const { user } = useAuth();
+
+  // ============================================
+  // Current Month and Year
+  // ============================================
   const now = new Date();
 
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
 
+  // ============================================
+  // Page State
+  // ============================================
   const [limits, setLimits] = useState([]);
   const [editingValues, setEditingValues] = useState({});
 
@@ -57,7 +81,7 @@ export default function DepartmentLimitsPage() {
   const [error, setError] = useState("");
 
   // ============================================
-  // Load department limits from backend
+  // Load Department Limits From Backend
   // ============================================
   const loadDepartmentLimits = async () => {
     try {
@@ -69,7 +93,9 @@ export default function DepartmentLimitsPage() {
 
       setLimits(data || []);
 
+      // Prepare editable input values per department
       const values = {};
+
       (data || []).forEach((item) => {
         values[item.DepartmentId] = item.SheetLimit || 0;
       });
@@ -77,22 +103,25 @@ export default function DepartmentLimitsPage() {
       setEditingValues(values);
     } catch (err) {
       console.error("Load department limits error:", err);
+
       setError(
-        err?.response?.data?.message ||
-          "Failed to load department limits."
+        err?.response?.data?.message || "Failed to load department limits."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // ============================================
+  // Reload Data When Month or Year Changes
+  // ============================================
   useEffect(() => {
     loadDepartmentLimits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
 
   // ============================================
-  // Summary KPIs
+  // Summary KPI Calculations
   // ============================================
   const summary = useMemo(() => {
     const totalLimit = limits.reduce(
@@ -116,7 +145,7 @@ export default function DepartmentLimitsPage() {
   }, [limits]);
 
   // ============================================
-  // Update local input value
+  // Update Local Input Value
   // ============================================
   const handleLimitChange = (departmentId, value) => {
     setEditingValues((prev) => ({
@@ -126,7 +155,7 @@ export default function DepartmentLimitsPage() {
   };
 
   // ============================================
-  // Save department limit
+  // Save Department Limit
   // ============================================
   const handleSave = async (departmentId) => {
     try {
@@ -141,20 +170,17 @@ export default function DepartmentLimitsPage() {
         return;
       }
 
-      await updateDepartmentLimit(
-        departmentId,
-        sheetLimit,
-        month,
-        year
-      );
+      await updateDepartmentLimit(departmentId, sheetLimit, month, year);
 
       setSuccess("Department limit saved successfully.");
+
+      // Reload after save so used and remaining values stay updated
       await loadDepartmentLimits();
     } catch (err) {
       console.error("Save department limit error:", err);
+
       setError(
-        err?.response?.data?.message ||
-          "Failed to save department limit."
+        err?.response?.data?.message || "Failed to save department limit."
       );
     } finally {
       setSavingId(null);
@@ -162,7 +188,7 @@ export default function DepartmentLimitsPage() {
   };
 
   // ============================================
-  // Remaining chip color
+  // Remaining Chip Color
   // ============================================
   const getRemainingColor = (remaining) => {
     if (remaining <= 0) return "error";
@@ -171,27 +197,45 @@ export default function DepartmentLimitsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      sidebar={<Sidebar />}
+      topbar={
+        <Topbar
+          userName={
+            user?.fullName || user?.FullName || "Printing Admin"
+          }
+          role={
+            user?.displayRole ||
+            user?.role ||
+            user?.Role ||
+            "Printing Admin"
+          }
+        />
+      }
+    >
       <Box sx={{ p: 3 }}>
+        {/* Page Header */}
         <PageHeader
           title="Department Print Limits"
           subtitle="Assign monthly sheet limits for each department"
           icon={<AccountBalance />}
         />
 
+        {/* Success Message */}
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
             {success}
           </Alert>
         )}
 
+        {/* Error Message */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        {/* Filters */}
+        {/* Month and Year Filters */}
         <Card
           sx={{
             borderRadius: 4,
@@ -207,7 +251,7 @@ export default function DepartmentLimitsPage() {
                   type="number"
                   fullWidth
                   value={month}
-                  onChange={(e) => setMonth(e.target.value)}
+                  onChange={(e) => setMonth(Number(e.target.value))}
                   inputProps={{ min: 1, max: 12 }}
                 />
               </Grid>
@@ -218,7 +262,7 @@ export default function DepartmentLimitsPage() {
                   type="number"
                   fullWidth
                   value={year}
-                  onChange={(e) => setYear(e.target.value)}
+                  onChange={(e) => setYear(Number(e.target.value))}
                 />
               </Grid>
 
@@ -321,15 +365,19 @@ export default function DepartmentLimitsPage() {
                       <TableCell>
                         <b>Department</b>
                       </TableCell>
+
                       <TableCell>
                         <b>Limit</b>
                       </TableCell>
+
                       <TableCell>
                         <b>Used</b>
                       </TableCell>
+
                       <TableCell>
                         <b>Remaining</b>
                       </TableCell>
+
                       <TableCell align="right">
                         <b>Action</b>
                       </TableCell>
@@ -338,9 +386,13 @@ export default function DepartmentLimitsPage() {
 
                   <TableBody>
                     {limits.map((item) => {
-                      const remaining =
-                        Number(editingValues[item.DepartmentId] || 0) -
-                        Number(item.UsedSheets || 0);
+                      const currentLimit = Number(
+                        editingValues[item.DepartmentId] || 0
+                      );
+
+                      const usedSheets = Number(item.UsedSheets || 0);
+
+                      const remaining = currentLimit - usedSheets;
 
                       return (
                         <TableRow key={item.DepartmentId} hover>
@@ -369,7 +421,7 @@ export default function DepartmentLimitsPage() {
                           </TableCell>
 
                           <TableCell>
-                            {Number(item.UsedSheets || 0).toLocaleString()}
+                            {usedSheets.toLocaleString()}
                           </TableCell>
 
                           <TableCell>

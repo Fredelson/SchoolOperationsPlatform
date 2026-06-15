@@ -1,8 +1,8 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOS - Subject Allocation Page
-// HOS distributes department print limit to subjects/HODs
-// Simple version for testing functionality
+// HOS distributes department print limit to subjects
+// HOD is auto-detected from backend by Department + Subject
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -43,6 +43,7 @@ export default function SubjectAllocationPage() {
 
   const now = new Date();
 
+  // HOS department ID from logged-in user
   const departmentId =
     user?.departmentId ||
     user?.DepartmentId ||
@@ -62,6 +63,7 @@ export default function SubjectAllocationPage() {
 
   // ============================================
   // Load subject limits for logged-in HOS department
+  // Backend returns the auto-detected HOD per subject
   // ============================================
   const loadSubjectLimits = async () => {
     try {
@@ -120,13 +122,11 @@ export default function SubjectAllocationPage() {
       0
     );
 
-    const remainingToDistribute = departmentLimit - distributed;
-
     return {
       departmentLimit,
       distributed,
       usedSheets,
-      remainingToDistribute,
+      remainingToDistribute: departmentLimit - distributed,
     };
   }, [subjects, editingValues]);
 
@@ -142,26 +142,36 @@ export default function SubjectAllocationPage() {
 
   // ============================================
   // Save subject allocation
+  // HOD user ID comes automatically from backend data
   // ============================================
-  const handleSave = async (subjectId) => {
+  const handleSave = async (subject) => {
     try {
-      setSavingId(subjectId);
+      setSavingId(subject.SubjectId);
       setError("");
       setSuccess("");
 
-      const sheetLimit = Number(editingValues[subjectId] || 0);
+      const sheetLimit = Number(editingValues[subject.SubjectId] || 0);
+      const hodUserId = subject.HodUserId || null;
 
       if (sheetLimit < 0) {
         setError("Sheet limit cannot be negative.");
         return;
       }
 
+      if (!hodUserId) {
+        setError(
+          `No HOD assigned for ${subject.SubjectName}. Please check Users table subject assignment.`
+        );
+        return;
+      }
+
       await updateSubjectLimit(
-        subjectId,
+        subject.SubjectId,
         departmentId,
         sheetLimit,
         month,
-        year
+        year,
+        hodUserId
       );
 
       setSuccess("Subject allocation saved successfully.");
@@ -213,7 +223,7 @@ export default function SubjectAllocationPage() {
                 type="number"
                 fullWidth
                 value={month}
-                onChange={(e) => setMonth(e.target.value)}
+                onChange={(e) => setMonth(Number(e.target.value))}
                 inputProps={{ min: 1, max: 12 }}
               />
             </Grid>
@@ -224,66 +234,32 @@ export default function SubjectAllocationPage() {
                 type="number"
                 fullWidth
                 value={year}
-                onChange={(e) => setYear(e.target.value)}
+                onChange={(e) => setYear(Number(e.target.value))}
               />
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Simple KPI Summary */}
+      {/* KPI Summary */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography color="text.secondary">
-                Department Limit
-              </Typography>
-              <Typography variant="h5" fontWeight={900}>
-                {summary.departmentLimit.toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography color="text.secondary">
-                Distributed
-              </Typography>
-              <Typography variant="h5" fontWeight={900}>
-                {summary.distributed.toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography color="text.secondary">
-                Remaining to Allocate
-              </Typography>
-              <Typography variant="h5" fontWeight={900}>
-                {summary.remainingToDistribute.toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography color="text.secondary">
-                Used Sheets
-              </Typography>
-              <Typography variant="h5" fontWeight={900}>
-                {summary.usedSheets.toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {[
+          ["Department Limit", summary.departmentLimit],
+          ["Distributed", summary.distributed],
+          ["Remaining to Allocate", summary.remainingToDistribute],
+          ["Used Sheets", summary.usedSheets],
+        ].map(([label, value]) => (
+          <Grid item xs={12} md={3} key={label}>
+            <Card sx={{ borderRadius: 3 }}>
+              <CardContent>
+                <Typography color="text.secondary">{label}</Typography>
+                <Typography variant="h5" fontWeight={900}>
+                  {Number(value || 0).toLocaleString()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* Subject Allocation Table */}
@@ -304,7 +280,7 @@ export default function SubjectAllocationPage() {
                     <TableCell>Limit</TableCell>
                     <TableCell>Used</TableCell>
                     <TableCell>Remaining</TableCell>
-                    <TableCell>HOD</TableCell>
+                    <TableCell>Assigned HOD</TableCell>
                     <TableCell align="right">Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -319,10 +295,7 @@ export default function SubjectAllocationPage() {
                   )}
 
                   {subjects.map((item) => {
-                    const limit = Number(
-                      editingValues[item.SubjectId] || 0
-                    );
-
+                    const limit = Number(editingValues[item.SubjectId] || 0);
                     const used = Number(item.UsedSheets || 0);
                     const remaining = limit - used;
 
@@ -350,9 +323,7 @@ export default function SubjectAllocationPage() {
                           />
                         </TableCell>
 
-                        <TableCell>
-                          {used.toLocaleString()}
-                        </TableCell>
+                        <TableCell>{used.toLocaleString()}</TableCell>
 
                         <TableCell>
                           <Chip
@@ -369,7 +340,17 @@ export default function SubjectAllocationPage() {
                         </TableCell>
 
                         <TableCell>
-                          {item.HodName || "-"}
+                          {item.HodName ? (
+                            <Typography fontWeight={700}>
+                              {item.HodName} ({item.HodEmployeeId})
+                            </Typography>
+                          ) : (
+                            <Chip
+                              label="No HOD Assigned"
+                              color="warning"
+                              size="small"
+                            />
+                          )}
                         </TableCell>
 
                         <TableCell align="right">
@@ -378,9 +359,7 @@ export default function SubjectAllocationPage() {
                             size="small"
                             startIcon={<Save />}
                             disabled={savingId === item.SubjectId}
-                            onClick={() =>
-                              handleSave(item.SubjectId)
-                            }
+                            onClick={() => handleSave(item)}
                           >
                             {savingId === item.SubjectId
                               ? "Saving..."
