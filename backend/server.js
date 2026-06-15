@@ -20,6 +20,7 @@ const requestRoutes = require("./routes/requestRoutes");
 const hodRoutes = require("./routes/hodRoutes");
 const hosRoutes = require("./routes/hosRoutes");
 const lookupRoutes = require("./routes/lookupRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 // Teacher Dashboard routes
 const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
@@ -74,6 +75,9 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/hod", hodRoutes);
 app.use("/api/hos", hosRoutes);
 app.use("/api/lookups", lookupRoutes);
+
+// User Management API route
+app.use("/api/users", userRoutes);
 
 // Teacher Dashboard API route
 app.use("/api/teacher/dashboard", teacherDashboardRoutes);

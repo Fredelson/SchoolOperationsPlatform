@@ -30,6 +30,7 @@ import {
   Inventory,
   AccountBalance,
 } from "@mui/icons-material";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -182,6 +183,11 @@ export default function Sidebar() {
       label: "Department Limits",
       icon: <AccountBalance />,
       path: "/printing/department-limits",
+    },
+    {
+      label: "User Management",
+      icon: <ManageAccountsIcon />,
+      path: "/printing/user-management",
     },
     {
       label: "Print Queue",

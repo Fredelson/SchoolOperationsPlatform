@@ -26,6 +26,7 @@ import SubjectAllocationPage from "./pages/hos/SubjectAllocationPage";
 
 // Printing page
 import PrintingDashboard from "./pages/printing/PrintingDashboard";
+import UserManagement from "./pages/admin/UserManagement";
 
 // Reusable common page
 import Profile from "./pages/common/Profile";
@@ -251,6 +252,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/printing/user-management"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "Admin", "SuperAdmin"]}>
+            <UserManagement />
           </ProtectedRoute>
         }
       />

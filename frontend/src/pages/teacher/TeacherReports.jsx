@@ -14,7 +14,8 @@
 // - Download buttons placeholder
 // ============================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getTeacherReportsData } from "../../services/teacherReportService";
 
 import {
   Box,
@@ -117,7 +118,8 @@ export default function TeacherReports() {
   // ============================================
   // Filter state
   // ============================================
-
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState("This Month");
   const [status, setStatus] = useState("All");
   const [purpose, setPurpose] = useState("All");
@@ -129,15 +131,17 @@ export default function TeacherReports() {
   // ============================================
 
   const totals = useMemo(() => {
-    return {
-      totalRequests: 24,
-      totalPages: 3450,
-      totalSheets: 1725,
-      completedRequests: 22,
-      rejectedRequests: 2,
-    };
-  }, []);
+    const stats = reportData?.stats || {};
 
+    return {
+      totalRequests: stats.TotalRequests || 0,
+      totalPages: stats.TotalPages || 0,
+      totalSheets: stats.TotalSheets || 0,
+      completedRequests: stats.CompletedRequests || 0,
+      rejectedRequests: stats.RejectedRequests || 0,
+    };
+  }, [reportData]);
+  
   // ============================================
   // Reset filters
   // ============================================
@@ -157,6 +161,24 @@ export default function TeacherReports() {
   const handleDownloadPdf = () => {
     alert("PDF download will be connected later.");
   };
+
+  const loadReports = async () => {
+    try {
+      setLoading(true);
+
+      const data = await getTeacherReportsData();
+      setReportData(data);
+    } catch (error) {
+      console.error("Load teacher reports error:", error);
+      alert("Failed to load reports");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReports();
+  }, []);
 
   const handleDownloadExcel = () => {
     alert("Excel download will be connected later.");
