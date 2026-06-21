@@ -117,21 +117,26 @@ exports.uploadRequestAttachment = async (req, res) => {
     // Get form data from frontend
     // ============================================
 
-    const { requestId, copies } = req.body;
-
-    // ============================================
-    // Validate request ID
-    // ============================================
+    const {
+      requestId,
+      copies,
+      documentName,
+      paperSize,
+      printType,
+      printColor,
+      pagesPerSheet,
+      pageSelection,
+      customPageRange,
+      selectedPages,
+      sheetsPerSet,
+      totalSheets,
+    } = req.body;
 
     if (!requestId) {
       return res.status(400).json({
         message: "Request ID is required",
       });
     }
-
-    // ============================================
-    // Validate uploaded file
-    // ============================================
 
     if (!req.file) {
       return res.status(400).json({
@@ -151,17 +156,8 @@ exports.uploadRequestAttachment = async (req, res) => {
     const fileSizeKB = req.file.size / 1024;
 
     // ============================================
-    // Debug uploaded file information
-    // ============================================
-
-    console.log("Uploaded File Path:", physicalFilePath);
-    console.log("Original File Name:", originalFileName);
-    console.log("Stored File Name:", storedFileName);
-    console.log("File Type:", fileType);
-
-    // ============================================
-    // Automatically count pages/slides again
-    // This ensures the saved DB value is correct
+    // Backend still counts pages again for safety
+    // PageCount = real detected page count
     // ============================================
 
     const autoPageCount = await countPages(
@@ -169,23 +165,43 @@ exports.uploadRequestAttachment = async (req, res) => {
       originalFileName
     );
 
-    // ============================================
-    // Calculate copies and total sheets
-    // Current formula:
-    // Total Sheets = Page Count x Copies
-    // ============================================
-
     const finalPageCount = Number(autoPageCount) || 1;
     const finalCopies = Number(copies) || 1;
-    const finalTotalSheets = finalPageCount * finalCopies;
 
     // ============================================
-    // Debug automatic page count result
+    // Use frontend-calculated values if provided
+    // because frontend already applied:
+    // - custom pages
+    // - pages per sheet
+    // - back-to-back
+    // - per-file rounding
     // ============================================
 
-    console.log("Final Page Count:", finalPageCount);
-    console.log("Final Copies:", finalCopies);
-    console.log("Final Total Sheets:", finalTotalSheets);
+    const finalSelectedPages =
+      Number(selectedPages) || finalPageCount;
+
+    const finalSheetsPerSet =
+      Number(sheetsPerSet) || finalSelectedPages;
+
+    const finalTotalSheets =
+      Number(totalSheets) || finalSheetsPerSet * finalCopies;
+
+    console.log("Attachment Metadata:", {
+      requestId,
+      originalFileName,
+      finalPageCount,
+      finalSelectedPages,
+      finalCopies,
+      finalSheetsPerSet,
+      finalTotalSheets,
+      documentName,
+      paperSize,
+      printType,
+      printColor,
+      pagesPerSheet,
+      pageSelection,
+      customPageRange,
+    });
 
     // ============================================
     // Save attachment information to MSSQL
@@ -204,6 +220,18 @@ exports.uploadRequestAttachment = async (req, res) => {
       .input("PageCount", sql.Int, finalPageCount)
       .input("Copies", sql.Int, finalCopies)
       .input("TotalSheets", sql.Int, finalTotalSheets)
+
+      // New metadata
+      .input("DocumentName", sql.NVarChar, documentName || null)
+      .input("PaperSize", sql.NVarChar, paperSize || null)
+      .input("PrintType", sql.NVarChar, printType || null)
+      .input("PrintColor", sql.NVarChar, printColor || null)
+      .input("PagesPerSheet", sql.Int, Number(pagesPerSheet) || 1)
+      .input("PageSelection", sql.NVarChar, pageSelection || null)
+      .input("CustomPageRange", sql.NVarChar, customPageRange || null)
+      .input("SelectedPages", sql.Int, finalSelectedPages)
+      .input("SheetsPerSet", sql.Int, finalSheetsPerSet)
+
       .query(`
         INSERT INTO RequestAttachments
         (
@@ -215,7 +243,16 @@ exports.uploadRequestAttachment = async (req, res) => {
           FileSizeKB,
           PageCount,
           Copies,
-          TotalSheets
+          TotalSheets,
+          DocumentName,
+          PaperSize,
+          PrintType,
+          PrintColor,
+          PagesPerSheet,
+          PageSelection,
+          CustomPageRange,
+          SelectedPages,
+          SheetsPerSet
         )
         VALUES
         (
@@ -227,13 +264,18 @@ exports.uploadRequestAttachment = async (req, res) => {
           @FileSizeKB,
           @PageCount,
           @Copies,
-          @TotalSheets
+          @TotalSheets,
+          @DocumentName,
+          @PaperSize,
+          @PrintType,
+          @PrintColor,
+          @PagesPerSheet,
+          @PageSelection,
+          @CustomPageRange,
+          @SelectedPages,
+          @SheetsPerSet
         )
       `);
-
-    // ============================================
-    // Return success response to frontend
-    // ============================================
 
     return res.status(201).json({
       message: "File uploaded successfully",
@@ -244,15 +286,20 @@ exports.uploadRequestAttachment = async (req, res) => {
         fileSizeKB: Math.round(fileSizeKB),
         fileType,
         pageCount: finalPageCount,
+        selectedPages: finalSelectedPages,
         copies: finalCopies,
+        sheetsPerSet: finalSheetsPerSet,
         totalSheets: finalTotalSheets,
+        documentName,
+        paperSize,
+        printType,
+        printColor,
+        pagesPerSheet,
+        pageSelection,
+        customPageRange,
       },
     });
   } catch (error) {
-    // ============================================
-    // Handle upload error
-    // ============================================
-
     console.error("Upload Error:", error);
 
     return res.status(500).json({

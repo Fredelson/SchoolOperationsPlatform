@@ -45,7 +45,18 @@ const app = express();
 // Middleware
 // ============================================
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://itrequest.arabunityschool.org",
+      "https://itrequest.arabunityschool.org",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 app.use(
   express.json({

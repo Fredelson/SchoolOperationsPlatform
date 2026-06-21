@@ -1,0 +1,27 @@
+install independencies or ibraries
+npm install libreoffice-convert pdf-lib
+npm install libreoffice-convert	
+
+https://www.libreoffice.org/download/
+
+ALTER TABLE RequestAttachments
+ADD
+    DocumentName NVARCHAR(255) NULL,
+    PaperSize NVARCHAR(20) NULL,
+    PrintType NVARCHAR(50) NULL,
+    PrintColor NVARCHAR(50) NULL,
+    PagesPerSheet INT NULL,
+    PageSelection NVARCHAR(50) NULL,
+    CustomPageRange NVARCHAR(100) NULL,
+    SelectedPages INT NULL,
+    SheetsPerSet INT NULL;
+
+CREATE TABLE PaperPurchases (
+    PurchaseId INT IDENTITY(1,1) PRIMARY KEY,
+    PaperType VARCHAR(10) NOT NULL, -- A4 / A3
+    QuantityBoxes INT NOT NULL,
+    TotalBundles AS (QuantityBoxes * 5) PERSISTED,
+    TotalSheets AS (QuantityBoxes * 5 * 500) PERSISTED,
+    PurchaseDate DATE NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
