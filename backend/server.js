@@ -33,6 +33,7 @@ const paperStockRoutes = require("./routes/paperStockRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
 const masterRoutes = require("./routes/masterRoutes");
 const userImportRoutes = require("./routes/userImportRoutes");
+const accessLevelRoutes = require("./routes/accessLevelRoutes");
 
 
 // Print Limit routes
@@ -117,7 +118,7 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/master", masterRoutes);
-
+app.use("/api/access-levels", accessLevelRoutes);
 
 
 // ============================================

@@ -57,12 +57,14 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
+import usePageTitle from "../../hooks/usePageTitle";
 
 import { useAuth } from "../../context/AuthContext";
 
 const API_URL = "http://localhost:5000/api";
 
 export default function MyRequests() {
+  usePageTitle("MyRequests");
   const navigate = useNavigate();
   const { user, token } = useAuth();
 

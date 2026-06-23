@@ -49,6 +49,7 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
+import usePageTitle from "../../hooks/usePageTitle";
 
 import { useAuth } from "../../context/AuthContext";
 
@@ -229,6 +230,7 @@ const getDocumentTotals = (doc) => {
 // ============================================
 
 export default function CreateRequest() {
+  usePageTitle("CreateRequest");
   const navigate = useNavigate();
   const { user, token } = useAuth();
 

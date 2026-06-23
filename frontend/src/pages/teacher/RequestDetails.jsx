@@ -51,6 +51,7 @@ import axios from "axios";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
+import usePageTitle from "../../hooks/usePageTitle";
 
 import { useAuth } from "../../context/AuthContext";
 
@@ -66,6 +67,7 @@ const BG = "#F4F7FB";
 const BORDER = "#E5EAF3";
 
 export default function RequestDetails() {
+  usePageTitle("RequestDetails");
   const navigate = useNavigate();
   const { id } = useParams();
   const { user, token } = useAuth();

@@ -15,6 +15,49 @@ CREATE TABLE AccessLevels (
     IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
 );
+Mofied acceslevels
+-- ============================================
+-- ALTER AccessLevels table
+-- Add missing columns for better master data control
+-- ============================================
+
+ALTER TABLE AccessLevels
+ADD 
+    SortOrder INT NOT NULL CONSTRAINT DF_AccessLevels_SortOrder DEFAULT 0,
+    IsSystemRole BIT NOT NULL CONSTRAINT DF_AccessLevels_IsSystemRole DEFAULT 0,
+    UpdatedAt DATETIME NULL;
+
+
+-- ============================================
+-- Update default role ordering and mark system roles
+-- ============================================
+
+UPDATE AccessLevels
+SET 
+    SortOrder = CASE AccessLevelName
+        WHEN 'TeacherLevel' THEN 1
+        WHEN 'HODLevel' THEN 2
+        WHEN 'HOSLevel' THEN 3
+        WHEN 'PrintingLevel' THEN 4
+        WHEN 'AdminLevel' THEN 5
+        WHEN 'SuperAdminLevel' THEN 6
+        WHEN 'RequestOnlyLevel' THEN 7
+        WHEN 'ViewOnlyLevel' THEN 8
+        ELSE 99
+    END,
+    IsSystemRole = CASE 
+        WHEN AccessLevelName IN (
+            'TeacherLevel',
+            'HODLevel',
+            'HOSLevel',
+            'PrintingLevel',
+            'AdminLevel',
+            'SuperAdminLevel'
+        ) THEN 1
+        ELSE 0
+    END,
+    UpdatedAt = GETDATE();
+
 
 CREATE TABLE Roles (
     RoleId INT IDENTITY(1,1) PRIMARY KEY,

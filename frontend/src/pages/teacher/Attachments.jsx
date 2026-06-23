@@ -37,6 +37,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
+import usePageTitle from "../../hooks/usePageTitle";
 
 import { useAuth } from "../../context/AuthContext";
 
@@ -96,6 +97,8 @@ const getFileMeta = (fileName = "") => {
 };
 
 export default function Attachments() {
+  usePageTitle("Attachments");
+
   const { token, user } = useAuth();
 
   const [attachments, setAttachments] = useState([]);

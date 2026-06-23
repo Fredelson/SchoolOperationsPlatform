@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
+import usePageTitle from "../../hooks/usePageTitle";
 
 import {
   Alert,
@@ -84,6 +85,7 @@ const defaultTrends = {
 // Teacher Dashboard Component
 // ============================================
 export default function TeacherDashboard() {
+  usePageTitle("TeacherDashboard");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
