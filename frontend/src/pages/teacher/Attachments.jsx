@@ -105,7 +105,7 @@ export default function Attachments() {
   const [sortBy, setSortBy] = useState("Recent");
   const [page, setPage] = useState(1);
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchAttachments();

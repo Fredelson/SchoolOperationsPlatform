@@ -73,7 +73,7 @@ export default function MyRequests() {
   const [error, setError] = useState("");
 
   const [page, setPage] = useState(1);
-  const requestsPerPage = 10;
+  const requestsPerPage = 5;
 
   // ============================================
   // Fetch active teacher requests
