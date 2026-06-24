@@ -1,0 +1,4 @@
+npm install recharts
+
+install recharts
+Enjoy the break. When you come back, we'll continue with ModuleStatusChart.jsx and keep following the approved dashboard design closely.

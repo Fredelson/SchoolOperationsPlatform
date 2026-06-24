@@ -1,75 +1,277 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Operations Platform
 // Super Admin Dashboard Data
-// Temporary frontend data
-// Later this will come from backend API
+//
+// Purpose:
+// Temporary dashboard data until backend APIs
+// are connected.
+//
+// Future Backend:
+// - GET /api/superadmin/dashboard/kpis
+// - GET /api/superadmin/dashboard/activity
+// - GET /api/superadmin/dashboard/system-health
+// - GET /api/superadmin/dashboard/recent-activities
+// - GET /api/superadmin/dashboard/pending-approvals
+// - GET /api/superadmin/modules
 // ============================================
 
-import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import { dashboardColors } from "../theme/dashboardColors";
+
+// KPI Icons
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import ComputerOutlinedIcon from "@mui/icons-material/ComputerOutlined";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
+
+// Module Icons
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 
-export const moduleCards = [
+// ============================================
+// KPI CARDS
+// ============================================
+
+export const dashboardStats = [
+  {
+    title: "Total Users",
+    value: "152",
+    change: "+12",
+    changeLabel: "vs last 30 days",
+    icon: PeopleAltOutlinedIcon,
+    color: dashboardColors.users,
+  },
+  {
+    title: "Active Modules",
+    value: "24",
+    change: "100%",
+    changeLabel: "Enabled",
+    icon: AppsOutlinedIcon,
+    color: dashboardColors.modules,
+  },
+  {
+    title: "Open Tickets",
+    value: "18",
+    change: "-4",
+    changeLabel: "vs last 7 days",
+    icon: ConfirmationNumberOutlinedIcon,
+    color: dashboardColors.tickets,
+  },
+  {
+    title: "Print Requests",
+    value: "27",
+    change: "+5",
+    changeLabel: "vs last 7 days",
+    icon: PrintOutlinedIcon,
+    color: dashboardColors.printing,
+  },
+  {
+    title: "Total Assets",
+    value: "248",
+    change: "+9",
+    changeLabel: "vs last 30 days",
+    icon: ComputerOutlinedIcon,
+    color: dashboardColors.assets,
+  },
+  {
+    title: "Unread Messages",
+    value: "17",
+    change: "",
+    changeLabel: "This week",
+    icon: MailOutlineOutlinedIcon,
+    color: dashboardColors.messages,
+  },
+];
+
+// ============================================
+// PLATFORM ACTIVITY CHART
+// ============================================
+
+export const platformActivityData = [
+  { month: "May 1", printRequests: 55, tickets: 20 },
+  { month: "May 5", printRequests: 82, tickets: 38 },
+  { month: "May 9", printRequests: 63, tickets: 28 },
+  { month: "May 13", printRequests: 75, tickets: 40 },
+  { month: "May 17", printRequests: 72, tickets: 30 },
+  { month: "May 21", printRequests: 78, tickets: 42 },
+  { month: "May 25", printRequests: 95, tickets: 45 },
+  { month: "May 29", printRequests: 103, tickets: 52 },
+];
+
+// ============================================
+// MODULE STATUS
+// ============================================
+
+export const moduleStatus = [
+  { key: "active", label: "Active", value: 16 },
+  { key: "inProgress", label: "In Progress", value: 5 },
+  { key: "comingSoon", label: "Coming Soon", value: 3 },
+  { key: "disabled", label: "Disabled", value: 0 },
+];
+
+// ============================================
+// SYSTEM HEALTH
+// ============================================
+
+export const systemHealth = [
+  { label: "Database", status: "Healthy", value: 98 },
+  { label: "Server", status: "Healthy", value: 97 },
+  { label: "Storage", status: "63%", value: 63 },
+  { label: "Email Service", status: "Connected", value: 100 },
+  { label: "Notification Service", status: "Active", value: 95 },
+  { label: "Backup", status: "Up to date", value: 100 },
+];
+
+// ============================================
+// RECENT ACTIVITIES
+// ============================================
+
+export const recentActivities = [
+  {
+    title: "User role permissions updated",
+    description: "Super Admin",
+    time: "10:45 AM",
+  },
+  {
+    title: "New print request submitted",
+    description: "Teacher Mary",
+    time: "10:30 AM",
+  },
+  {
+    title: "IT Ticket #ITK-2025-00018 assigned",
+    description: "IT Admin",
+    time: "10:15 AM",
+  },
+  {
+    title: "Asset LAP-045 status updated",
+    description: "IT Admin",
+    time: "09:50 AM",
+  },
+  {
+    title: "New user account created",
+    description: "Super Admin",
+    time: "09:30 AM",
+  },
+];
+
+// ============================================
+// PENDING APPROVALS
+// ============================================
+
+export const pendingApprovals = [
+  {
+    title: "5 Print Requests",
+    requester: "Awaiting HOD Approval",
+    status: "Pending",
+  },
+  {
+    title: "3 IT Tickets",
+    requester: "Awaiting Assignment",
+    status: "Pending",
+  },
+  {
+    title: "2 Observation Forms",
+    requester: "Awaiting HOS Approval",
+    status: "Pending",
+  },
+  {
+    title: "1 End-of-Term Campaign",
+    requester: "Awaiting Approval",
+    status: "Pending",
+  },
+];
+
+// ============================================
+// MODULE OVERVIEW
+// ============================================
+
+export const modulesOverview = [
   {
     title: "Printing Management",
-    description: "Photocopy requests, approvals, printing queue, inventory, and reports.",
-    icon: <PrintOutlinedIcon />,
-    status: "Active",
-    color: "#047857",
+    description: "27 Active Requests",
+    icon: PrintOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.printing,
   },
   {
-    title: "IT Tickets",
-    description: "Support requests, ticket assignment, SLA tracking, and resolution history.",
-    icon: <ConfirmationNumberOutlinedIcon />,
-    status: "Planned",
-    color: "#2563eb",
+    title: "Inventory Management",
+    description: "248 Total Items",
+    icon: Inventory2OutlinedIcon,
+    enabled: true,
+    color: dashboardColors.assets,
   },
   {
-    title: "Asset Management",
-    description: "IT assets, ownership history, assignments, transfers, and audits.",
-    icon: <Inventory2OutlinedIcon />,
-    status: "Planned",
-    color: "#7c3aed",
+    title: "IT Service Desk (Tickets)",
+    description: "18 Open Tickets",
+    icon: ConfirmationNumberOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.tickets,
+  },
+  {
+    title: "IT Asset Management",
+    description: "248 Total Assets",
+    icon: ComputerOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.users,
   },
   {
     title: "Academic Operations",
-    description: "Subjects, sections, classrooms, year leaders, and teacher operations.",
-    icon: <SchoolOutlinedIcon />,
-    status: "Planned",
-    color: "#ea580c",
+    description: "1,245 Students",
+    icon: SchoolOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.modules,
   },
   {
-    title: "Communication",
-    description: "Announcements, email rules, notifications, and message templates.",
-    icon: <CampaignOutlinedIcon />,
-    status: "Planned",
-    color: "#0891b2",
+    title: "Teacher Observations",
+    description: "34 Observations",
+    icon: VisibilityOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.observations,
+  },
+  {
+    title: "End-of-Term Campaigns",
+    description: "5 Active Campaigns",
+    icon: CampaignOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.campaigns,
+  },
+  {
+    title: "Communication Center",
+    description: "17 Unread Messages",
+    icon: MailOutlineOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.messages,
+  },
+  {
+    title: "Reports & Analytics",
+    description: "54 Reports",
+    icon: BarChartOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.reports,
   },
   {
     title: "HR Management",
-    description: "Staff records, roles, departments, access levels, and user lifecycle.",
-    icon: <GroupsOutlinedIcon />,
-    status: "Planned",
-    color: "#be123c",
+    description: "86 Staff Members",
+    icon: GroupsOutlinedIcon,
+    enabled: true,
+    color: dashboardColors.hr,
   },
-  {
-    title: "Student IDs",
-    description: "Student ID creation, printing, reissue requests, and tracking.",
-    icon: <BadgeOutlinedIcon />,
-    status: "Planned",
-    color: "#4f46e5",
-  },
-  {
-    title: "Observations",
-    description: "Classroom observations, follow-ups, records, and reporting.",
-    icon: <VisibilityOutlinedIcon />,
-    status: "Planned",
-    color: "#65a30d",
-  },
+];
+
+// ============================================
+// QUICK ACTIONS
+// ============================================
+
+export const quickActions = [
+  "Create User",
+  "Create Role",
+  "Create Module",
+  "Add Permission",
+  "View Audit Logs",
+  "Backup System",
 ];
