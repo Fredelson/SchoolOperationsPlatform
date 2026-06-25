@@ -7,12 +7,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
-import Sidebar from "../../components/sidebar/Sidebar";
-import Topbar from "../../components/common/Topbar";
-import PageHeader from "../../components/common/PageHeader";
-import DateFilter from "../../components/common/DateFilter";
-
 import { Box, Alert, Typography } from "@mui/material";
 
 import {
@@ -24,14 +18,21 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
+import PageHeader from "../../components/common/PageHeader";
+import DateFilter from "../../components/common/DateFilter";
+import Topbar from "../../components/common/Topbar";
+
 import KPIGrid from "../../components/dashboard/KPIGrid";
-import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
-import HodApprovalTrend from "../../components/dashboard/HodApprovalTrend";
-import DepartmentDistributionChart from "../../components/dashboard/DepartmentDistributionChart";
-import RecentApprovedRequests from "../../components/dashboard/RecentApprovedRequests";
-import ApprovalHistory from "../../components/dashboard/ApprovalHistory";
-import HodPendingRequestsTable from "../../components/dashboard/HodPendingRequestsTable";
-import RecentRejectedRequests from "../../components/dashboard/RecentRejectedRequests";
+
+import HodApprovalTrend from "../../components/charts/HodApprovalTrend";
+import DepartmentDistributionChart from "../../components/charts/DepartmentDistributionChart";
+
+import HodPendingRequestsTable from "../../components/tables/HodPendingRequestsTable";
+import RecentApprovedRequests from "../../components/tables/RecentApprovedRequests";
+import RecentRejectedRequests from "../../components/tables/RecentRejectedRequests";
+import ApprovalHistory from "../../components/tables/ApprovalHistory";
+
+import RequestDetailsDialog from "../../components/dialogs/RequestDetailsDialog";
 
 import { useAuth } from "../../context/AuthContext";
 

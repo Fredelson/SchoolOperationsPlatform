@@ -16,10 +16,10 @@
 
 import { Box } from "@mui/material";
 
-import PlatformActivityChart from "./PlatformActivityChart";
-import ModuleStatusChart from "./ModuleStatusChart";
-import SystemHealth from "./SystemHealth";
-import RecentActivity from "./RecentActivity";
+import PlatformActivityChart from "../charts/PlatformActivityChart";
+import ModuleStatusChart from "../charts/ModuleStatusChart";
+import SystemHealth from "../dashboard/SystemHealth";
+import RecentActivity from "../dashboard/RecentActivity";
 
 export default function DashboardMiddleRow({
   platformActivityData = [],

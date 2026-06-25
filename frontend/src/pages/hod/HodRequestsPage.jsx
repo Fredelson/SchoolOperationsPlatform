@@ -13,8 +13,9 @@ import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 
-import HodPendingRequestsTable from "../../components/dashboard/HodPendingRequestsTable";
-import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
+import HodPendingRequestsTable from "../../components/tables/HodPendingRequestsTable";
+import RequestDetailsDialog from "../../components/dialogs/RequestDetailsDialog";
+
 
 import { useAuth } from "../../context/AuthContext";
 

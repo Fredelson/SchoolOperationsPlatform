@@ -13,7 +13,8 @@
 import Box from "@mui/material/Box";
 
 import DashboardCard from "../common/DashboardCard";
-import ApprovalItem from "./ApprovalItem";
+// NEW
+import ApprovalItem from "../widgets/ApprovalItem";
 
 export default function PendingApprovals({
   title = "Pending Approvals",

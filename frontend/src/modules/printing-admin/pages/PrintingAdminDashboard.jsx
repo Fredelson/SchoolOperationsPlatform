@@ -23,9 +23,9 @@ import { Box } from "@mui/material";
 import PageHeader from "../../../components/common/PageHeader";
 
 import DashboardKpis from "../../../components/dashboard/DashboardKpis";
-import DashboardMiddleRow from "../../../components/dashboard/DashboardMiddleRow";
+import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
 import TopPrintRequests from "../../../components/dashboard/TopPrintRequests";
-import ModuleStatusChart from "../../../components/dashboard/ModuleStatusChart";
+import ModuleStatusChart from "../../../components/charts/ModuleStatusChart";
 import PendingApprovals from "../../../components/dashboard/PendingApprovals";
 
 import InventorySummaryCard from "../components/InventorySummaryCard";

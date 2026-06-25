@@ -9,7 +9,7 @@
 // Can be reused by IT Service Desk dashboard later.
 // ============================================
 
-import ModuleStatusChart from "./ModuleStatusChart";
+import ModuleStatusChart from "../charts/ModuleStatusChart";
 
 // ============================================
 // Component

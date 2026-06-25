@@ -16,9 +16,9 @@
 
 import { Box } from "@mui/material";
 
-import TopPrintRequests from "./TopPrintRequests";
-import TicketsByStatus from "./TicketsByStatus";
-import PendingApprovals from "./PendingApprovals";
+import TopPrintRequests from "../dashboard/TopPrintRequests";
+import TicketsByStatus from "../charts/TicketsByStatus";
+import PendingApprovals from "../dashboard/PendingApprovals";
 
 export default function DashboardBottomRow({
   topPrintRequests = [],

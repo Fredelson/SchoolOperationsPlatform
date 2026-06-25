@@ -9,7 +9,9 @@
 import { useEffect, useState } from "react";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
+
 import Sidebar from "../../components/sidebar/Sidebar";
+
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
@@ -24,14 +26,21 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
+// Dashboard
 import KPIGrid from "../../components/dashboard/KPIGrid";
-import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
-import HodApprovalTrend from "../../components/dashboard/HodApprovalTrend";
-import DepartmentDistributionChart from "../../components/dashboard/DepartmentDistributionChart";
-import RecentApprovedRequests from "../../components/dashboard/RecentApprovedRequests";
-import ApprovalHistory from "../../components/dashboard/ApprovalHistory";
-import HosPendingRequestsTable from "../../components/dashboard/HosPendingRequestsTable";
-import RecentRejectedRequests from "../../components/dashboard/RecentRejectedRequests";
+
+// Charts
+import HodApprovalTrend from "../../components/charts/HodApprovalTrend";
+import DepartmentDistributionChart from "../../components/charts/DepartmentDistributionChart";
+
+// Tables
+import HosPendingRequestsTable from "../../components/tables/HosPendingRequestsTable";
+import RecentApprovedRequests from "../../components/tables/RecentApprovedRequests";
+import RecentRejectedRequests from "../../components/tables/RecentRejectedRequests";
+import ApprovalHistory from "../../components/tables/ApprovalHistory";
+
+// Dialogs
+import RequestDetailsDialog from "../../components/dialogs/RequestDetailsDialog";
 
 import { useAuth } from "../../context/AuthContext";
 
@@ -42,7 +51,6 @@ import {
   approveHosRequest,
   rejectHosRequest,
 } from "../../services/hosService";
-
 export default function HosDashboard() {
   const { user } = useAuth();
 

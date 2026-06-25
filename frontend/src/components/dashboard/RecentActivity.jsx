@@ -7,7 +7,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
 import DashboardCard from "../common/DashboardCard";
-import ActivityItem from "./ActivityItem";
+import ActivityItem from "../widgets/ActivityItem";
 
 export default function RecentActivity({ items = [] }) {
   return (

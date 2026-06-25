@@ -8,8 +8,7 @@
 // ============================================
 
 import { Box, Typography } from "@mui/material";
-import ModuleCard from "./ModuleCard";
-
+import ModuleCard from "../widgets/ModuleCard";
 // ============================================
 // Component
 // ============================================

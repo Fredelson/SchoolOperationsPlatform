@@ -13,10 +13,10 @@
 import { Box } from "@mui/material";
 
 import AllModules from "../../../components/dashboard/AllModules";
-import DashboardHeader from "../../../components/dashboard/DashboardHeader";
 import DashboardKpis from "../../../components/dashboard/DashboardKpis";
-import DashboardMiddleRow from "../../../components/dashboard/DashboardMiddleRow";
-import DashboardBottomRow from "../../../components/dashboard/DashboardBottomRow";
+import DashboardHeader from "../../../components/layout/DashboardHeader";
+import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
+import DashboardBottomRow from "../../../components/layout/DashboardBottomRow";
 
 import {
   dashboardStats,
