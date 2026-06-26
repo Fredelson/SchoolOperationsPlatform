@@ -1,311 +1,284 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // User Management Controller
+//
+// Purpose:
+// - Manage users
+// - Create users with auto-generated default password
+// - Activate/deactivate user accounts
+//
+// Module:
+// User Management
 // ============================================
 
-const bcrypt = require("bcryptjs");
 const { poolPromise, sql } = require("../../config/db");
+const asyncHandler = require("../../utils/asyncHandler");
+const { hashPassword } = require("../../utils/passwordHelper");
+const {
+  sendSuccess,
+  sendError,
+} = require("../../utils/apiResponse");
 
 // ============================================
 // GET ALL USERS
+// Route: GET /api/users
 // ============================================
-const getUsers = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    const result = await pool.request().query(`
+const getUsers = asyncHandler(async (req, res) => {
+  const pool = await poolPromise;
+
+  const result = await pool.request().query(`
     SELECT
-        u.UserId,
-        u.EmployeeId,
-        u.FullName,
-        u.SchoolEmail,
-        u.DepartmentId,
-        d.DepartmentName,
-        u.Subject,
-        u.Role,
-        u.IsActive,
-        u.CreatedAt
+      u.UserId,
+      u.EmployeeId,
+      u.FullName,
+      u.SchoolEmail,
+      u.DepartmentId,
+      d.DepartmentName,
+      u.Subject,
+      u.Role,
+      u.IsActive,
+      u.CreatedAt
     FROM dbo.Users u
     LEFT JOIN dbo.Departments d
-        ON u.DepartmentId = d.DepartmentId
+      ON u.DepartmentId = d.DepartmentId
     ORDER BY u.FullName
-    `);
+  `);
 
-    res.status(200).json({
-      success: true,
-      count: result.recordset.length,
-      users: result.recordset,
-    });
-  } catch (error) {
-    console.error("Get Users Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to load users",
-    });
-  }
-};
+  return sendSuccess(res, "Users loaded successfully.", {
+    count: result.recordset.length,
+    users: result.recordset,
+  });
+});
 
 // ============================================
 // GET USER BY ID
+// Route: GET /api/users/:id
 // ============================================
-const getUserById = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    const result = await pool
-      .request()
-      .input("userId", sql.Int, req.params.id)
-      .query(`
-        SELECT *
-        FROM Users
-        WHERE UserId = @userId
-      `);
+const getUserById = asyncHandler(async (req, res) => {
+  const pool = await poolPromise;
 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+  const result = await pool
+    .request()
+    .input("userId", sql.Int, req.params.id)
+    .query(`
+      SELECT *
+      FROM dbo.Users
+      WHERE UserId = @userId
+    `);
 
-    res.status(200).json({
-      success: true,
-      user: result.recordset[0],
-    });
-  } catch (error) {
-    console.error("Get User Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to load user",
-    });
+  if (result.recordset.length === 0) {
+    return sendError(res, "User not found.", 404);
   }
-};
+
+  return sendSuccess(
+    res,
+    "User loaded successfully.",
+    result.recordset[0]
+  );
+});
 
 // ============================================
 // CREATE USER
+// Route: POST /api/users
 // ============================================
-const createUser = async (req, res) => {
-  try {
-    const {
-      fullName,
-      employeeId,
-      schoolEmail,
-      role,
-      departmentId,
-      sectionId,
-      subject,
-    } = req.body;
 
-    const pool = await poolPromise;
+const createUser = asyncHandler(async (req, res) => {
+  const {
+    fullName,
+    employeeId,
+    schoolEmail,
+    role,
+    departmentId,
+    sectionId,
+    subject,
+  } = req.body;
 
-    const existingUser = await pool
-      .request()
-      .input("employeeId", sql.VarChar, employeeId)
-      .query(`
-        SELECT UserId
-        FROM Users
-        WHERE EmployeeId = @employeeId
-      `);
-
-    if (existingUser.recordset.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee ID already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(employeeId, 10);
-
-    await pool
-      .request()
-      .input("fullName", sql.NVarChar, fullName)
-      .input("employeeId", sql.VarChar, employeeId)
-      .input("schoolEmail", sql.VarChar, schoolEmail)
-      .input("passwordHash", sql.VarChar, hashedPassword)
-      .input("role", sql.VarChar, role)
-      .input("departmentId", sql.Int, departmentId || null)
-      .input("sectionId", sql.Int, sectionId || null)
-      .input("subject", sql.VarChar, subject || null)
-      .query(`
-        INSERT INTO Users
-        (
-          FullName,
-          EmployeeId,
-          SchoolEmail,
-          PasswordHash,
-          Role,
-          DepartmentId,
-          SectionId,
-          Subject,
-          IsActive,
-          MustChangePassword,
-          CreatedAt
-        )
-        VALUES
-        (
-          @fullName,
-          @employeeId,
-          @schoolEmail,
-          @passwordHash,
-          @role,
-          @departmentId,
-          @sectionId,
-          @subject,
-          1,
-          1,
-          GETDATE()
-        )
-      `);
-
-    res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      defaultPassword: employeeId,
-    });
-  } catch (error) {
-    console.error("Create User Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create user",
-    });
+  // Validate required fields
+  if (!fullName || !employeeId || !schoolEmail || !role) {
+    return sendError(
+      res,
+      "Full name, employee ID, school email, and role are required.",
+      400
+    );
   }
-};
+
+  const pool = await poolPromise;
+
+  // Check duplicate Employee ID
+  const existingUser = await pool
+    .request()
+    .input("employeeId", sql.VarChar, employeeId)
+    .query(`
+      SELECT UserId
+      FROM dbo.Users
+      WHERE EmployeeId = @employeeId
+    `);
+
+  if (existingUser.recordset.length > 0) {
+    return sendError(res, "Employee ID already exists.", 400);
+  }
+
+  // Default password is Employee ID.
+  // User must change it on first login.
+  const hashedPassword = await hashPassword(employeeId);
+
+  await pool
+    .request()
+    .input("fullName", sql.NVarChar, fullName)
+    .input("employeeId", sql.VarChar, employeeId)
+    .input("schoolEmail", sql.VarChar, schoolEmail)
+    .input("passwordHash", sql.VarChar, hashedPassword)
+    .input("role", sql.VarChar, role)
+    .input("departmentId", sql.Int, departmentId || null)
+    .input("sectionId", sql.Int, sectionId || null)
+    .input("subject", sql.VarChar, subject || null)
+    .query(`
+      INSERT INTO dbo.Users
+      (
+        FullName,
+        EmployeeId,
+        SchoolEmail,
+        PasswordHash,
+        Role,
+        DepartmentId,
+        SectionId,
+        Subject,
+        IsActive,
+        MustChangePassword,
+        CreatedAt
+      )
+      VALUES
+      (
+        @fullName,
+        @employeeId,
+        @schoolEmail,
+        @passwordHash,
+        @role,
+        @departmentId,
+        @sectionId,
+        @subject,
+        1,
+        1,
+        GETDATE()
+      )
+    `);
+
+  return sendSuccess(
+    res,
+    "User created successfully.",
+    {
+      defaultPassword: employeeId,
+    },
+    201
+  );
+});
 
 // ============================================
 // UPDATE USER
-// Updates user basic information
-// Matches current Users table schema
+// Route: PUT /api/users/:id
 // ============================================
-const updateUser = async (req, res) => {
-  try {
-    const {
-      fullName,
-      schoolEmail,
-      role,
-      departmentId,
-      subject,
-    } = req.body;
 
-    const userId = req.params.id;
-    const pool = await poolPromise;
+const updateUser = asyncHandler(async (req, res) => {
+  const {
+    fullName,
+    schoolEmail,
+    role,
+    departmentId,
+    subject,
+  } = req.body;
 
-    // Check if user exists
-    const existingUser = await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .query(`
-        SELECT UserId
-        FROM dbo.Users
-        WHERE UserId = @userId
-      `);
+  const userId = req.params.id;
+  const pool = await poolPromise;
 
-    if (existingUser.recordset.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+  // Check if user exists
+  const existingUser = await pool
+    .request()
+    .input("userId", sql.Int, userId)
+    .query(`
+      SELECT UserId
+      FROM dbo.Users
+      WHERE UserId = @userId
+    `);
 
-    // Update user info
-    await pool
-      .request()
-      .input("userId", sql.Int, userId)
-      .input("fullName", sql.NVarChar, fullName)
-      .input("schoolEmail", sql.VarChar, schoolEmail)
-      .input("role", sql.VarChar, role)
-      .input(
-        "departmentId",
-        sql.Int,
-        departmentId === "" || departmentId === undefined ? null : Number(departmentId)
-      )
-      .input("subject", sql.VarChar, role === "HOD" ? subject : null)
-      .query(`
-        UPDATE dbo.Users
-        SET
-          FullName = @fullName,
-          SchoolEmail = @schoolEmail,
-          Role = @role,
-          DepartmentId = @departmentId,
-          Subject = @subject
-        WHERE UserId = @userId
-      `);
-
-    res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-    });
-  } catch (error) {
-    console.error("Update User Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to update user",
-    });
+  if (existingUser.recordset.length === 0) {
+    return sendError(res, "User not found.", 404);
   }
-};
+
+  // Update basic user information
+  await pool
+    .request()
+    .input("userId", sql.Int, userId)
+    .input("fullName", sql.NVarChar, fullName)
+    .input("schoolEmail", sql.VarChar, schoolEmail)
+    .input("role", sql.VarChar, role)
+    .input(
+      "departmentId",
+      sql.Int,
+      departmentId === "" || departmentId === undefined
+        ? null
+        : Number(departmentId)
+    )
+    .input("subject", sql.VarChar, role === "HOD" ? subject : null)
+    .query(`
+      UPDATE dbo.Users
+      SET
+        FullName = @fullName,
+        SchoolEmail = @schoolEmail,
+        Role = @role,
+        DepartmentId = @departmentId,
+        Subject = @subject
+      WHERE UserId = @userId
+    `);
+
+  return sendSuccess(res, "User updated successfully.");
+});
 
 // ============================================
 // DEACTIVATE USER
+// Route: PUT /api/users/:id/deactivate
 // ============================================
-const deactivateUser = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    await pool
-      .request()
-      .input("userId", sql.Int, req.params.id)
-      .query(`
-        UPDATE Users
-        SET IsActive = 0
-        WHERE UserId = @userId
-      `);
+const deactivateUser = asyncHandler(async (req, res) => {
+  const pool = await poolPromise;
 
-    res.status(200).json({
-      success: true,
-      message: "User deactivated",
-    });
-  } catch (error) {
-    console.error("Deactivate User Error:", error);
+  await pool
+    .request()
+    .input("userId", sql.Int, req.params.id)
+    .query(`
+      UPDATE dbo.Users
+      SET IsActive = 0
+      WHERE UserId = @userId
+    `);
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to deactivate user",
-    });
-  }
-};
+  return sendSuccess(res, "User deactivated successfully.");
+});
 
 // ============================================
 // ACTIVATE USER
+// Route: PUT /api/users/:id/activate
 // ============================================
-const activateUser = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    await pool
-      .request()
-      .input("userId", sql.Int, req.params.id)
-      .query(`
-        UPDATE Users
-        SET IsActive = 1
-        WHERE UserId = @userId
-      `);
+const activateUser = asyncHandler(async (req, res) => {
+  const pool = await poolPromise;
 
-    res.status(200).json({
-      success: true,
-      message: "User activated",
-    });
-  } catch (error) {
-    console.error("Activate User Error:", error);
+  await pool
+    .request()
+    .input("userId", sql.Int, req.params.id)
+    .query(`
+      UPDATE dbo.Users
+      SET IsActive = 1
+      WHERE UserId = @userId
+    `);
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to activate user",
-    });
-  }
-};
+  return sendSuccess(res, "User activated successfully.");
+});
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getUsers,

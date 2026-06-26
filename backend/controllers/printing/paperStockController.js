@@ -1,82 +1,94 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Paper Inventory Controller
-// Simple A4 / A3 stock only
+// Operations Platform
+// Paper Stock Controller
+//
+// Purpose:
+// - Get current paper stock
+// - Update A4/A3 paper stock
+//
+// Module:
+// Printing Management
 // ============================================
 
 const { sql, poolPromise } = require("../../config/db");
+const asyncHandler = require("../../utils/asyncHandler");
+const {
+  sendSuccess,
+  sendError,
+} = require("../../utils/apiResponse");
 
 // ============================================
 // GET PAPER STOCK
+// Route: GET /api/paper-stock
 // ============================================
-const getPaperStock = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    const result = await pool.request().query(`
-      SELECT
-        InventoryId,
-        PaperType,
-        CurrentStock,
-        LastUpdated
-      FROM dbo.PaperInventory
-      WHERE PaperType IN ('A4', 'A3')
-      ORDER BY PaperType
-    `);
+const getPaperStock = asyncHandler(async (req, res) => {
+  // Connect to SQL Server
+  const pool = await poolPromise;
 
-    res.status(200).json({
-      success: true,
-      stock: result.recordset,
-    });
-  } catch (error) {
-    console.error("Get Paper Stock Error:", error);
+  // Load all paper inventory records
+  const result = await pool.request().query(`
+    SELECT
+      InventoryId,
+      PaperType,
+      CurrentStock,
+      LastUpdated
+    FROM PaperInventory
+    ORDER BY PaperType
+  `);
 
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  // Return standardized success response
+  return sendSuccess(
+    res,
+    "Paper stock loaded successfully.",
+    result.recordset
+  );
+});
 
 // ============================================
 // UPDATE PAPER STOCK
-// Body: { a4Stock: 100, a3Stock: 20 }
+// Route: PUT /api/paper-stock
 // ============================================
-const updatePaperStock = async (req, res) => {
-  try {
-    const { a4Stock, a3Stock } = req.body;
 
-    const pool = await poolPromise;
+const updatePaperStock = asyncHandler(async (req, res) => {
+  const { paperType, currentStock } = req.body;
 
-    await pool
-      .request()
-      .input("a4Stock", sql.Int, Number(a4Stock))
-      .input("a3Stock", sql.Int, Number(a3Stock))
-      .query(`
-        UPDATE dbo.PaperInventory
-        SET
-          CurrentStock = CASE
-            WHEN PaperType = 'A4' THEN @a4Stock
-            WHEN PaperType = 'A3' THEN @a3Stock
-            ELSE CurrentStock
-          END,
-          LastUpdated = GETDATE()
-        WHERE PaperType IN ('A4', 'A3')
-      `);
-
-    res.status(200).json({
-      success: true,
-      message: "Paper stock updated successfully",
-    });
-  } catch (error) {
-    console.error("Update Paper Stock Error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  // Validate required fields
+  if (!paperType || currentStock === undefined || currentStock === null) {
+    return sendError(
+      res,
+      "Paper type and current stock are required.",
+      400
+    );
   }
-};
+
+  // Connect to SQL Server
+  const pool = await poolPromise;
+
+  // Update stock for selected paper type
+  await pool
+    .request()
+    .input("PaperType", sql.VarChar, paperType)
+    .input("CurrentStock", sql.Int, Number(currentStock))
+    .query(`
+      UPDATE PaperInventory
+      SET
+        CurrentStock = @CurrentStock,
+        LastUpdated = GETDATE()
+      WHERE PaperType = @PaperType
+    `);
+
+  // Return standardized success response
+  return sendSuccess(
+    res,
+    "Paper stock updated successfully."
+  );
+});
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getPaperStock,

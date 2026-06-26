@@ -1,72 +1,86 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Paper Purchase Controller
-// Handles paper purchases, stock increase,
-// and inventory transaction logging
+//
+// Purpose:
+// - Get paper purchase records
+// - Add paper purchases
+// - Increase paper inventory
+// - Log inventory transactions
+//
+// Module:
+// Printing Management
 // ============================================
 
 const { sql, poolPromise } = require("../../config/db");
+const asyncHandler = require("../../utils/asyncHandler");
+const {
+  sendSuccess,
+  sendError,
+} = require("../../utils/apiResponse");
 
 // ============================================
-// GET /api/purchases
-// Get all paper purchase records
+// GET PURCHASES
+// Route: GET /api/purchases
 // ============================================
-const getPurchases = async (req, res) => {
-  try {
-    const pool = await poolPromise;
 
-    const result = await pool.request().query(`
-      SELECT
-        PurchaseId,
-        PaperType,
-        QuantityBoxes,
-        TotalBundles,
-        TotalSheets,
-        PurchaseDate,
-        CreatedAt
-      FROM PaperPurchases
-      ORDER BY PurchaseDate DESC, PurchaseId DESC
-    `);
+const getPurchases = asyncHandler(async (req, res) => {
+  // Connect to SQL Server
+  const pool = await poolPromise;
 
-    return res.json(result.recordset);
-  } catch (error) {
-    console.error("Get purchases error:", error);
+  // Load paper purchase records, newest first
+  const result = await pool.request().query(`
+    SELECT
+      PurchaseId,
+      PaperType,
+      QuantityBoxes,
+      TotalBundles,
+      TotalSheets,
+      PurchaseDate,
+      CreatedAt
+    FROM PaperPurchases
+    ORDER BY PurchaseDate DESC, PurchaseId DESC
+  `);
 
-    return res.status(500).json({
-      message: "Server error while fetching purchases",
-    });
-  }
-};
+  return sendSuccess(
+    res,
+    "Paper purchases loaded successfully.",
+    result.recordset
+  );
+});
 
 // ============================================
-// POST /api/purchases
-// Add paper purchase, increase inventory,
-// and log transaction as PURCHASE
+// ADD PURCHASE
+// Route: POST /api/purchases
 // ============================================
-const addPurchase = async (req, res) => {
+
+const addPurchase = asyncHandler(async (req, res) => {
   const { paperType, quantityBoxes, purchaseDate } = req.body;
 
-  // ============================================
-  // Basic validation
-  // ============================================
+  // Validate required fields
   if (!paperType || !quantityBoxes || !purchaseDate) {
-    return res.status(400).json({
-      message: "Paper type, quantity boxes, and purchase date are required",
-    });
+    return sendError(
+      res,
+      "Paper type, quantity boxes, and purchase date are required.",
+      400
+    );
   }
 
+  // Validate allowed paper type
   if (!["A4", "A3"].includes(paperType)) {
-    return res.status(400).json({
-      message: "Paper type must be A4 or A3",
-    });
+    return sendError(res, "Paper type must be A4 or A3.", 400);
   }
 
+  // Validate positive quantity
   if (Number(quantityBoxes) <= 0) {
-    return res.status(400).json({
-      message: "Quantity boxes must be greater than 0",
-    });
+    return sendError(res, "Quantity boxes must be greater than 0.", 400);
   }
 
+  // Create transaction because this operation affects:
+  // 1. PaperPurchases
+  // 2. PaperInventory
+  // 3. InventoryTransactions
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
@@ -74,9 +88,9 @@ const addPurchase = async (req, res) => {
     await transaction.begin();
 
     // ============================================
-    // Step 1: Get current stock before purchase
-    // Used for PreviousStock in InventoryTransactions
+    // Step 1: Get Current Inventory
     // ============================================
+
     const inventoryResult = await new sql.Request(transaction)
       .input("PaperType", sql.VarChar(10), paperType)
       .query(`
@@ -90,21 +104,20 @@ const addPurchase = async (req, res) => {
     if (inventoryResult.recordset.length === 0) {
       await transaction.rollback();
 
-      return res.status(404).json({
-        message: `${paperType} inventory record not found.`,
-      });
+      return sendError(
+        res,
+        `${paperType} inventory record not found.`,
+        404
+      );
     }
 
     const inventory = inventoryResult.recordset[0];
     const previousStock = Number(inventory.CurrentStock || 0);
 
     // ============================================
-    // Step 2: Insert purchase record
-    // TotalBundles and TotalSheets are computed columns
-    // from your SQL table:
-    // TotalBundles = QuantityBoxes * 5
-    // TotalSheets = QuantityBoxes * 5 * 500
+    // Step 2: Insert Purchase Record
     // ============================================
+
     const insertResult = await new sql.Request(transaction)
       .input("PaperType", sql.VarChar(10), paperType)
       .input("QuantityBoxes", sql.Int, Number(quantityBoxes))
@@ -135,8 +148,9 @@ const addPurchase = async (req, res) => {
     const newStock = previousStock + totalSheets;
 
     // ============================================
-    // Step 3: Add purchased sheets to PaperInventory
+    // Step 3: Increase Paper Inventory
     // ============================================
+
     await new sql.Request(transaction)
       .input("PaperType", sql.VarChar(10), paperType)
       .input("TotalSheets", sql.Int, totalSheets)
@@ -149,23 +163,22 @@ const addPurchase = async (req, res) => {
       `);
 
     // ============================================
-    // Step 4: Log inventory transaction as PURCHASE
-    // This allows the Inventory Transaction Logs page
-    // to show purchase/add-stock history
+    // Step 4: Log Inventory Transaction
     // ============================================
+
     await new sql.Request(transaction)
-      .input("paperType", sql.VarChar(10), paperType)
-      .input("transactionType", sql.VarChar(50), "PURCHASE")
-      .input("quantity", sql.Int, totalSheets)
-      .input("previousStock", sql.Int, previousStock)
-      .input("newStock", sql.Int, newStock)
-      .input("referenceId", sql.Int, purchase.PurchaseId)
+      .input("PaperType", sql.VarChar(10), paperType)
+      .input("TransactionType", sql.VarChar(50), "PURCHASE")
+      .input("Quantity", sql.Int, totalSheets)
+      .input("PreviousStock", sql.Int, previousStock)
+      .input("NewStock", sql.Int, newStock)
+      .input("ReferenceId", sql.Int, purchase.PurchaseId)
       .input(
-        "remarks",
+        "Remarks",
         sql.VarChar(255),
         `Purchased ${purchase.QuantityBoxes} boxes of ${paperType} = ${purchase.TotalBundles} bundles = ${purchase.TotalSheets} sheets`
       )
-      .input("createdBy", sql.Int, req.user?.id || req.user?.UserId || 1)
+      .input("CreatedBy", sql.Int, req.user?.id || req.user?.UserId || 1)
       .query(`
         INSERT INTO InventoryTransactions
         (
@@ -180,46 +193,46 @@ const addPurchase = async (req, res) => {
         )
         VALUES
         (
-          @paperType,
-          @transactionType,
-          @quantity,
-          @previousStock,
-          @newStock,
-          @referenceId,
-          @remarks,
-          @createdBy
+          @PaperType,
+          @TransactionType,
+          @Quantity,
+          @PreviousStock,
+          @NewStock,
+          @ReferenceId,
+          @Remarks,
+          @CreatedBy
         )
       `);
 
-    // ============================================
-    // Step 5: Commit all changes
-    // Purchase + Inventory update + Transaction log
-    // ============================================
+    // Commit only after all steps succeed
     await transaction.commit();
 
-    return res.status(201).json({
-      message: "Paper purchase added, inventory updated, and transaction logged.",
-      purchase: {
+    return sendSuccess(
+      res,
+      "Paper purchase added, inventory updated, and transaction logged.",
+      {
         ...purchase,
         PreviousStock: previousStock,
         NewStock: newStock,
       },
-    });
+      201
+    );
   } catch (error) {
+    // Roll back inventory/purchase changes if anything fails
     try {
       await transaction.rollback();
     } catch (rollbackError) {
       console.error("Purchase rollback error:", rollbackError);
     }
 
-    console.error("Add purchase error:", error);
-
-    return res.status(500).json({
-      message: "Server error while adding purchase",
-      error: error.message,
-    });
+    // Throw to global error middleware through asyncHandler
+    throw error;
   }
-};
+});
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getPurchases,

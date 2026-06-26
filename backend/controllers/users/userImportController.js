@@ -11,17 +11,14 @@
 const fs = require("fs");
 const csv = require("csv-parser");
 const xlsx = require("xlsx");
-const bcrypt = require("bcryptjs");
+const { hashPassword } = require("../../utils/passwordHelper");
 const { poolPromise, sql } = require("../../config/db");
 
 // ============================================
 // Allowed roles
 // Must match database role values exactly
 // ============================================
-// ============================================
-// Allowed roles
-// Must match database role values exactly
-// ============================================
+
 const allowedRoles = [
   "Teacher",
   "TeachingAssistant",
@@ -133,7 +130,7 @@ const processUserImport = async (users, filePath = null) => {
       // Auto Password = EmployeeId
       // User must change password after first login
       // ============================================
-      const passwordHash = await bcrypt.hash(employeeId, 10);
+      const passwordHash = await hashPassword(employeeId);
 
       // ============================================
       // Insert User
@@ -220,10 +217,11 @@ exports.importUsersFromCSV = async (req, res) => {
         try {
           const result = await processUserImport(users, req.file.path);
 
-          return res.json({
-            message: "CSV import completed.",
-            ...result,
-          });
+          return sendSuccess(
+              res,
+              "CSV import completed.",
+              result
+          );
         } catch (error) {
           console.error("CSV Processing Error:", error);
 
@@ -231,10 +229,14 @@ exports.importUsersFromCSV = async (req, res) => {
             fs.unlinkSync(req.file.path);
           }
 
-          return res.status(500).json({
-            message: "Failed to process CSV users.",
-            error: error.message,
-          });
+          return sendError(
+            res,
+            "Failed to process CSV users.",
+            500,
+            {
+              error: error.message,
+            }
+          );
         }
       });
   } catch (error) {

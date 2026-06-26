@@ -2,70 +2,49 @@
 // ARAB UNITY SCHOOL
 // Operations Platform
 // Global Constants
+//
+// Purpose:
+// - Keep role names and fixed system values in one place
+// - Prevent typos across controllers and routes
 // ============================================
 
 // ============================================
 // User Roles
 // ============================================
 
-const ROLES = {
+const USER_ROLES = {
   SUPER_ADMIN: "SuperAdmin",
   PLATFORM_ADMIN: "PlatformAdmin",
   PRINTING_ADMIN: "PrintingAdmin",
-  HOS: "HOS",
-  HOD: "HOD",
   ADMIN: "Admin",
   TEACHER: "Teacher",
+  TEACHING_ASSISTANT: "TeachingAssistant",
+  HOD: "HOD",
+  HOS: "HOS",
+  SECRETARY: "Secretary",
 };
 
 // ============================================
-// Request Status
+// Allowed Import Roles
+// Used by CSV/Excel user import
 // ============================================
 
-const REQUEST_STATUS = {
-  PENDING: "Pending",
-  APPROVED_HOD: "Approved by HOD",
-  REJECTED_HOD: "Rejected by HOD",
-  FORWARDED_HOS: "Forwarded to HOS",
-  APPROVED_HOS: "Approved by HOS",
-  REJECTED_HOS: "Rejected by HOS",
-  PRINTING: "Printing",
-  COMPLETED: "Completed",
-};
+const ALLOWED_IMPORT_ROLES = [
+  USER_ROLES.TEACHER,
+  USER_ROLES.TEACHING_ASSISTANT,
+  USER_ROLES.HOD,
+  USER_ROLES.HOS,
+  USER_ROLES.SECRETARY,
+  USER_ROLES.PRINTING_ADMIN,
+  USER_ROLES.ADMIN,
+  USER_ROLES.SUPER_ADMIN,
+];
 
 // ============================================
-// Paper Sizes
+// Exports
 // ============================================
-
-const PAPER_SIZE = {
-  A4: "A4",
-  A3: "A3",
-};
-
-// ============================================
-// Print Side
-// ============================================
-
-const PRINT_SIDE = {
-  SINGLE: "Single",
-  DOUBLE: "Double",
-};
-
-// ============================================
-// Priority
-// ============================================
-
-const PRIORITY = {
-  LOW: "Low",
-  NORMAL: "Normal",
-  HIGH: "High",
-  URGENT: "Urgent",
-};
 
 module.exports = {
-  ROLES,
-  REQUEST_STATUS,
-  PAPER_SIZE,
-  PRINT_SIDE,
-  PRIORITY,
+  USER_ROLES,
+  ALLOWED_IMPORT_ROLES,
 };
