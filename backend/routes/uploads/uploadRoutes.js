@@ -7,9 +7,9 @@
 const express = require("express");
 const router = express.Router();
 
-const upload = require("../middleware/uploadMiddleware");
-const uploadController = require("../controllers/uploadController");
-const { protect } = require("../middleware/authMiddleware");
+const upload = require("../../middleware/uploadMiddleware");
+const uploadController = require("../../controllers/uploads/uploadController");
+const { protect } = require("../../middleware/authMiddleware");
 
 // ============================================
 // Count uploaded file pages before request submit

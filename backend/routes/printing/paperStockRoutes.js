@@ -8,12 +8,12 @@ const express = require("express");
 const {
   getPaperStock,
   updatePaperStock,
-} = require("../controllers/paperStockController");
+} = require("../../controllers/printing/paperStockController");
 
 const {
   protect,
   authorizeRoles,
-} = require("../middleware/authMiddleware");
+} = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 

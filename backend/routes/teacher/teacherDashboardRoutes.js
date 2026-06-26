@@ -11,10 +11,10 @@ const router = express.Router();
 // Controller
 const {
   getTeacherDashboardKpis,
-} = require("../controllers/teacherDashboardController");
+} = require("../../controllers/teacher/teacherDashboardController");
 
 // Auth Middleware
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../../middleware/authMiddleware");
 
 // ============================================
 // Teacher Dashboard KPI Route

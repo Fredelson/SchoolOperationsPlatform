@@ -20,17 +20,18 @@ router.use("/lookups", require("./lookups/lookupRoutes"));
 router.use("/users", require("./users/userRoutes"));
 
 // Teacher routes
-router.use("/teacher/dashboard", require("./teacherDashboardRoutes"));
-router.use("/teacher/reports", require("./teacherReportRoutes"));
+router.use("/teacher/dashboard",require("./teacher/teacherDashboardRoutes"));
+
+router.use("/teacher/reports",require("./teacher/teacherReportRoutes"));
 
 // Printing routes
-router.use("/printing", require("./printingRoutes"));
 router.use("/distributions", require("./distributionRoutes"));
 router.use("/admin", require("./userImportRoutes"));
 router.use("/limits", require("./limitRoutes"));
-router.use("/paper-stock", require("./paperStockRoutes"));
-router.use("/purchases", require("./purchaseRoutes"));
-router.use("/uploads", require("./uploadRoutes"));
+router.use("/printing", require("./printing/printingRoutes"));
+router.use("/paper-stock", require("./printing/paperStockRoutes"));
+router.use("/purchases", require("./printing/purchaseRoutes"));
+router.use("/uploads", require("./uploads/uploadRoutes"));
 router.use("/master", require("./master/masterRoutes"));
 router.use("/access-levels", require("./accessLevelRoutes"));
 

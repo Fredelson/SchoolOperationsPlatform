@@ -4,7 +4,7 @@
 // Simple A4 / A3 stock only
 // ============================================
 
-const { sql, poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../../config/db");
 
 // ============================================
 // GET PAPER STOCK

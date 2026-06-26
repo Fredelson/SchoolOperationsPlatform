@@ -5,7 +5,7 @@
 // and inventory transaction logging
 // ============================================
 
-const { sql, poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../../config/db");
 
 // ============================================
 // GET /api/purchases

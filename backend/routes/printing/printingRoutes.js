@@ -13,12 +13,12 @@ const {
   completePrinting,
   getPrintingHistory,
   getInventoryTransactions,
-} = require("../controllers/printingController");
+} = require("../../controllers/printing/printingController");
 
 const {
   protect,
   authorizeRoles,
-} = require("../middleware/authMiddleware");
+} = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 

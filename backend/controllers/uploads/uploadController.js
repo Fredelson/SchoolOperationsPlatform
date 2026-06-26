@@ -1,28 +1,18 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Upload Controller
-// Handles file page counting and final attachment saving
+//
+// Purpose:
+// - Count uploaded file pages
+// - Save request attachment metadata
+// - Support Multer upload flow
 // ============================================
 
 const fs = require("fs");
 
-const { poolPromise, sql } = require("../config/db");
-
-// ============================================
-// Import page counter utility
-// PDF  = exact page count
-// DOCX = estimated page count
-// PPTX = slide count
-// ============================================
-
-const { countPages } = require("../utils/pageCounter");
-
-// ============================================
-// Count Uploaded File Pages
-// POST /api/uploads/count-pages
-// Used immediately after user selects a file
-// This updates the Pages textbox before submission
-// ============================================
+const { poolPromise, sql } = require("../../config/db");
+const { countPages } = require("../../utils/pageCounter");
 
 exports.countUploadedPages = async (req, res) => {
   try {

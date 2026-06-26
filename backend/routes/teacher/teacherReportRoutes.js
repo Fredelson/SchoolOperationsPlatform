@@ -8,9 +8,9 @@ const router = express.Router();
 
 const {
   getTeacherReports,
-} = require("../controllers/teacherReportController");
+} = require("../../controllers/teacher/teacherReportController");
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
 
 // GET /api/teacher/reports
 router.get(

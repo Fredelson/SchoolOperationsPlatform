@@ -4,7 +4,7 @@
 // Backend-connected dynamic teacher reports
 // ============================================
 
-const { sql, poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../../config/db");
 
 // ============================================
 // Add common inputs for all filtered report queries

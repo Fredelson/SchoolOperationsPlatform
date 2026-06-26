@@ -5,7 +5,7 @@
 // completion, printing logs, and inventory deduction
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 /**
  * @desc    Printing Dashboard Data
