@@ -13,7 +13,7 @@
 // Activate / deactivate only
 // ============================================
 
-const { sql, poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../../config/db")
 
 // ============================================
 // Simple Master Tables Config

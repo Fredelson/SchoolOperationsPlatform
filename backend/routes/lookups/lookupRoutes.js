@@ -13,7 +13,7 @@ const {
   getRoles,
   getAccessLevels,
   getHods,
-} = require("../controllers/lookupController");
+} = require("../../controllers/lookups/lookupController");
 
 const { protect } = require("../../middleware/authMiddleware");
 

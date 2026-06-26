@@ -21,9 +21,9 @@ const {
   createMasterData,
   updateMasterData,
   updateMasterStatus,
-} = require("../controllers/masterController");
+} = require("../../controllers/master/masterController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
 
 // GET /api/master/:type
 router.get("/:type", protect, getMasterData);

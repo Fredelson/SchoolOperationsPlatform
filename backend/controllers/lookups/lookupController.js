@@ -4,7 +4,7 @@
 // Provides dropdown data for frontend forms
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db")
 
 // ============================================
 // Get active departments

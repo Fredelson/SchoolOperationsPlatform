@@ -1,16 +1,26 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { poolPromise, sql } = require("../config/db");
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Authentication Controller
+//
+// Purpose:
+// - Login users using Employee ID and password
+// - Return authenticated user profile
+// - Support MustChangePassword flow
+//
+// Routes:
+// - POST /api/auth/login
+// - GET  /api/auth/me
+// ============================================
+
+const { poolPromise, sql } = require("../../config/db");
+const { generateToken } = require("../../utils/jwtHelper");
+const { comparePassword } = require("../../utils/passwordHelper");
 
 // ============================================
-// Build user display role
-// Example:
-// Teacher       -> Primary Teacher
-// HOD           -> Primary English HOD
-// HOS           -> Primary HOS
-// PrintingAdmin -> Printing Administrator
-// SuperAdmin    -> Super Administrator
+// Helper: Build User Display Role
 // ============================================
+
 const buildDisplayRole = (user) => {
   if (user.Role === "Teacher") {
     return `${user.DepartmentName || ""} Teacher`.trim();
@@ -28,6 +38,10 @@ const buildDisplayRole = (user) => {
     return "Printing Administrator";
   }
 
+  if (user.Role === "PlatformAdmin") {
+    return "Platform Administrator";
+  }
+
   if (user.Role === "SuperAdmin") {
     return "Super Administrator";
   }
@@ -35,27 +49,27 @@ const buildDisplayRole = (user) => {
   return user.Role;
 };
 
-/**
- * @desc    Login user using Employee ID and Password
- * @route   POST /api/auth/login
- * @access  Public
- */
+// ============================================
+// Controller: Login
+// ============================================
+
 const login = async (req, res) => {
   try {
-    // Get login credentials from request body
+    // Read login credentials from frontend
     const { employeeId, password } = req.body;
 
     // Validate required fields
     if (!employeeId || !password) {
       return res.status(400).json({
+        success: false,
         message: "Employee ID and password are required",
       });
     }
 
-    // Connect to MSSQL
+    // Connect to SQL Server
     const pool = await poolPromise;
 
-    // Get user with department name
+    // Find user by Employee ID
     const result = await pool
       .request()
       .input("employeeId", sql.NVarChar, employeeId)
@@ -80,51 +94,45 @@ const login = async (req, res) => {
 
     const user = result.recordset[0];
 
-    // Invalid employee ID
+    // Hide whether employee ID or password was wrong
     if (!user) {
       return res.status(401).json({
+        success: false,
         message: "Invalid employee ID or password",
       });
     }
 
-    // Inactive user check
+    // Block inactive accounts
     if (!user.IsActive) {
       return res.status(403).json({
+        success: false,
         message: "Account is inactive. Please contact administrator.",
       });
     }
 
-    // Compare password with hashed password
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.PasswordHash
-    );
+    // Validate password using centralized password helper
+    const isPasswordValid = await comparePassword(password, user.PasswordHash);
 
-    // Invalid password
     if (!isPasswordValid) {
       return res.status(401).json({
+        success: false,
         message: "Invalid employee ID or password",
       });
     }
 
-    // Build friendly role label for UI
+    // Create friendly role label for frontend display
     const displayRole = buildDisplayRole(user);
 
-    // Create JWT token
-    const token = jwt.sign(
-      {
-        id: user.UserId,
-        employeeId: user.EmployeeId,
-        role: user.Role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
+    // Create JWT token using centralized JWT helper
+    const token = generateToken({
+      id: user.UserId,
+      employeeId: user.EmployeeId,
+      role: user.Role,
+    });
 
-    // Send login response
+    // Send successful login response
     return res.status(200).json({
+      success: true,
       message: "Login successful",
       token,
       user: {
@@ -144,22 +152,22 @@ const login = async (req, res) => {
     console.error("Login Error:", error);
 
     return res.status(500).json({
+      success: false,
       message: "Server error during login",
     });
   }
 };
 
-/**
- * @desc    Get logged-in user profile
- * @route   GET /api/auth/me
- * @access  Private
- */
+// ============================================
+// Controller: Get Current Logged-In User
+// ============================================
+
 const getMe = async (req, res) => {
   try {
-    // Connect to MSSQL
+    // Connect to SQL Server
     const pool = await poolPromise;
 
-    // Get current logged-in user with department name
+    // Get profile using user ID from verified JWT token
     const result = await pool
       .request()
       .input("userId", sql.Int, req.user.id)
@@ -184,39 +192,49 @@ const getMe = async (req, res) => {
 
     const user = result.recordset[0];
 
-    // User not found
+    // Handle deleted or missing user
     if (!user) {
       return res.status(404).json({
+        success: false,
         message: "User not found",
       });
     }
 
-    // Build friendly role label for UI
+    // Build friendly role label for frontend display
     const displayRole = buildDisplayRole(user);
 
     // Return current user profile
     return res.status(200).json({
-      id: user.UserId,
-      employeeId: user.EmployeeId,
-      fullName: user.FullName,
-      schoolEmail: user.SchoolEmail,
-      departmentId: user.DepartmentId,
-      departmentName: user.DepartmentName,
-      subject: user.Subject,
-      role: user.Role,
-      displayRole,
-      mustChangePassword: user.MustChangePassword,
-      isActive: user.IsActive,
-      createdAt: user.CreatedAt,
+      success: true,
+      message: "User profile loaded successfully",
+      user: {
+        id: user.UserId,
+        employeeId: user.EmployeeId,
+        fullName: user.FullName,
+        schoolEmail: user.SchoolEmail,
+        departmentId: user.DepartmentId,
+        departmentName: user.DepartmentName,
+        subject: user.Subject,
+        role: user.Role,
+        displayRole,
+        mustChangePassword: user.MustChangePassword,
+        isActive: user.IsActive,
+        createdAt: user.CreatedAt,
+      },
     });
   } catch (error) {
     console.error("Get Me Error:", error);
 
     return res.status(500).json({
+      success: false,
       message: "Server error while fetching user profile",
     });
   }
 };
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   login,

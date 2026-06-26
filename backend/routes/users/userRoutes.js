@@ -11,9 +11,9 @@ const {
   updateUser,
   deactivateUser,
   activateUser,
-} = require("../controllers/userController");
+} = require("../../controllers/users/userController")
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware")
 
 const router = express.Router();
 
