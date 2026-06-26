@@ -12,9 +12,9 @@ const {
   importUsersFromExcel,
   downloadUserImportTemplate,
   downloadUserImportCSVTemplate,
-} = require("../controllers/userImportController");
+} = require("../../controllers/users/userImportController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 

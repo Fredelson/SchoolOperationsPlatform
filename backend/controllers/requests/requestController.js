@@ -5,7 +5,7 @@
 // attachments, and teacher cancellation
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 /**
  * @desc    Create a new photocopy request

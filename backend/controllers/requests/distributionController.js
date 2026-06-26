@@ -7,7 +7,7 @@
 // Deducts sheets from PaperInventory
 // ============================================
 
-const { sql, poolPromise } = require("../config/db");
+const { sql, poolPromise } = require("../../config/db");
 
 // ============================================
 // GET /api/distributions/users/search?query=

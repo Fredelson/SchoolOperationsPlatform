@@ -1,9 +1,16 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // HOD Routes
+//
+// Purpose:
+// - HOD dashboard
+// - HOD request approval queue
+// - HOD approval/rejection actions
 // ============================================
 
 const express = require("express");
+const router = express.Router();
 
 const {
   getHodDashboard,
@@ -12,61 +19,54 @@ const {
   getHodApprovalHistory,
   approveHodRequest,
   rejectHodRequest,
-} = require("../controllers/hodController");
+} = require("../../controllers/requests/hodController");
 
 const {
   protect,
   authorizeRoles,
-} = require("../middleware/authMiddleware");
+} = require("../../middleware/authMiddleware");
 
-const router = express.Router();
+const HOD_ACCESS = ["HOD", "SuperAdmin"];
 
-// HOD dashboard KPI statistics
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   getHodDashboard
 );
 
-// HOD approval history from RequestApprovals table
-// IMPORTANT: keep this before /requests/:id
 router.get(
   "/approval-history",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   getHodApprovalHistory
 );
 
-// Get all HOD requests
 router.get(
   "/requests",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   getHodRequests
 );
 
-// Get single HOD request details
 router.get(
   "/requests/:id",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   getHodRequestById
 );
 
-// Approve request
 router.put(
   "/requests/:id/approve",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   approveHodRequest
 );
 
-// Reject request
 router.put(
   "/requests/:id/reject",
   protect,
-  authorizeRoles("HOD", "SuperAdmin"),
+  authorizeRoles(...HOD_ACCESS),
   rejectHodRequest
 );
 

@@ -1,19 +1,26 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Paper Distribution Routes
-// Temporary API for testing deduction
+//
+// Purpose:
+// - Search users for paper distribution
+// - View paper distribution records
+// - Add new paper distribution records
 // ============================================
 
 const express = require("express");
 const router = express.Router();
 
+// Controller imports
 const {
   searchDistributionUsers,
   getDistributions,
   addDistribution,
-} = require("../controllers/distributionController");
+} = require("../../controllers/requests/distributionController");
 
-const { protect } = require("../middleware/authMiddleware");
+// Middleware imports
+const { protect } = require("../../middleware/authMiddleware");
 
 // GET /api/distributions
 router.get("/", protect, getDistributions);

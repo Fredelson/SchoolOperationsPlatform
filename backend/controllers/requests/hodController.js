@@ -6,7 +6,7 @@
 // Includes HOD Dashboard Subject Quota KPI
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 /**
  * @desc    HOD Dashboard Statistics + Subject Quota KPI

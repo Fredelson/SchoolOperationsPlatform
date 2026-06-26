@@ -6,7 +6,7 @@
 // Fixed duplicate approval rows issue
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 // ============================================
 // Shared HOS pending statuses

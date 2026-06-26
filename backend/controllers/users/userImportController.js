@@ -12,7 +12,7 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const xlsx = require("xlsx");
 const bcrypt = require("bcryptjs");
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 // ============================================
 // Allowed roles

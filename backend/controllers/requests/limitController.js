@@ -4,7 +4,7 @@
 // Handles department limits and subject/HOD limits
 // ============================================
 
-const { poolPromise, sql } = require("../config/db");
+const { poolPromise, sql } = require("../../config/db");
 
 // ============================================
 // Helper: get current month/year if not provided
