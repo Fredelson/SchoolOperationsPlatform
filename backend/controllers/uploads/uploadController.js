@@ -12,7 +12,7 @@
 const fs = require("fs");
 
 const { poolPromise, sql } = require("../../config/db");
-const { countPages } = require("../../utils/pageCounter");
+const { countPages } = require("../../shared/utils/pageCounter");
 
 exports.countUploadedPages = async (req, res) => {
   try {

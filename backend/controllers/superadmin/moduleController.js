@@ -7,7 +7,7 @@
 
 const sql = require("mssql");
 const { poolPromise } = require("../../config/db");
-const { createAuditLog } = require("../../utils/auditLogger");
+const { createAuditLog } = require("../../shared/services/auditLogger");
 
 // ============================================
 // @desc    Get all modules

@@ -8,7 +8,7 @@
 
 const sql = require("mssql");
 const { poolPromise } = require("../../config/db");
-const { createAuditLog } = require("../../utils/auditLogger");
+const { createAuditLog } = require("../../shared/services/auditLogger");
 
 // GET /api/superadmin/buttons
 const getButtons = async (req, res) => {

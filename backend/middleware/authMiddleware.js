@@ -13,7 +13,8 @@
 // so existing route files continue working.
 // ============================================
 
-const { verifyToken } = require("../utils/jwtHelper");
+
+const { verifyToken } = require("../shared/security/jwt");
 
 // ============================================
 // Protect Private Routes

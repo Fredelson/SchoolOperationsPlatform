@@ -11,7 +11,7 @@
 const fs = require("fs");
 const csv = require("csv-parser");
 const xlsx = require("xlsx");
-const { hashPassword } = require("../../utils/passwordHelper");
+const { hashPassword } = require("../../shared/security/password");
 const { poolPromise, sql } = require("../../config/db");
 
 // ============================================

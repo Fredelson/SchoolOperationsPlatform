@@ -13,12 +13,12 @@
 // ============================================
 
 const { poolPromise, sql } = require("../../config/db");
-const asyncHandler = require("../../utils/asyncHandler");
-const { hashPassword } = require("../../utils/passwordHelper");
+const asyncHandler = require("../../shared/helpers/asyncHandler");
+const { hashPassword } = require("../../shared/security/password");
 const {
   sendSuccess,
   sendError,
-} = require("../../utils/apiResponse");
+} = require("../../shared/helpers/apiResponse");
 
 // ============================================
 // GET ALL USERS

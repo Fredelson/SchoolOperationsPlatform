@@ -14,8 +14,8 @@
 // ============================================
 
 const { poolPromise, sql } = require("../../config/db");
-const { generateToken } = require("../../utils/jwtHelper");
-const { comparePassword } = require("../../utils/passwordHelper");
+const { generateToken } = require("../../shared/security/jwt");
+const { comparePassword } = require("../../shared/security/password");
 
 // ============================================
 // Helper: Build User Display Role

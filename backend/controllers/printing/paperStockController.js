@@ -12,11 +12,11 @@
 // ============================================
 
 const { sql, poolPromise } = require("../../config/db");
-const asyncHandler = require("../../utils/asyncHandler");
+const asyncHandler = require("../../shared/helpers/asyncHandler");
 const {
   sendSuccess,
   sendError,
-} = require("../../utils/apiResponse");
+} = require("../../shared/helpers/apiResponse");
 
 // ============================================
 // GET PAPER STOCK
