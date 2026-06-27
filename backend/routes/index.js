@@ -69,7 +69,7 @@ router.use("/auth", authRoutes);
 // modules/users
 //
 
-router.use("/users", require("./users/userRoutes"));
+router.use("/users", require("../modules/users"));
 router.use("/admin", require("./users/userImportRoutes"));
 
 // ============================================
