@@ -16,7 +16,7 @@ const router = express.Router();
 // Authentication
 // ============================================
 
-router.use("/auth", require("./auth/authRoutes"));
+const authRoutes = require("../modules/auth");
 
 // ============================================
 // User Management
