@@ -124,7 +124,7 @@ router.use("/uploads", require("./uploads/uploadRoutes"));
 // ============================================
 
 router.use("/master", require("./master/masterRoutes"));
-router.use("/lookups", require("./lookups/lookupRoutes"));
+router.use("/lookups", require("../modules/lookups"));
 router.use("/access-levels", require("./security/accessLevelRoutes"));
 
 // ============================================
