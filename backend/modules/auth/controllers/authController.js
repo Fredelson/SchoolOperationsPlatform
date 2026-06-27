@@ -1,43 +1,78 @@
-// ============================================
-// ARAB UNITY SCHOOL OPERATIONS PLATFORM
-// Auth Controller
-//
-// Purpose:
-// - Handle Auth HTTP requests/responses
-// - Delegate business logic to authService
-// ============================================
+// backend/modules/auth/controllers/authController.js
 
-const asyncHandler = require("../../../shared/helpers/asyncHandler");
-const { loginUser, getCurrentUser } = require("../services/authService");
+/**
+ * ============================================================
+ * Arab Unity School Operations Platform
+ * Auth Controller
+ * ============================================================
+ *
+ * Purpose:
+ * Handles HTTP requests for authentication.
+ *
+ * Responsibilities:
+ * - Receive request data.
+ * - Call Auth service.
+ * - Return API response.
+ *
+ * Notes:
+ * - No SQL queries here.
+ * - No password comparison here.
+ * - No JWT logic here.
+ * ============================================================
+ */
 
-// ============================================
-// POST /api/auth/login
-// ============================================
+const authService = require("../services/authService");
 
-const login = asyncHandler(async (req, res) => {
-  const result = await loginUser(req.body);
+/**
+ * Login user.
+ *
+ * Route:
+ * POST /api/auth/login
+ */
+async function login(req, res, next) {
+  try {
+    const { employeeId, password } = req.body;
 
-  return res.status(200).json({
-    success: true,
-    message: "Login successful",
-    token: result.token,
-    user: result.user,
-  });
-});
+    if (!employeeId || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID and password are required.",
+      });
+    }
 
-// ============================================
-// GET /api/auth/me
-// ============================================
+    const result = await authService.login(employeeId, password);
 
-const getMe = asyncHandler(async (req, res) => {
-  const user = await getCurrentUser(req.user.id);
+    return res.status(200).json({
+      success: true,
+      message: "Login successful.",
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
-  return res.status(200).json({
-    success: true,
-    message: "User profile loaded successfully",
-    user,
-  });
-});
+/**
+ * Get current authenticated user.
+ *
+ * Route:
+ * GET /api/auth/me
+ */
+async function getMe(req, res, next) {
+  try {
+    const userId = req.user.id;
+
+    const user = await authService.getMe(userId);
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 module.exports = {
   login,

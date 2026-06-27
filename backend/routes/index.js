@@ -2,33 +2,88 @@
 // ARAB UNITY SCHOOL
 // Operations Platform
 // Central API Route Registry
+// ============================================
 //
 // Purpose:
-// - Register all API endpoints
-// - Keep app.js clean
-// - Organize modules by feature
+// - Register all API endpoints.
+// - Keep app.js clean.
+// - Organize routes by feature/module.
+// - Provide one central place for API registration.
+//
+// Architecture:
+//
+// app.js
+//    │
+//    ▼
+// routes/index.js
+//    │
+//    ├── Auth
+//    ├── Users
+//    ├── Requests
+//    ├── Printing
+//    ├── Teacher
+//    ├── Master Data
+//    ├── Lookups
+//    ├── Super Admin
+//    └── Uploads
+//
+// Notes:
+// - Do NOT place business logic here.
+// - Only register routers.
 // ============================================
 
 const express = require("express");
 const router = express.Router();
 
 // ============================================
-// Authentication
+// AUTH MODULE
 // ============================================
+//
+// Handles:
+//
+// POST   /api/auth/login
+// GET    /api/auth/me
+//
+// This module has already been migrated to the
+// new feature-based architecture.
+//
 
 const authRoutes = require("../modules/auth");
 
+/**
+ * Register Auth Module
+ *
+ * Final endpoints:
+ *
+ * POST /api/auth/login
+ * GET  /api/auth/me
+ */
+router.use("/auth", authRoutes);
+
 // ============================================
-// User Management
+// USER MANAGEMENT
 // ============================================
+//
+// Legacy routes.
+// These will be migrated later into:
+// modules/users
+//
 
 router.use("/users", require("./users/userRoutes"));
 router.use("/admin", require("./users/userImportRoutes"));
 
 // ============================================
-// Request Workflow
-// Teacher → HOD → HOS → Printing
+// REQUEST WORKFLOW
 // ============================================
+//
+// Teacher
+//      ↓
+// HOD
+//      ↓
+// HOS
+//      ↓
+// Printing
+//
 
 router.use("/requests", require("./requests/requestRoutes"));
 router.use("/hod", require("./requests/hodRoutes"));
@@ -37,7 +92,7 @@ router.use("/limits", require("./requests/limitRoutes"));
 router.use("/distributions", require("./requests/distributionRoutes"));
 
 // ============================================
-// Teacher Module
+// TEACHER MODULE
 // ============================================
 
 router.use(
@@ -51,7 +106,7 @@ router.use(
 );
 
 // ============================================
-// Printing Module
+// PRINTING MODULE
 // ============================================
 
 router.use("/printing", require("./printing/printingRoutes"));
@@ -59,13 +114,13 @@ router.use("/paper-stock", require("./printing/paperStockRoutes"));
 router.use("/purchases", require("./printing/purchaseRoutes"));
 
 // ============================================
-// Uploads
+// FILE UPLOADS
 // ============================================
 
 router.use("/uploads", require("./uploads/uploadRoutes"));
 
 // ============================================
-// Master Data
+// MASTER DATA
 // ============================================
 
 router.use("/master", require("./master/masterRoutes"));
@@ -73,8 +128,11 @@ router.use("/lookups", require("./lookups/lookupRoutes"));
 router.use("/access-levels", require("./security/accessLevelRoutes"));
 
 // ============================================
-// Super Admin
+// SUPER ADMIN
 // ============================================
+//
+// Foundation module for the platform.
+//
 
 router.use(
   "/superadmin/dashboard",
@@ -132,7 +190,7 @@ router.use(
 );
 
 // ============================================
-// Export Router
+// EXPORT ROUTER
 // ============================================
 
 module.exports = router;

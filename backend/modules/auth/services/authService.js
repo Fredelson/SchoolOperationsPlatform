@@ -1,166 +1,172 @@
-// ============================================
-// ARAB UNITY SCHOOL OPERATIONS PLATFORM
-// Auth Service
-//
-// Purpose:
-// - Handle authentication business logic
-// - Keep controllers clean
-// - Centralize login/profile database logic
-// ============================================
+// backend/modules/auth/services/authService.js
 
-const { poolPromise, sql } = require("../../../config/db");
-const { generateToken } = require("../../../shared/security/jwt");
-const { comparePassword } = require("../../../shared/security/password");
+/**
+ * ============================================================
+ * Arab Unity School Operations Platform
+ * Auth Service
+ * ============================================================
+ *
+ * Purpose:
+ * Contains authentication business logic.
+ *
+ * Responsibilities:
+ * - Validate credentials.
+ * - Check locked/inactive user state.
+ * - Compare password with bcrypt hash.
+ * - Generate JWT.
+ * - Return safe user payload to frontend.
+ *
+ * Architecture:
+ * Route → Controller → Service → Repository → Database
+ * ============================================================
+ */
 
-// ============================================
-// Helper: Build User Display Role
-// ============================================
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const buildDisplayRole = (user) => {
-  if (user.Role === "Teacher") return `${user.DepartmentName || ""} Teacher`.trim();
-  if (user.Role === "HOD") return `${user.DepartmentName || ""} ${user.Subject || ""} HOD`.trim();
-  if (user.Role === "HOS") return `${user.DepartmentName || ""} HOS`.trim();
-  if (user.Role === "PrintingAdmin") return "Printing Administrator";
-  if (user.Role === "PlatformAdmin") return "Platform Administrator";
-  if (user.Role === "SuperAdmin") return "Super Administrator";
+const authRepository = require("../repositories/authRepository");
 
-  return user.Role;
-};
-
-// ============================================
-// Login User
-// ============================================
-
-const loginUser = async ({ employeeId, password }) => {
-  if (!employeeId || !password) {
-    const error = new Error("Employee ID and password are required");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const pool = await poolPromise;
-
-  const result = await pool
-    .request()
-    .input("employeeId", sql.NVarChar, employeeId)
-    .query(`
-      SELECT
-        u.UserId,
-        u.EmployeeId,
-        u.FullName,
-        u.SchoolEmail,
-        u.DepartmentId,
-        d.DepartmentName,
-        u.Subject,
-        u.Role,
-        u.PasswordHash,
-        u.MustChangePassword,
-        u.IsActive
-      FROM Users u
-      LEFT JOIN Departments d
-        ON u.DepartmentId = d.DepartmentId
-      WHERE u.EmployeeId = @employeeId
-    `);
-
-  const user = result.recordset[0];
-
-  if (!user) {
-    const error = new Error("Invalid employee ID or password");
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (!user.IsActive) {
-    const error = new Error("Account is inactive. Please contact administrator.");
-    error.statusCode = 403;
-    throw error;
-  }
-
-  const isPasswordValid = await comparePassword(password, user.PasswordHash);
-
-  if (!isPasswordValid) {
-    const error = new Error("Invalid employee ID or password");
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const token = generateToken({
-    id: user.UserId,
-    employeeId: user.EmployeeId,
-    role: user.Role,
-  });
-
-  return {
-    token,
-    user: {
-      id: user.UserId,
-      employeeId: user.EmployeeId,
-      fullName: user.FullName,
-      schoolEmail: user.SchoolEmail,
-      departmentId: user.DepartmentId,
-      departmentName: user.DepartmentName,
-      subject: user.Subject,
-      role: user.Role,
-      displayRole: buildDisplayRole(user),
-      mustChangePassword: user.MustChangePassword,
-    },
-  };
-};
-
-// ============================================
-// Get Logged-In User Profile
-// ============================================
-
-const getCurrentUser = async (userId) => {
-  const pool = await poolPromise;
-
-  const result = await pool
-    .request()
-    .input("userId", sql.Int, userId)
-    .query(`
-      SELECT
-        u.UserId,
-        u.EmployeeId,
-        u.FullName,
-        u.SchoolEmail,
-        u.DepartmentId,
-        d.DepartmentName,
-        u.Subject,
-        u.Role,
-        u.MustChangePassword,
-        u.IsActive,
-        u.CreatedAt
-      FROM Users u
-      LEFT JOIN Departments d
-        ON u.DepartmentId = d.DepartmentId
-      WHERE u.UserId = @userId
-    `);
-
-  const user = result.recordset[0];
-
-  if (!user) {
-    const error = new Error("User not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
+/**
+ * Builds a safe user object for frontend use.
+ *
+ * Important:
+ * - PasswordHash is never returned.
+ * - role keeps old frontend compatibility.
+ * - roleKey is the new enterprise role identifier.
+ *
+ * @param {object} user - Database user record.
+ * @returns {object} Safe user payload.
+ */
+function buildUserPayload(user) {
   return {
     id: user.UserId,
     employeeId: user.EmployeeId,
     fullName: user.FullName,
-    schoolEmail: user.SchoolEmail,
+    email: user.SchoolEmail,
+    personalEmail: user.PersonalEmail,
+    mobileNumber: user.MobileNumber,
+
+    roleId: user.RoleId,
+    roleKey: user.RoleKey,
+    roleName: user.RoleName,
+    roleDisplayName: user.RoleDisplayName,
+
+    // Backward compatibility for existing frontend checks.
+    role: user.RoleKey || user.LegacyRole,
+
     departmentId: user.DepartmentId,
     departmentName: user.DepartmentName,
-    subject: user.Subject,
-    role: user.Role,
-    displayRole: buildDisplayRole(user),
+    sectionId: user.SectionId,
+    sectionName: user.SectionName,
+
+    defaultWorkspaceId: user.DefaultWorkspaceId,
+    legacyRole: user.LegacyRole,
     mustChangePassword: user.MustChangePassword,
-    isActive: user.IsActive,
-    createdAt: user.CreatedAt,
+    emailVerified: user.EmailVerified,
+    isRegistrationCompleted: user.IsRegistrationCompleted,
+    isProtectedRole: user.IsProtectedRole,
   };
-};
+}
+
+/**
+ * Generates a JWT token.
+ *
+ * @param {object} user - Database user record.
+ * @returns {string} Signed JWT token.
+ */
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.UserId,
+      employeeId: user.EmployeeId,
+      fullName: user.FullName,
+      email: user.SchoolEmail,
+
+      roleId: user.RoleId,
+      roleKey: user.RoleKey,
+      role: user.RoleKey || user.LegacyRole,
+
+      departmentId: user.DepartmentId,
+      sectionId: user.SectionId,
+      defaultWorkspaceId: user.DefaultWorkspaceId,
+      isProtectedRole: user.IsProtectedRole,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "8h",
+    }
+  );
+}
+
+/**
+ * Authenticates login.
+ *
+ * Route:
+ * POST /api/auth/login
+ *
+ * @param {string} employeeId - User employee ID.
+ * @param {string} password - Plain text password.
+ * @returns {Promise<object>} Token and safe user payload.
+ */
+async function login(employeeId, password) {
+  const user = await authRepository.findActiveUserByEmployeeId(employeeId);
+
+  if (!user) {
+    const error = new Error("Invalid employee ID or password.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (user.IsLocked) {
+    const error = new Error("Your account is locked. Please contact IT.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!user.PasswordHash) {
+    const error = new Error("Password is not configured for this account.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
+
+  if (!isPasswordValid) {
+    const error = new Error("Invalid employee ID or password.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  await authRepository.markLoginSuccess(user.UserId);
+
+  return {
+    token: generateToken(user),
+    user: buildUserPayload(user),
+  };
+}
+
+/**
+ * Gets the current authenticated user.
+ *
+ * Route:
+ * GET /api/auth/me
+ *
+ * @param {number} userId - User ID from JWT.
+ * @returns {Promise<object>} Safe user profile.
+ */
+async function getMe(userId) {
+  const user = await authRepository.findActiveUserById(userId);
+
+  if (!user) {
+    const error = new Error("User not found or inactive.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return buildUserPayload(user);
+}
 
 module.exports = {
-  loginUser,
-  getCurrentUser,
+  login,
+  getMe,
 };
