@@ -7,23 +7,50 @@
  * ============================================================
  *
  * Purpose:
- * Handles all direct database access for user management.
+ * Handles all direct database access for the Users module.
+ *
+ * Architecture:
+ * Route → Controller → Service → Repository → Shared Database Layer
  *
  * Rules:
- * - No business logic here.
- * - No HTTP response logic here.
- * - No password policy logic here.
- * - Only SQL queries belong in this file.
+ * - No business logic belongs here.
+ * - No HTTP response logic belongs here.
+ * - No password policy decisions belong here.
+ * - Only SQL queries and database mapping belong here.
+ *
+ * Database Source of Truth:
+ * OperationsPlatformDB
+ *
+ * Important Schema Notes:
+ * - dbo.Users stores RoleId, not Role.
+ * - dbo.Roles stores RoleKey, RoleName, DisplayName, and protection status.
+ * - Subjects are not stored directly in dbo.Users.
+ * - Subject assignments should be handled later through dbo.UserAssignments.
  * ============================================================
  */
 
-const { query, sql } = require("../../../database");
+const {
+  sql,
+  executeQuery,
+  firstOrNull,
+  rows,
+  insertedId,
+} = require("../../../shared/database");
 
 /**
+ * ------------------------------------------------------------
+ * Find All Users
+ * ------------------------------------------------------------
+ *
  * Gets all users with role, department, and section details.
+ *
+ * Used by:
+ * GET /api/users
+ *
+ * @returns {Promise<Array>} List of users.
  */
 async function findAllUsers() {
-  const result = await query(`
+  const result = await executeQuery(`
     SELECT
       u.UserId,
       u.EmployeeId,
@@ -62,14 +89,24 @@ async function findAllUsers() {
     ORDER BY u.FullName;
   `);
 
-  return result.recordset;
+  return rows(result);
 }
 
 /**
+ * ------------------------------------------------------------
+ * Find User by ID
+ * ------------------------------------------------------------
+ *
  * Gets one user by UserId.
+ *
+ * Used by:
+ * GET /api/users/:id
+ *
+ * @param {number} userId - User primary key.
+ * @returns {Promise<object|null>} User record or null.
  */
 async function findUserById(userId) {
-  const result = await query(
+  const result = await executeQuery(
     `
     SELECT
       u.UserId,
@@ -108,19 +145,39 @@ async function findUserById(userId) {
       ON u.SectionId = s.SectionId
     WHERE u.UserId = @UserId;
     `,
-    [{ name: "UserId", type: sql.Int, value: userId }]
+    [
+      {
+        name: "UserId",
+        type: sql.Int,
+        value: userId,
+      },
+    ]
   );
 
-  return result.recordset[0] || null;
+  return firstOrNull(result);
 }
 
 /**
- * Finds role by role id or role key/name/display name.
+ * ------------------------------------------------------------
+ * Find Role
+ * ------------------------------------------------------------
+ *
+ * Finds a role using either:
+ * - RoleId
+ * - RoleKey
+ * - RoleName
+ * - DisplayName
+ *
+ * This keeps backward compatibility because older frontend code may still
+ * send role strings like "SuperAdmin" or "PrintingAdmin".
+ *
+ * @param {number|string} roleValue - RoleId or role text.
+ * @returns {Promise<object|null>} Role record or null.
  */
 async function findRole(roleValue) {
   const roleId = Number(roleValue);
 
-  const result = await query(
+  const result = await executeQuery(
     `
     SELECT
       RoleId,
@@ -152,14 +209,27 @@ async function findRole(roleValue) {
     ]
   );
 
-  return result.recordset[0] || null;
+  return firstOrNull(result);
 }
 
 /**
- * Checks duplicate EmployeeId or SchoolEmail.
+ * ------------------------------------------------------------
+ * Find Duplicate User
+ * ------------------------------------------------------------
+ *
+ * Checks whether EmployeeId or SchoolEmail already exists.
+ *
+ * Used by:
+ * - Create user
+ * - Update user
+ *
+ * @param {string} employeeId - Employee ID.
+ * @param {string} schoolEmail - School email.
+ * @param {number|null} excludeUserId - Optional UserId to ignore during update.
+ * @returns {Promise<object|null>} Duplicate user or null.
  */
 async function findDuplicateUser(employeeId, schoolEmail, excludeUserId = null) {
-  const result = await query(
+  const result = await executeQuery(
     `
     SELECT
       UserId,
@@ -174,20 +244,44 @@ async function findDuplicateUser(employeeId, schoolEmail, excludeUserId = null) 
       AND (@ExcludeUserId IS NULL OR UserId <> @ExcludeUserId);
     `,
     [
-      { name: "EmployeeId", type: sql.NVarChar, value: employeeId },
-      { name: "SchoolEmail", type: sql.NVarChar, value: schoolEmail },
-      { name: "ExcludeUserId", type: sql.Int, value: excludeUserId },
+      {
+        name: "EmployeeId",
+        type: sql.NVarChar,
+        value: employeeId,
+      },
+      {
+        name: "SchoolEmail",
+        type: sql.NVarChar,
+        value: schoolEmail,
+      },
+      {
+        name: "ExcludeUserId",
+        type: sql.Int,
+        value: excludeUserId,
+      },
     ]
   );
 
-  return result.recordset[0] || null;
+  return firstOrNull(result);
 }
 
 /**
- * Creates a user.
+ * ------------------------------------------------------------
+ * Create User
+ * ------------------------------------------------------------
+ *
+ * Inserts a new user into dbo.Users.
+ *
+ * Notes:
+ * - PasswordHash is already generated by the service layer.
+ * - RoleId is already resolved by the service layer.
+ * - LegacyRole is stored for backward compatibility.
+ *
+ * @param {object} data - User data prepared by service.
+ * @returns {Promise<number|null>} New UserId.
  */
 async function createUser(data) {
-  const result = await query(
+  const result = await executeQuery(
     `
     INSERT INTO dbo.Users
     (
@@ -236,28 +330,85 @@ async function createUser(data) {
     );
     `,
     [
-      { name: "EmployeeId", type: sql.NVarChar, value: data.employeeId },
-      { name: "FullName", type: sql.NVarChar, value: data.fullName },
-      { name: "SchoolEmail", type: sql.NVarChar, value: data.schoolEmail },
-      { name: "PersonalEmail", type: sql.NVarChar, value: data.personalEmail || null },
-      { name: "MobileNumber", type: sql.NVarChar, value: data.mobileNumber || null },
-      { name: "PasswordHash", type: sql.NVarChar, value: data.passwordHash },
-      { name: "RoleId", type: sql.Int, value: data.roleId },
-      { name: "DepartmentId", type: sql.Int, value: data.departmentId || null },
-      { name: "SectionId", type: sql.Int, value: data.sectionId || null },
-      { name: "DefaultWorkspaceId", type: sql.Int, value: data.defaultWorkspaceId || null },
-      { name: "LegacyRole", type: sql.NVarChar, value: data.legacyRole || null },
+      {
+        name: "EmployeeId",
+        type: sql.NVarChar,
+        value: data.employeeId,
+      },
+      {
+        name: "FullName",
+        type: sql.NVarChar,
+        value: data.fullName,
+      },
+      {
+        name: "SchoolEmail",
+        type: sql.NVarChar,
+        value: data.schoolEmail,
+      },
+      {
+        name: "PersonalEmail",
+        type: sql.NVarChar,
+        value: data.personalEmail || null,
+      },
+      {
+        name: "MobileNumber",
+        type: sql.NVarChar,
+        value: data.mobileNumber || null,
+      },
+      {
+        name: "PasswordHash",
+        type: sql.NVarChar,
+        value: data.passwordHash,
+      },
+      {
+        name: "RoleId",
+        type: sql.Int,
+        value: data.roleId,
+      },
+      {
+        name: "DepartmentId",
+        type: sql.Int,
+        value: data.departmentId || null,
+      },
+      {
+        name: "SectionId",
+        type: sql.Int,
+        value: data.sectionId || null,
+      },
+      {
+        name: "DefaultWorkspaceId",
+        type: sql.Int,
+        value: data.defaultWorkspaceId || null,
+      },
+      {
+        name: "LegacyRole",
+        type: sql.NVarChar,
+        value: data.legacyRole || null,
+      },
     ]
   );
 
-  return result.recordset[0].UserId;
+  return insertedId(result, "UserId");
 }
 
 /**
- * Updates a user.
+ * ------------------------------------------------------------
+ * Update User
+ * ------------------------------------------------------------
+ *
+ * Updates an existing user profile.
+ *
+ * Notes:
+ * - EmployeeId is intentionally not updated here.
+ * - Password is intentionally not updated here.
+ * - Password reset should be a separate endpoint later.
+ *
+ * @param {number} userId - User primary key.
+ * @param {object} data - Updated user data.
+ * @returns {Promise<void>}
  */
 async function updateUser(userId, data) {
-  await query(
+  await executeQuery(
     `
     UPDATE dbo.Users
     SET
@@ -274,25 +425,77 @@ async function updateUser(userId, data) {
     WHERE UserId = @UserId;
     `,
     [
-      { name: "UserId", type: sql.Int, value: userId },
-      { name: "FullName", type: sql.NVarChar, value: data.fullName },
-      { name: "SchoolEmail", type: sql.NVarChar, value: data.schoolEmail },
-      { name: "PersonalEmail", type: sql.NVarChar, value: data.personalEmail || null },
-      { name: "MobileNumber", type: sql.NVarChar, value: data.mobileNumber || null },
-      { name: "RoleId", type: sql.Int, value: data.roleId },
-      { name: "DepartmentId", type: sql.Int, value: data.departmentId || null },
-      { name: "SectionId", type: sql.Int, value: data.sectionId || null },
-      { name: "DefaultWorkspaceId", type: sql.Int, value: data.defaultWorkspaceId || null },
-      { name: "LegacyRole", type: sql.NVarChar, value: data.legacyRole || null },
+      {
+        name: "UserId",
+        type: sql.Int,
+        value: userId,
+      },
+      {
+        name: "FullName",
+        type: sql.NVarChar,
+        value: data.fullName,
+      },
+      {
+        name: "SchoolEmail",
+        type: sql.NVarChar,
+        value: data.schoolEmail,
+      },
+      {
+        name: "PersonalEmail",
+        type: sql.NVarChar,
+        value: data.personalEmail || null,
+      },
+      {
+        name: "MobileNumber",
+        type: sql.NVarChar,
+        value: data.mobileNumber || null,
+      },
+      {
+        name: "RoleId",
+        type: sql.Int,
+        value: data.roleId,
+      },
+      {
+        name: "DepartmentId",
+        type: sql.Int,
+        value: data.departmentId || null,
+      },
+      {
+        name: "SectionId",
+        type: sql.Int,
+        value: data.sectionId || null,
+      },
+      {
+        name: "DefaultWorkspaceId",
+        type: sql.Int,
+        value: data.defaultWorkspaceId || null,
+      },
+      {
+        name: "LegacyRole",
+        type: sql.NVarChar,
+        value: data.legacyRole || null,
+      },
     ]
   );
 }
 
 /**
- * Sets user active status.
+ * ------------------------------------------------------------
+ * Set User Active Status
+ * ------------------------------------------------------------
+ *
+ * Activates or deactivates a user account.
+ *
+ * Used by:
+ * PUT /api/users/:id/activate
+ * PUT /api/users/:id/deactivate
+ *
+ * @param {number} userId - User primary key.
+ * @param {boolean} isActive - Active status.
+ * @returns {Promise<void>}
  */
 async function setUserActiveStatus(userId, isActive) {
-  await query(
+  await executeQuery(
     `
     UPDATE dbo.Users
     SET
@@ -301,8 +504,16 @@ async function setUserActiveStatus(userId, isActive) {
     WHERE UserId = @UserId;
     `,
     [
-      { name: "UserId", type: sql.Int, value: userId },
-      { name: "IsActive", type: sql.Bit, value: isActive },
+      {
+        name: "UserId",
+        type: sql.Int,
+        value: userId,
+      },
+      {
+        name: "IsActive",
+        type: sql.Bit,
+        value: isActive,
+      },
     ]
   );
 }
