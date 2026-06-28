@@ -25,6 +25,11 @@ const {
 // ============================================================
 // GET ACTIVE SCHOOL BRANDING
 // ============================================================
+//
+// Purpose:
+// Loads the active school profile together with
+// branding colors, background settings, and branding media paths.
+// ============================================================
 
 const getActiveSchoolBranding = async () => {
   const result = await executeQuery(`
@@ -116,21 +121,21 @@ const getActiveSchoolBranding = async () => {
 // UPDATE SCHOOL PROFILE
 // ============================================================
 
-const updateSchoolProfile = async (schoolId, data) => {
+const updateSchoolProfile = async (schoolId, data = {}) => {
   await executeQuery(
     `
-    UPDATE dbo.Schools
-    SET
-      SchoolName = @SchoolName,
-      Address = @Address,
-      Phone = @Phone,
-      Email = @Email,
-      Website = @Website,
-      TimeZone = @TimeZone,
-      CurrencyCode = @CurrencyCode,
-      UpdatedAt = GETDATE()
-    WHERE SchoolId = @SchoolId
-      AND IsActive = 1;
+      UPDATE dbo.Schools
+      SET
+        SchoolName = @SchoolName,
+        Address = @Address,
+        Phone = @Phone,
+        Email = @Email,
+        Website = @Website,
+        TimeZone = @TimeZone,
+        CurrencyCode = @CurrencyCode,
+        UpdatedAt = GETDATE()
+      WHERE SchoolId = @SchoolId
+        AND IsActive = 1;
     `,
     [
       { name: "SchoolId", type: sql.Int, value: schoolId },
@@ -146,141 +151,131 @@ const updateSchoolProfile = async (schoolId, data) => {
 };
 
 // ============================================================
-// UPSERT BRANDING
+// UPSERT BRANDING SETTINGS
 // ============================================================
 
-const upsertBranding = async (schoolId, data, updatedBy) => {
+const upsertBranding = async (schoolId, data = {}, updatedBy) => {
   await executeQuery(
     `
-    MERGE dbo.Branding AS target
-    USING (SELECT @SchoolId AS SchoolId) AS source
-      ON target.SchoolId = source.SchoolId
+      MERGE dbo.Branding AS target
+      USING (SELECT @SchoolId AS SchoolId) AS source
+        ON target.SchoolId = source.SchoolId
 
-    WHEN MATCHED THEN
-      UPDATE SET
-        PrimaryColor = @PrimaryColor,
-        SecondaryColor = @SecondaryColor,
-        AccentColor = @AccentColor,
-        SidebarColor = @SidebarColor,
-        TopbarColor = @TopbarColor,
-        LoginCardColor = @LoginCardColor,
+      WHEN MATCHED THEN
+        UPDATE SET
+          PrimaryColor = @PrimaryColor,
+          SecondaryColor = @SecondaryColor,
+          AccentColor = @AccentColor,
+          SidebarColor = @SidebarColor,
+          TopbarColor = @TopbarColor,
+          LoginCardColor = @LoginCardColor,
 
-        SidebarBackgroundType = @SidebarBackgroundType,
-        SidebarGradientStart = @SidebarGradientStart,
-        SidebarGradientMiddle = @SidebarGradientMiddle,
-        SidebarGradientEnd = @SidebarGradientEnd,
-        SidebarGradientDirection = @SidebarGradientDirection,
-        SidebarGradientPosition = @SidebarGradientPosition,
+          SidebarBackgroundType = @SidebarBackgroundType,
+          SidebarGradientStart = @SidebarGradientStart,
+          SidebarGradientMiddle = @SidebarGradientMiddle,
+          SidebarGradientEnd = @SidebarGradientEnd,
+          SidebarGradientDirection = @SidebarGradientDirection,
+          SidebarGradientPosition = @SidebarGradientPosition,
 
-        TopbarBackgroundType = @TopbarBackgroundType,
-        TopbarGradientStart = @TopbarGradientStart,
-        TopbarGradientMiddle = @TopbarGradientMiddle,
-        TopbarGradientEnd = @TopbarGradientEnd,
-        TopbarGradientDirection = @TopbarGradientDirection,
-        TopbarGradientPosition = @TopbarGradientPosition,
+          TopbarBackgroundType = @TopbarBackgroundType,
+          TopbarGradientStart = @TopbarGradientStart,
+          TopbarGradientMiddle = @TopbarGradientMiddle,
+          TopbarGradientEnd = @TopbarGradientEnd,
+          TopbarGradientDirection = @TopbarGradientDirection,
+          TopbarGradientPosition = @TopbarGradientPosition,
 
-        LoginTitle = @LoginTitle,
-        LoginSubtitle = @LoginSubtitle,
-        FooterText = @FooterText,
-        Website = @Website,
-        SupportEmail = @SupportEmail,
-        SupportPhone = @SupportPhone,
-        UpdatedBy = @UpdatedBy,
-        UpdatedAt = GETDATE(),
-        IsActive = 1
+          LoginTitle = @LoginTitle,
+          LoginSubtitle = @LoginSubtitle,
+          FooterText = @FooterText,
+          Website = @Website,
+          SupportEmail = @SupportEmail,
+          SupportPhone = @SupportPhone,
+          UpdatedBy = COALESCE(@UpdatedBy, UpdatedBy),
+          UpdatedAt = GETDATE(),
+          IsActive = 1
 
-    WHEN NOT MATCHED THEN
-      INSERT (
-        SchoolId,
-        PrimaryColor,
-        SecondaryColor,
-        AccentColor,
-        SidebarColor,
-        TopbarColor,
-        LoginCardColor,
-
-        SidebarBackgroundType,
-        SidebarGradientStart,
-        SidebarGradientMiddle,
-        SidebarGradientEnd,
-        SidebarGradientDirection,
-        SidebarGradientPosition,
-
-        TopbarBackgroundType,
-        TopbarGradientStart,
-        TopbarGradientMiddle,
-        TopbarGradientEnd,
-        TopbarGradientDirection,
-        TopbarGradientPosition,
-
-        LoginTitle,
-        LoginSubtitle,
-        FooterText,
-        Website,
-        SupportEmail,
-        SupportPhone,
-        UpdatedBy,
-        CreatedAt,
-        IsActive
-      )
-      VALUES (
-        @SchoolId,
-        @PrimaryColor,
-        @SecondaryColor,
-        @AccentColor,
-        @SidebarColor,
-        @TopbarColor,
-        @LoginCardColor,
-
-        @SidebarBackgroundType,
-        @SidebarGradientStart,
-        @SidebarGradientMiddle,
-        @SidebarGradientEnd,
-        @SidebarGradientDirection,
-        @SidebarGradientPosition,
-
-        @TopbarBackgroundType,
-        @TopbarGradientStart,
-        @TopbarGradientMiddle,
-        @TopbarGradientEnd,
-        @TopbarGradientDirection,
-        @TopbarGradientPosition,
-
-        @LoginTitle,
-        @LoginSubtitle,
-        @FooterText,
-        @Website,
-        @SupportEmail,
-        @SupportPhone,
-        @UpdatedBy,
-        GETDATE(),
-        1
-      );
+      WHEN NOT MATCHED THEN
+        INSERT (
+          SchoolId,
+          PrimaryColor,
+          SecondaryColor,
+          AccentColor,
+          SidebarColor,
+          TopbarColor,
+          LoginCardColor,
+          SidebarBackgroundType,
+          SidebarGradientStart,
+          SidebarGradientMiddle,
+          SidebarGradientEnd,
+          SidebarGradientDirection,
+          SidebarGradientPosition,
+          TopbarBackgroundType,
+          TopbarGradientStart,
+          TopbarGradientMiddle,
+          TopbarGradientEnd,
+          TopbarGradientDirection,
+          TopbarGradientPosition,
+          LoginTitle,
+          LoginSubtitle,
+          FooterText,
+          Website,
+          SupportEmail,
+          SupportPhone,
+          UpdatedBy,
+          CreatedAt,
+          IsActive
+        )
+        VALUES (
+          @SchoolId,
+          @PrimaryColor,
+          @SecondaryColor,
+          @AccentColor,
+          @SidebarColor,
+          @TopbarColor,
+          @LoginCardColor,
+          @SidebarBackgroundType,
+          @SidebarGradientStart,
+          @SidebarGradientMiddle,
+          @SidebarGradientEnd,
+          @SidebarGradientDirection,
+          @SidebarGradientPosition,
+          @TopbarBackgroundType,
+          @TopbarGradientStart,
+          @TopbarGradientMiddle,
+          @TopbarGradientEnd,
+          @TopbarGradientDirection,
+          @TopbarGradientPosition,
+          @LoginTitle,
+          @LoginSubtitle,
+          @FooterText,
+          @Website,
+          @SupportEmail,
+          @SupportPhone,
+          @UpdatedBy,
+          GETDATE(),
+          1
+        );
     `,
     [
       { name: "SchoolId", type: sql.Int, value: schoolId },
-
       { name: "PrimaryColor", type: sql.NVarChar(20), value: data.primaryColor || "#1E3A8A" },
       { name: "SecondaryColor", type: sql.NVarChar(20), value: data.secondaryColor || "#2563EB" },
       { name: "AccentColor", type: sql.NVarChar(20), value: data.accentColor || "#16A34A" },
       { name: "SidebarColor", type: sql.NVarChar(20), value: data.sidebarColor || "#061B52" },
       { name: "TopbarColor", type: sql.NVarChar(20), value: data.topbarColor || "#071B4D" },
       { name: "LoginCardColor", type: sql.NVarChar(20), value: data.loginCardColor || "#FFFFFF" },
-
       { name: "SidebarBackgroundType", type: sql.NVarChar(30), value: data.sidebarBackgroundType || "solid" },
       { name: "SidebarGradientStart", type: sql.NVarChar(20), value: data.sidebarGradientStart || null },
       { name: "SidebarGradientMiddle", type: sql.NVarChar(20), value: data.sidebarGradientMiddle || null },
       { name: "SidebarGradientEnd", type: sql.NVarChar(20), value: data.sidebarGradientEnd || null },
       { name: "SidebarGradientDirection", type: sql.NVarChar(30), value: data.sidebarGradientDirection || "180deg" },
       { name: "SidebarGradientPosition", type: sql.NVarChar(50), value: data.sidebarGradientPosition || "center" },
-
       { name: "TopbarBackgroundType", type: sql.NVarChar(30), value: data.topbarBackgroundType || "solid" },
       { name: "TopbarGradientStart", type: sql.NVarChar(20), value: data.topbarGradientStart || null },
       { name: "TopbarGradientMiddle", type: sql.NVarChar(20), value: data.topbarGradientMiddle || null },
       { name: "TopbarGradientEnd", type: sql.NVarChar(20), value: data.topbarGradientEnd || null },
       { name: "TopbarGradientDirection", type: sql.NVarChar(30), value: data.topbarGradientDirection || "90deg" },
       { name: "TopbarGradientPosition", type: sql.NVarChar(50), value: data.topbarGradientPosition || "center" },
-
       { name: "LoginTitle", type: sql.NVarChar(255), value: data.loginTitle || null },
       { name: "LoginSubtitle", type: sql.NVarChar(255), value: data.loginSubtitle || null },
       { name: "FooterText", type: sql.NVarChar(500), value: data.footerText || null },
@@ -296,57 +291,80 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
 // INSERT FILE STORAGE RECORD
 // ============================================================
 
+// ============================================================
+// INSERT FILE STORAGE RECORD
+// ============================================================
+//
+// Purpose:
+// Saves uploaded branding media into FileStorage and returns
+// the exact FileId generated by SQL Server.
+//
+// Why OUTPUT INSERTED.FileId is used:
+// It is more reliable than SCOPE_IDENTITY() with helper wrappers
+// because it returns the inserted FileId directly as a result row.
+// ============================================================
+
 const insertFileStorage = async ({ file, entityType, entityId, uploadedBy }) => {
   const result = await executeQuery(
     `
-    INSERT INTO dbo.FileStorage (
-      OriginalFileName,
-      StoredFileName,
-      FilePath,
-      FileType,
-      FileSizeKB,
-      EntityType,
-      EntityId,
-      UploadedBy,
-      UploadedAt,
-      IsDeleted
-    )
-    VALUES (
-      @OriginalFileName,
-      @StoredFileName,
-      @FilePath,
-      @FileType,
-      @FileSizeKB,
-      @EntityType,
-      @EntityId,
-      @UploadedBy,
-      GETDATE(),
-      0
-    );
-
-    SELECT SCOPE_IDENTITY() AS InsertedId;
+      INSERT INTO dbo.FileStorage (
+        OriginalFileName,
+        StoredFileName,
+        FilePath,
+        FileType,
+        FileSizeKB,
+        EntityType,
+        EntityId,
+        UploadedBy,
+        UploadedAt,
+        IsDeleted
+      )
+      OUTPUT INSERTED.FileId AS InsertedId
+      VALUES (
+        @OriginalFileName,
+        @StoredFileName,
+        @FilePath,
+        @FileType,
+        @FileSizeKB,
+        @EntityType,
+        @EntityId,
+        @UploadedBy,
+        GETDATE(),
+        0
+      );
     `,
     [
       { name: "OriginalFileName", type: sql.NVarChar(255), value: file.originalname },
       { name: "StoredFileName", type: sql.NVarChar(255), value: file.filename },
-      { name: "FilePath", type: sql.NVarChar(sql.MAX), value: file.path },
+      {name: "FilePath", type: sql.NVarChar(sql.MAX), value: `/${file.path.replaceAll("\\", "/")}`,},
       { name: "FileType", type: sql.NVarChar(100), value: file.mimetype },
-      {
-        name: "FileSizeKB",
-        type: sql.Decimal(18, 2),
-        value: Number((file.size / 1024).toFixed(2)),
-      },
+      {name: "FileSizeKB", type: sql.Decimal(18, 2), value: Number((file.size / 1024).toFixed(2)),},
       { name: "EntityType", type: sql.NVarChar(100), value: entityType },
       { name: "EntityId", type: sql.Int, value: entityId || null },
       { name: "UploadedBy", type: sql.Int, value: uploadedBy || null },
     ]
   );
 
-  return insertedId(result);
-};
+  const insertedFile = firstOrNull(result);
 
+  if (!insertedFile?.InsertedId) {
+    throw new Error("File uploaded but FileStorage FileId was not returned.");
+  }
+
+  return Number(insertedFile.InsertedId);
+};
 // ============================================================
 // UPDATE BRANDING FILE REFERENCE
+// ============================================================
+//
+// Purpose:
+// Updates the Branding table after branding media
+// has been saved in FileStorage.
+//
+// Security:
+// Column names cannot be SQL parameters, so we strictly
+// whitelist allowed branding media columns before injecting
+// the column name into the SQL statement.
 // ============================================================
 
 const updateBrandingFile = async (schoolId, columnName, fileId, updatedBy) => {
@@ -360,36 +378,36 @@ const updateBrandingFile = async (schoolId, columnName, fileId, updatedBy) => {
 
   if (!allowedColumns.includes(columnName)) {
     throw new Error("Invalid branding file column.");
+  if (!fileId) {
+  throw new Error("Cannot update branding file because FileId is missing.");
+}
   }
 
   await executeQuery(
     `
-    MERGE dbo.Branding AS target
-    USING (SELECT @SchoolId AS SchoolId) AS source
-      ON target.SchoolId = source.SchoolId
-
-    WHEN MATCHED THEN
-      UPDATE SET
+      UPDATE dbo.Branding
+      SET
         ${columnName} = @FileId,
-        UpdatedBy = @UpdatedBy,
+        UpdatedBy = COALESCE(@UpdatedBy, UpdatedBy),
         UpdatedAt = GETDATE(),
         IsActive = 1
+      WHERE SchoolId = @SchoolId;
 
-    WHEN NOT MATCHED THEN
-      INSERT (
-        SchoolId,
-        ${columnName},
-        UpdatedBy,
-        CreatedAt,
-        IsActive
-      )
-      VALUES (
-        @SchoolId,
-        @FileId,
-        @UpdatedBy,
-        GETDATE(),
-        1
-      );
+      IF @@ROWCOUNT = 0
+      BEGIN
+        INSERT INTO dbo.Branding (
+          SchoolId,
+          ${columnName},
+          CreatedAt,
+          IsActive
+        )
+        VALUES (
+          @SchoolId,
+          @FileId,
+          GETDATE(),
+          1
+        );
+      END;
     `,
     [
       { name: "SchoolId", type: sql.Int, value: schoolId },

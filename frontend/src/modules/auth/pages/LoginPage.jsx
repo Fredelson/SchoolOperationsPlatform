@@ -26,6 +26,7 @@ import {
 
 import { useAuth } from "../../../context/AuthContext";
 import useBranding from "../../../modules/system/hooks/useBranding";
+import buildFileUrl from "../../../platform/utils/buildFileUrl";
 
 export default function LoginPage() {
   const theme = useTheme();
@@ -103,7 +104,7 @@ export default function LoginPage() {
         minHeight: "100vh",
         bgcolor: theme.palette.background.default,
         backgroundImage: brand.loginBackgroundPath
-          ? `url(${brand.loginBackgroundPath})`
+          ? `url(${buildFileUrl(brand.loginBackgroundPath)})`
           : theme.palette.background.default,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -127,7 +128,7 @@ export default function LoginPage() {
           {brand.logoPath && (
             <Box
               component="img"
-              src={brand.logoPath}
+              src={buildFileUrl(brand.logoPath)}
               alt={school.schoolName || "School Logo"}
               sx={{
                 width: 90,

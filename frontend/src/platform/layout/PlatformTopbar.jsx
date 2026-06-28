@@ -31,6 +31,7 @@ import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDown
 
 import { useAuth } from "../../context/AuthContext";
 import useBranding from "../../modules/system/hooks/useBranding";
+import buildFileUrl from "../utils/buildFileUrl";
 
 // ============================================
 // Role Context
@@ -84,8 +85,12 @@ export default function PlatformTopbar({ height = 78, onMenuClick }) {
   const displayRole = user?.displayRole || user?.DisplayRole || role || "User";
   const initial = displayName?.charAt(0)?.toUpperCase() || "U";
 
-  const logoPath =
-    brand.logoPath || brand.smallLogoPath || brand.darkLogoPath || null;
+  const logoPath = buildFileUrl(
+    brand.logoPath ||
+      brand.smallLogoPath ||
+      brand.darkLogoPath ||
+      ""
+  );
 
   // ============================================
   // Theme Values

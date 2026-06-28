@@ -1,55 +1,137 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Upload Middleware using Multer
-// Supports PDF, DOCX, PPTX, JPG, PNG, WEBP
+// Operations Platform
+// Upload Middleware
+// ============================================
+//
+// Purpose:
+// Central reusable Multer upload middleware for
+// all platform modules.
+//
+// Supports:
+// - Printing request attachments
+// - Branding media
+// - Future IT asset files
+// - Future helpdesk attachments
+//
+// Folder Strategy:
+// Files are stored by module so uploads stay clean
+// as the platform grows.
 // ============================================
 
+const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 
-// Storage location and filename format
+// ============================================
+// RESOLVE UPLOAD DESTINATION
+// ============================================
+//
+// Purpose:
+// Chooses the correct upload folder based on the
+// request URL and route parameter.
+//
+// Examples:
+// /api/system/branding/logo
+// → uploads/branding/logo
+//
+// /api/system/branding/favicon
+// → uploads/branding/favicon
+//
+// /api/uploads/request-attachment
+// → uploads/printing/attachments
+// ============================================
+
+const resolveUploadDestination = (req) => {
+  const url = req.originalUrl || "";
+
+  if (url.includes("/system/branding")) {
+    const brandingFolderMap = {
+      logo: "logo",
+      smallLogo: "small-logo",
+      darkLogo: "dark-logo",
+      favicon: "favicon",
+      loginBackground: "login-background",
+    };
+
+    const folderName = brandingFolderMap[req.params?.fileType] || "general";
+
+    return path.join("uploads", "branding", folderName);
+  }
+
+  if (url.includes("/uploads/count-pages")) {
+    return path.join("uploads", "temp");
+  }
+
+  if (url.includes("/uploads/request-attachment")) {
+    return path.join("uploads", "printing", "attachments");
+  }
+
+  return path.join("uploads", "general");
+};
+
+// ============================================
+// MULTER STORAGE
+// ============================================
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    const destination = resolveUploadDestination(req);
+
+    fs.mkdirSync(destination, { recursive: true });
+
+    cb(null, destination);
   },
 
   filename: (req, file, cb) => {
+    const safeExtension = path.extname(file.originalname).toLowerCase();
+
     const uniqueName =
       Date.now() +
       "-" +
       Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
+      safeExtension;
 
     cb(null, uniqueName);
   },
 });
 
-// Allowed file types
+// ============================================
+// FILE TYPE FILTER
+// ============================================
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
-    // Documents
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 
-    // Images
     "image/jpeg",
     "image/jpg",
     "image/png",
     "image/webp",
+    "image/svg+xml",
+    "image/x-icon",
+    "image/vnd.microsoft.icon",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
-  } else {
-    cb(
-      new Error("Only PDF, DOCX, PPTX, JPG, PNG, and WEBP files are allowed"),
-      false
-    );
+    return;
   }
+
+  cb(
+    new Error(
+      "Only PDF, DOCX, PPTX, JPG, PNG, WEBP, SVG, and ICO files are allowed"
+    ),
+    false
+  );
 };
 
-// Max file size: 20MB per file
+// ============================================
+// EXPORT MULTER INSTANCE
+// ============================================
+
 const upload = multer({
   storage,
   fileFilter,

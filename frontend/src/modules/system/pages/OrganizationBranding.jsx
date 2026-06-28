@@ -15,9 +15,13 @@ import PlatformColorsCard from "../components/branding/PlatformColorsCard";
 import BackgroundBuilderCard from "../components/branding/BackgroundBuilderCard";
 import LoginBrandingCard from "../components/branding/LoginBrandingCard";
 import BrandingActions from "../components/branding/BrandingActions";
+import { AppPageHeader } from "../../../platform/ui";
+import BrandingMediaCard from "../components/branding/BrandingMediaCard";
+import usePageTitle from "../../../platform/hooks/usePageTitle";
 
 export default function OrganizationBranding() {
   const { branding, refreshBranding } = useBranding();
+  usePageTitle("Organization & Branding");
 
   const [form, setForm] = useState({
     school: {
@@ -166,15 +170,10 @@ export default function OrganizationBranding() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      <Stack spacing={0.5} sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight={900}>
-          Organization & Branding
-        </Typography>
-
-        <Typography color="text.secondary">
-          Manage school identity, platform colors, backgrounds, and login branding.
-        </Typography>
-      </Stack>
+      <AppPageHeader
+        title="Organization & Branding"
+        subtitle="Manage school identity, platform colors, backgrounds, logos, and login branding."
+      />
 
       {message && (
         <Alert severity="success" sx={{ mb: 2 }}>
@@ -240,6 +239,11 @@ export default function OrganizationBranding() {
             </Box>
           </CardContent>
         </Card>
+
+        <BrandingMediaCard
+          branding={branding}
+          refreshBranding={refreshBranding}
+        />
 
         <LoginBrandingCard
           form={form}
