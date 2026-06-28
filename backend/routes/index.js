@@ -44,6 +44,7 @@ router.use("/users", require("../modules/users"));
 router.use("/lookups", require("../modules/lookups"));
 router.use("/assignments", require("../modules/assignments"));
 router.use("/roles", require("../modules/roles"));
+router.use("/permissions", require("../modules/permissions"));
 
 // ============================================================
 // SECURITY MODULES
@@ -99,13 +100,13 @@ router.use("/distributions", require("./requests/distributionRoutes"));
 // ============================================================
 
 router.use(
-  "/teacher/dashboard",
-  require("./teacher/teacherDashboardRoutes")
+    "/teacher/dashboard",
+    require("./teacher/teacherDashboardRoutes")
 );
 
 router.use(
-  "/teacher/reports",
-  require("./teacher/teacherReportRoutes")
+    "/teacher/reports",
+    require("./teacher/teacherReportRoutes")
 );
 
 // ============================================================
@@ -145,61 +146,66 @@ router.use("/master", require("./master/masterRoutes"));
 // Planned Migration:
 //
 // modules/super-admin
+//
+// Important:
+// The new modern /api/permissions route is already registered above.
+// The legacy /api/superadmin/permissions route remains untouched
+// to avoid breaking existing frontend pages.
 // ============================================================
 
 router.use(
-  "/superadmin/dashboard",
-  require("./superadmin/dashboardRoutes")
+    "/superadmin/dashboard",
+    require("./superadmin/dashboardRoutes")
 );
 
 router.use(
-  "/superadmin/modules",
-  require("./superadmin/moduleRoutes")
+    "/superadmin/modules",
+    require("./superadmin/moduleRoutes")
 );
 
 router.use(
-  "/superadmin/permissions",
-  require("./superadmin/permissionRoutes")
+    "/superadmin/permissions",
+    require("./superadmin/permissionRoutes")
 );
 
 router.use(
-  "/superadmin/user-overrides",
-  require("./superadmin/userPermissionOverrideRoutes")
+    "/superadmin/user-overrides",
+    require("./superadmin/userPermissionOverrideRoutes")
 );
 
 router.use(
-  "/superadmin/roles",
-  require("./superadmin/roleRoutes")
+    "/superadmin/roles",
+    require("./superadmin/roleRoutes")
 );
 
 router.use(
-  "/superadmin/menus",
-  require("./superadmin/menuRoutes")
+    "/superadmin/menus",
+    require("./superadmin/menuRoutes")
 );
 
 router.use(
-  "/superadmin/buttons",
-  require("./superadmin/buttonRoutes")
+    "/superadmin/buttons",
+    require("./superadmin/buttonRoutes")
 );
 
 router.use(
-  "/superadmin/widgets",
-  require("./superadmin/widgetRoutes")
+    "/superadmin/widgets",
+    require("./superadmin/widgetRoutes")
 );
 
 router.use(
-  "/superadmin/feature-flags",
-  require("./superadmin/featureFlagRoutes")
+    "/superadmin/feature-flags",
+    require("./superadmin/featureFlagRoutes")
 );
 
 router.use(
-  "/superadmin/system-settings",
-  require("./superadmin/systemSettingsRoutes")
+    "/superadmin/system-settings",
+    require("./superadmin/systemSettingsRoutes")
 );
 
 router.use(
-  "/superadmin/audit-logs",
-  require("./superadmin/auditLogRoutes")
+    "/superadmin/audit-logs",
+    require("./superadmin/auditLogRoutes")
 );
 
 // ============================================================
