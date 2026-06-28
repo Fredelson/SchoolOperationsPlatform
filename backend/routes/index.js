@@ -45,6 +45,7 @@ router.use("/lookups", require("../modules/lookups"));
 router.use("/assignments", require("../modules/assignments"));
 router.use("/roles", require("../modules/roles"));
 router.use("/permissions", require("../modules/permissions"));
+router.use("/role-permissions", require("../modules/rolePermissions"));
 
 // ============================================================
 // SECURITY MODULES
