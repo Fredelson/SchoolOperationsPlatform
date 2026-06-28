@@ -10,17 +10,21 @@
 // /api/permissions
 //
 // Architecture:
+//
 // Route
 //      ↓
-// JWT Protection
-//      ↓
-// Permission Middleware
-//      ↓
 // Controller
+//      ↓
+// Service
+//      ↓
+// Repository
 //
-// Security:
-// Uses database-driven permission keys instead of hard-coded
-// role-name checks.
+// Rules:
+//
+// • No SQL
+// • No business logic
+// • JWT protected
+// • Controller handles request/response
 //
 // ============================================================
 
@@ -28,8 +32,6 @@ const express = require("express");
 
 const permissionController = require("../controllers/permissionController");
 const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 // ============================================================
 // Router Initialization
@@ -38,42 +40,44 @@ const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 const router = express.Router();
 
 // ============================================================
-// Apply JWT Protection
-// ============================================================
-
-router.use(protect);
-
-// ============================================================
 // Permission CRUD Routes
+// ============================================================
+//
+// GET    /api/permissions
+// GET    /api/permissions/:permissionId
+// POST   /api/permissions
+// PUT    /api/permissions/:permissionId
+// DELETE /api/permissions/:permissionId
+//
 // ============================================================
 
 router.get(
     "/",
-    requirePermission(PERMISSIONS.PERMISSIONS.VIEW),
+    protect,
     permissionController.getPermissions
 );
 
 router.get(
     "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.VIEW),
+    protect,
     permissionController.getPermissionById
 );
 
 router.post(
     "/",
-    requirePermission(PERMISSIONS.PERMISSIONS.CREATE),
+    protect,
     permissionController.createPermission
 );
 
 router.put(
     "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.UPDATE),
+    protect,
     permissionController.updatePermission
 );
 
 router.delete(
     "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.DELETE),
+    protect,
     permissionController.deletePermission
 );
 

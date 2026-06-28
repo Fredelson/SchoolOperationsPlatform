@@ -32,6 +32,7 @@ const express = require("express");
 const router = express.Router();
 
 const userPermissionOverrideRoutes = require("../modules/userPermissionOverrides/routes/userPermissionOverrideRoutes");
+const permissionResolverRoutes = require("../modules/permissionResolver/routes/permissionResolverRoutes");
 
 // ============================================================
 // MODERN FEATURE MODULES (Repository → Service → Controller)
@@ -49,6 +50,7 @@ router.use("/roles", require("../modules/roles"));
 router.use("/permissions", require("../modules/permissions"));
 router.use("/role-permissions", require("../modules/rolePermissions"));
 router.use("/user-permission-overrides", userPermissionOverrideRoutes);
+router.use("/permission-resolver", permissionResolverRoutes);
 
 // ============================================================
 // SECURITY MODULES

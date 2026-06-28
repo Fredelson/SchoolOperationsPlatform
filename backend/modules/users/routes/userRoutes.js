@@ -5,15 +5,6 @@
  * Arab Unity School Operations Platform
  * Users Routes
  * ============================================================
- *
- * Final API paths:
- * GET    /api/users
- * GET    /api/users/:id
- * POST   /api/users
- * PUT    /api/users/:id
- * PUT    /api/users/:id/deactivate
- * PUT    /api/users/:id/activate
- * ============================================================
  */
 
 const express = require("express");
@@ -28,18 +19,17 @@ const {
   activateUser,
 } = require("../controllers/userController");
 
-const { protect, authorizeRoles } = require("../../../middleware/authMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../permissionResolver/middleware/requirePermission");
+const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 router.use(protect);
 
-// PlatformAdmin is included because it inherits PrintingAdmin permissions.
-router.use(authorizeRoles("SuperAdmin", "PlatformAdmin", "Admin", "PrintingAdmin"));
-
-router.get("/", getUsers);
-router.get("/:id", getUserById);
-router.post("/", createUser);
-router.put("/:id", updateUser);
-router.put("/:id/deactivate", deactivateUser);
-router.put("/:id/activate", activateUser);
+router.get("/", requirePermission(PERMISSIONS.USERS.VIEW), getUsers);
+router.get("/:id", requirePermission(PERMISSIONS.USERS.VIEW), getUserById);
+router.post("/", requirePermission(PERMISSIONS.USERS.CREATE), createUser);
+router.put("/:id", requirePermission(PERMISSIONS.USERS.UPDATE), updateUser);
+router.put("/:id/deactivate", requirePermission(PERMISSIONS.USERS.DEACTIVATE), deactivateUser);
+router.put("/:id/activate", requirePermission(PERMISSIONS.USERS.ACTIVATE), activateUser);
 
 module.exports = router;

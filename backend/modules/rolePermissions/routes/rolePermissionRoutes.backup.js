@@ -10,17 +10,21 @@
 // /api/role-permissions
 //
 // Architecture:
+//
 // Route
 //      ↓
-// JWT Protection
-//      ↓
-// Permission Middleware
-//      ↓
 // Controller
+//      ↓
+// Service
+//      ↓
+// Repository
 //
-// Security:
-// Uses database-driven permission keys instead of hard-coded
-// role-name checks.
+// Rules:
+//
+// • No SQL
+// • No business logic
+// • JWT protected
+// • Controller handles request/response
 //
 // ============================================================
 
@@ -28,8 +32,6 @@ const express = require("express");
 
 const rolePermissionController = require("../controllers/rolePermissionController");
 const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 // ============================================================
 // Router Initialization
@@ -38,42 +40,36 @@ const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 const router = express.Router();
 
 // ============================================================
-// Apply JWT Protection
-// ============================================================
-
-router.use(protect);
-
-// ============================================================
 // Role Permission CRUD Routes
 // ============================================================
 
 router.get(
     "/",
-    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.VIEW),
+    protect,
     rolePermissionController.getRolePermissions
 );
 
 router.get(
     "/:rolePermissionId",
-    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.VIEW),
+    protect,
     rolePermissionController.getRolePermissionById
 );
 
 router.post(
     "/",
-    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.CREATE),
+    protect,
     rolePermissionController.createRolePermission
 );
 
 router.put(
     "/:rolePermissionId",
-    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.UPDATE),
+    protect,
     rolePermissionController.updateRolePermission
 );
 
 router.delete(
     "/:rolePermissionId",
-    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.DELETE),
+    protect,
     rolePermissionController.deleteRolePermission
 );
 

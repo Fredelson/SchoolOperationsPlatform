@@ -6,9 +6,6 @@
  * Lookup Routes
  * ============================================================
  *
- * Purpose:
- * Provides protected lookup/reference data endpoints.
- *
  * Final API paths:
  * GET /api/lookups/departments
  * GET /api/lookups/sections
@@ -17,9 +14,6 @@
  * GET /api/lookups/roles
  * GET /api/lookups/access-levels
  * GET /api/lookups/hods?departmentId=1
- *
- * Security:
- * Uses database-driven permission middleware.
  * ============================================================
  */
 
@@ -37,17 +31,15 @@ const {
 } = require("../controllers/lookupController");
 
 const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 router.use(protect);
 
-router.get("/departments", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getDepartments);
-router.get("/sections", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getSections);
-router.get("/subjects", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getSubjects);
-router.get("/purposes", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getPurposes);
-router.get("/roles", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getRoles);
-router.get("/access-levels", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getAccessLevels);
-router.get("/hods", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getHods);
+router.get("/departments", getDepartments);
+router.get("/sections", getSections);
+router.get("/subjects", getSubjects);
+router.get("/purposes", getPurposes);
+router.get("/roles", getRoles);
+router.get("/access-levels", getAccessLevels);
+router.get("/hods", getHods);
 
 module.exports = router;
