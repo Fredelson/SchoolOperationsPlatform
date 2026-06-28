@@ -1,10 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Platform Sidebar
+// ============================================
 //
 // Purpose:
-// Shared desktop sidebar for platform roles.
-// Mobile drawer can be added later.
+// Shared sidebar for platform role layouts.
+// Uses dynamic theme colors and gradients.
 // ============================================
 
 import {
@@ -14,6 +16,8 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
+  alpha,
+  useTheme,
 } from "@mui/material";
 
 import { NavLink } from "react-router-dom";
@@ -21,11 +25,33 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getSidebarItemsByRole } from "../navigation/sidebar/getSidebarItemsByRole";
 
+// ============================================
+// Component
+// ============================================
+
 export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
+  const theme = useTheme();
   const { user } = useAuth();
 
   const role = user?.role || user?.Role;
   const sidebarSections = getSidebarItemsByRole(role);
+
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const platform = theme.palette.platform || {};
+
+  const sidebarBg = platform.useSidebarGradient
+    ? platform.sidebarGradient
+    : platform.sidebar || theme.palette.primary.dark;
+
+  const sidebarText = theme.palette.primary.contrastText;
+  const accent = platform.accent || theme.palette.success.main;
+
+  // ============================================
+  // UI
+  // ============================================
 
   return (
     <Box
@@ -35,12 +61,12 @@ export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
         position: "fixed",
         left: 0,
         top: `${topOffset}px`,
-        bgcolor: "#061B52",
-        color: "#fff",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        background: sidebarBg,
+        color: sidebarText,
+        borderRight: `1px solid ${alpha(sidebarText, 0.08)}`,
         overflowY: "auto",
         overflowX: "hidden",
-        zIndex: 15,
+        zIndex: 1200,
       }}
     >
       <Box sx={{ px: 2.5, pt: 2, pb: 2 }}>
@@ -52,7 +78,7 @@ export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
                 display: "block",
                 px: 2,
                 mb: 0.9,
-                color: "rgba(255,255,255,0.42)",
+                color: alpha(sidebarText, 0.42),
                 fontWeight: 900,
                 textTransform: "uppercase",
                 letterSpacing: 0.9,
@@ -72,25 +98,28 @@ export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
                     borderRadius: 2.8,
                     mb: 0.45,
                     px: 2,
-                    color: "rgba(255,255,255,0.78)",
-                    transition: "all 0.2s ease",
+                    color: alpha(sidebarText, 0.78),
+                    transition: theme.transitions.create(
+                      ["background-color", "color", "box-shadow"],
+                      { duration: theme.transitions.duration.short }
+                    ),
 
                     "&:hover": {
-                      bgcolor: "rgba(255,255,255,0.08)",
-                      color: "#fff",
+                      bgcolor: alpha(sidebarText, 0.08),
+                      color: sidebarText,
                     },
 
                     "&.active": {
-                      bgcolor: "#4CAF50",
-                      color: "#fff",
-                      boxShadow: "0 10px 24px rgba(76,175,80,0.25)",
+                      bgcolor: accent,
+                      color: sidebarText,
+                      boxShadow: `0 10px 24px ${alpha(accent, 0.25)}`,
 
                       "& .MuiListItemIcon-root": {
-                        color: "#fff",
+                        color: sidebarText,
                       },
 
                       "&:hover": {
-                        bgcolor: "#43A047",
+                        bgcolor: accent,
                       },
                     },
                   }}

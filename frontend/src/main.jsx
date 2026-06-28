@@ -4,17 +4,16 @@
 // Main React Entry Point
 // ============================================
 //
-// Description:
-// Application bootstrap.
-// Registers all global providers.
+// Purpose:
+// Application bootstrap and global providers.
 //
 // Provider Order:
 // BrowserRouter
 // AuthProvider
 // PermissionProvider
 // FeatureFlagProvider
-// ThemeProvider
-//
+// BrandingProvider
+// PlatformThemeProvider
 // ============================================
 
 import React from "react";
@@ -22,15 +21,13 @@ import ReactDOM from "react-dom/client";
 
 import { BrowserRouter } from "react-router-dom";
 
-import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
-
 import App from "./App";
-import theme from "./theme/theme";
 
 import { AuthProvider } from "./context/AuthContext";
 import { PermissionProvider } from "./context/PermissionContext";
 import { FeatureFlagProvider } from "./providers/FeatureFlagProvider";
+import { BrandingProvider } from "./modules/system/context/BrandingContext";
+import PlatformThemeProvider from "./theme/provider/PlatformThemeProvider";
 
 import "./index.css";
 
@@ -44,10 +41,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <AuthProvider>
         <PermissionProvider>
           <FeatureFlagProvider>
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <App />
-            </ThemeProvider>
+            <BrandingProvider>
+              <PlatformThemeProvider>
+                <App />
+              </PlatformThemeProvider>
+            </BrandingProvider>
           </FeatureFlagProvider>
         </PermissionProvider>
       </AuthProvider>

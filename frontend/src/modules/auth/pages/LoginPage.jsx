@@ -1,22 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Login Page
+// ============================================
 //
-// Handles:
-// - User Authentication
-// - Role-Based Redirection
-// - Error Handling
-//
-// Role Mapping:
-//
-// Teacher           -> Teacher Dashboard
-// TeachingAssistant -> Teacher Dashboard
-// HOD               -> HOD Dashboard
-// HOS               -> HOS Dashboard
-// Secretary         -> HOS Dashboard
-// PrintingAdmin     -> Printing Dashboard
-// Admin             -> Printing Dashboard
-// SuperAdmin        -> Teacher Dashboard
+// Purpose:
+// Handles authentication and role-based redirect.
+// Uses platform branding and MUI theme colors.
 // ============================================
 
 import { useState } from "react";
@@ -30,17 +20,23 @@ import {
   TextField,
   Typography,
   Alert,
+  useTheme,
+  alpha,
 } from "@mui/material";
 
 import { useAuth } from "../../../context/AuthContext";
+import useBranding from "../../../modules/system/hooks/useBranding";
 
 export default function LoginPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
-  const { login } = useAuth();
 
-  // ============================================
-  // Form State
-  // ============================================
+  const { login } = useAuth();
+  const { branding } = useBranding();
+
+  const school = branding?.school || {};
+  const brand = branding?.branding || {};
+
   const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -48,50 +44,32 @@ export default function LoginPage() {
   // ============================================
   // Redirect User Based On Role
   // ============================================
+
   const redirectByRole = (role) => {
     switch (role) {
-      // ========================================
-      // Teacher Level
-      // ========================================
       case "Teacher":
       case "TeachingAssistant":
         navigate("/teacher/dashboard");
         break;
 
-      // ========================================
-      // HOD Level
-      // ========================================
       case "HOD":
         navigate("/hod/dashboard");
         break;
 
-      // ========================================
-      // HOS Level
-      // Secretary shares HOS permissions
-      // ========================================
       case "HOS":
       case "Secretary":
         navigate("/hos/dashboard");
         break;
 
-      // ========================================
-      // Printing Admin Level
-      // ========================================
       case "PrintingAdmin":
       case "Admin":
         navigate("/printing/dashboard");
         break;
 
-      // ========================================
-      // Super Admin
-      // ========================================
       case "SuperAdmin":
         navigate("/super-admin/dashboard");
         break;
 
-      // ========================================
-      // Unknown Role
-      // ========================================
       default:
         navigate("/login");
         break;
@@ -101,67 +79,84 @@ export default function LoginPage() {
   // ============================================
   // Login Handler
   // ============================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
     try {
-      const loggedUser = await login(
-        employeeId.trim(),
-        password.trim()
-      );
-
+      const loggedUser = await login(employeeId.trim(), password.trim());
       redirectByRole(loggedUser.role);
     } catch (err) {
       console.error(err);
-
-      setError(
-        "Invalid employee ID or password"
-      );
+      setError("Invalid employee ID or password");
     }
   };
 
   // ============================================
   // UI
   // ============================================
+
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#F5F7FB",
+        bgcolor: theme.palette.background.default,
+        backgroundImage: brand.loginBackgroundPath
+          ? `url(${brand.loginBackgroundPath})`
+          : theme.palette.background.default,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        p: 2,
       }}
     >
       <Card
         sx={{
           width: 500,
-          borderRadius: 5,
-          boxShadow:
-            "0px 10px 30px rgba(0,0,0,0.08)",
+          maxWidth: "100%",
+          borderRadius: 4,
+          bgcolor: theme.palette.background.paper,
+          boxShadow: theme.shadows[8],
+          border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <CardContent sx={{ p: 5 }}>
+        <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+          {brand.logoPath && (
+            <Box
+              component="img"
+              src={brand.logoPath}
+              alt={school.schoolName || "School Logo"}
+              sx={{
+                width: 90,
+                height: 90,
+                objectFit: "contain",
+                mb: 2,
+              }}
+            />
+          )}
+
           <Typography
             sx={{
               fontSize: 28,
-              fontWeight: 700,
-              color: "#0F172A",
+              fontWeight: 900,
+              color: theme.palette.primary.main,
+              lineHeight: 1.15,
             }}
           >
-            ARAB UNITY SCHOOL
+            {brand.loginTitle || school.schoolName || "Arab Unity School"}
           </Typography>
 
           <Typography
             sx={{
               fontSize: 18,
-              color: "#334155",
+              color: theme.palette.text.secondary,
               mb: 3,
             }}
           >
-            Photocopy Management System
+            {brand.loginSubtitle || "Operations Platform"}
           </Typography>
 
           {error && (
@@ -170,17 +165,12 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-          >
+          <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
               label="Employee ID"
               value={employeeId}
-              onChange={(e) =>
-                setEmployeeId(e.target.value)
-              }
+              onChange={(e) => setEmployeeId(e.target.value)}
               margin="normal"
             />
 
@@ -189,9 +179,7 @@ export default function LoginPage() {
               label="Password"
               type="password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               margin="normal"
             />
 
@@ -203,13 +191,34 @@ export default function LoginPage() {
                 mt: 3,
                 height: 55,
                 fontSize: 18,
-                fontWeight: 700,
-                borderRadius: 2,
+                fontWeight: 800,
+                borderRadius: theme.shape.borderRadius,
+                bgcolor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+
+                "&:hover": {
+                  bgcolor: theme.palette.primary.dark,
+                  boxShadow: `0 8px 20px ${alpha(
+                    theme.palette.primary.main,
+                    0.28
+                  )}`,
+                },
               }}
             >
               LOGIN
             </Button>
           </Box>
+
+          <Typography
+            sx={{
+              mt: 3,
+              textAlign: "center",
+              fontSize: 13,
+              color: theme.palette.text.secondary,
+            }}
+          >
+            {brand.footerText || "Arab Unity School Operations Platform"}
+          </Typography>
         </CardContent>
       </Card>
     </Box>

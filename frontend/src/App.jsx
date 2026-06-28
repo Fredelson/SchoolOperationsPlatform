@@ -1,12 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Main App Routes
-// Role-based protected routes
+// ============================================
 //
-// Notes:
-// - Pages are now organized under src/modules
-// - Shared pages like Profile are under modules/shared
-// - ProtectedRoute controls role access
+// Purpose:
+// Registers public, protected, and role-based
+// application routes.
 // ============================================
 
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -14,12 +14,20 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // ============================================
 // Auth
 // ============================================
+
 import { LoginPage } from "./modules/auth/pages";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 // ============================================
-// Teacher Pages
+// Platform Foundation
 // ============================================
+
+import OrganizationBranding from "./modules/system/pages/OrganizationBranding";
+
+// ============================================
+// Teacher
+// ============================================
+
 import {
   TeacherDashboard,
   MyRequests,
@@ -30,14 +38,16 @@ import {
 } from "./modules/teacher/pages";
 
 // ============================================
-// HOD / HOS Pages
+// HOD / HOS
 // ============================================
+
 import { HodDashboard, HodRequestsPage } from "./modules/hod/pages";
 import { HosDashboard, SubjectAllocationPage } from "./modules/hos/pages";
 
 // ============================================
-// Printing / Platform Admin Pages
+// Printing / Platform Admin
 // ============================================
+
 import {
   DepartmentLimitsPage,
   PaperStockPage,
@@ -52,63 +62,92 @@ import PrintingAdminDashboard from "./modules/printing-admin/pages/PrintingAdmin
 import printingAdminLayoutRoutes from "./modules/printing-admin/routes/PrintingAdminLayoutRoutes";
 
 // ============================================
-// Admin Pages
+// Admin
 // ============================================
+
 import { UserManagement } from "./modules/admin/pages";
 
 // ============================================
-// Super Admin Routes
+// Super Admin
 // ============================================
+
 import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
 
 // ============================================
-// Shared Pages
+// Shared
 // ============================================
+
 import { Profile } from "./modules/shared/pages";
 
 // ============================================
 // Role Groups
 // ============================================
+
 const teacherRoles = ["Teacher", "TeachingAssistant", "SuperAdmin"];
 const hodRoles = ["HOD", "SuperAdmin"];
 const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
+
 const printingRoles = ["PrintingAdmin", "SuperAdmin"];
 const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
+
+const platformAdminRoles = ["SuperAdmin", "PrintingAdmin", "PlatformAdmin"];
+
+// ============================================
+// Helper: Render Layout Routes
+// ============================================
+
+const renderLayoutRoutes = (routes) =>
+  routes.map((route) => (
+    <Route key={route.path} path={route.path} element={route.element}>
+      {route.children?.map((child) => (
+        <Route
+          key={child.path || "index"}
+          index={child.index}
+          path={child.path}
+          element={child.element}
+        />
+      ))}
+    </Route>
+  ));
 
 // ============================================
 // App Routes
 // ============================================
+
 export default function App() {
   return (
     <Routes>
       {/* ===================================== */}
-      {/* PUBLIC ROUTES */}
+      {/* Public Routes */}
       {/* ===================================== */}
+
       <Route path="/login" element={<LoginPage />} />
 
       {/* ===================================== */}
-      {/* SUPER ADMIN LAYOUT ROUTES */}
+      {/* Layout-Based Routes */}
       {/* ===================================== */}
-      {superAdminLayoutRoutes.map((route) => (
-        <Route key={route.path} path={route.path} element={route.element}>
-          {route.children?.map((child) => (
-            <Route
-              key={child.path || "index"}
-              index={child.index}
-              path={child.path}
-              element={child.element}
-            />
-          ))}
-        </Route>
-      ))}
+
+      {renderLayoutRoutes(superAdminLayoutRoutes)}
+      {renderLayoutRoutes(printingAdminLayoutRoutes)}
 
       {/* ===================================== */}
-      {/* TEACHER ROUTES */}
+      {/* Platform Foundation Routes */}
       {/* ===================================== */}
+
       <Route
-        path="/teacher"
-        element={<Navigate to="/teacher/dashboard" replace />}
+        path="/system/branding"
+        element={
+          <ProtectedRoute allowedRoles={platformAdminRoles}>
+            <OrganizationBranding />
+          </ProtectedRoute>
+        }
       />
+
+      {/* ===================================== */}
+      {/* Teacher Routes */}
+      {/* ===================================== */}
+
+      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
 
       <Route
         path="/teacher/dashboard"
@@ -174,8 +213,9 @@ export default function App() {
       />
 
       {/* ===================================== */}
-      {/* HOD ROUTES */}
+      {/* HOD Routes */}
       {/* ===================================== */}
+
       <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
 
       <Route
@@ -232,7 +272,6 @@ export default function App() {
         }
       />
 
-      {/* HOD reuses teacher request pages */}
       <Route
         path="/hod/my-requests"
         element={
@@ -270,8 +309,9 @@ export default function App() {
       />
 
       {/* ===================================== */}
-      {/* HOS ROUTES */}
+      {/* HOS Routes */}
       {/* ===================================== */}
+
       <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
 
       <Route
@@ -302,28 +342,14 @@ export default function App() {
       />
 
       {/* ===================================== */}
-      {/* PRINTING ADMIN / PLATFORM ADMIN ROUTES */}
+      {/* Printing / Platform Admin Routes */}
       {/* ===================================== */}
+
       <Route
         path="/printing"
         element={<Navigate to="/printing/dashboard" replace />}
       />
 
-      {/* New layout-based printing routes */}
-      {printingAdminLayoutRoutes.map((route) => (
-        <Route key={route.path} path={route.path} element={route.element}>
-          {route.children?.map((child) => (
-            <Route
-              key={child.path || "index"}
-              index={child.index}
-              path={child.path}
-              element={child.element}
-            />
-          ))}
-        </Route>
-      ))}
-
-      {/* Legacy printing routes kept while migration is ongoing */}
       <Route
         path="/printing/dashboard"
         element={
@@ -406,8 +432,9 @@ export default function App() {
       />
 
       {/* ===================================== */}
-      {/* DEFAULT / FALLBACK ROUTES */}
+      {/* Default / Fallback Routes */}
       {/* ===================================== */}
+
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

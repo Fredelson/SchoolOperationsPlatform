@@ -28,7 +28,7 @@ const upload = require("../../../middleware/uploadMiddleware");
 // BRANDING ROUTES
 // ============================================================
 
-router.get("/branding", protect, getSystemBranding);
+router.get("/branding", getSystemBranding);
 
 router.put("/branding", protect, updateSystemBranding);
 

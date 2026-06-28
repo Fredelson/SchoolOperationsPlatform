@@ -1,20 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Super Admin Layout
+// Platform Layout
+// ============================================
 //
 // Purpose:
-// Shared responsive layout for all Super Admin pages.
-//
-// Layout Behavior:
-// - Desktop:
-//   Fixed topbar + fixed sidebar.
-//   Content starts beside the sidebar and below the topbar.
-//
-// - Tablet / Mobile:
-//   Fixed topbar only.
-//   Sidebar becomes a drawer opened by hamburger button.
-//   Content uses full width and starts below the topbar.
+// Shared responsive layout for platform pages.
+// Uses dynamic theme colors from System Branding.
 // ============================================
 
 import { useState } from "react";
@@ -37,21 +29,12 @@ const TOPBAR_HEIGHT = 78;
 // Component
 // ============================================
 
-export default function SuperAdminLayout() {
+export default function PlatformLayout() {
   const theme = useTheme();
-
-  // Desktop starts at lg and above.
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
 
-  // Controls mobile/tablet drawer.
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Opens mobile sidebar drawer.
-  const handleOpenMobileSidebar = () => {
-    setMobileOpen(true);
-  };
-
-  // Closes mobile sidebar drawer.
   const handleCloseMobileSidebar = () => {
     setMobileOpen(false);
   };
@@ -60,19 +43,15 @@ export default function SuperAdminLayout() {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#f8fafc",
-
-        // Prevent horizontal scrolling from layout itself.
+        bgcolor: theme.palette.background.default,
         overflowX: "hidden",
       }}
     >
-      {/* Fixed Topbar */}
       <PlatformTopbar
         height={TOPBAR_HEIGHT}
         onMenuClick={() => setMobileOpen((prev) => !prev)}
       />
 
-      {/* Desktop Fixed Sidebar */}
       {isDesktop && (
         <PlatformSidebar
           width={SIDEBAR_WIDTH}
@@ -80,7 +59,6 @@ export default function SuperAdminLayout() {
         />
       )}
 
-      {/* Mobile / Tablet Sidebar Drawer */}
       {!isDesktop && (
         <Drawer
           open={mobileOpen}
@@ -93,7 +71,9 @@ export default function SuperAdminLayout() {
               sx: {
                 width: MOBILE_SIDEBAR_WIDTH,
                 maxWidth: "85vw",
-                bgcolor: "#061B52",
+                bgcolor:
+                  theme.palette.platform?.sidebar ||
+                  theme.palette.primary.dark,
                 overflowX: "hidden",
               },
             },
@@ -108,31 +88,22 @@ export default function SuperAdminLayout() {
         </Drawer>
       )}
 
-      {/* Main Page Content */}
       <Box
         component="main"
         sx={{
-          // Desktop content starts after sidebar.
           ml: {
             xs: 0,
             lg: `${SIDEBAR_WIDTH}px`,
           },
-
-          // Content starts below fixed topbar.
           pt: `${TOPBAR_HEIGHT}px`,
-
-          // Full width on mobile, remaining width on desktop.
           width: {
             xs: "100%",
             lg: `calc(100% - ${SIDEBAR_WIDTH}px)`,
           },
-
-          bgcolor: "#f8fafc",
+          bgcolor: theme.palette.background.default,
           minHeight: "100vh",
           maxWidth: "100%",
           overflowX: "hidden",
-
-          // Page components already control their own padding.
           p: 0,
         }}
       >
@@ -141,7 +112,3 @@ export default function SuperAdminLayout() {
     </Box>
   );
 }
-
-// ============================================
-// End Component
-// ============================================

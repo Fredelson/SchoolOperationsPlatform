@@ -5,8 +5,8 @@
 // ============================================
 //
 // Purpose:
-// Handles SQL queries for school profile,
-// branding, and branding media files.
+// Handles SQL operations for school profile,
+// branding colors, gradients, and media files.
 //
 // Rules:
 // - SQL only
@@ -52,6 +52,16 @@ const getActiveSchoolBranding = async () => {
       b.SidebarColor,
       b.TopbarColor,
       b.LoginCardColor,
+
+      b.UseSidebarGradient,
+      b.SidebarGradientStart,
+      b.SidebarGradientEnd,
+      b.SidebarGradientDirection,
+
+      b.UseTopbarGradient,
+      b.TopbarGradientStart,
+      b.TopbarGradientEnd,
+      b.TopbarGradientDirection,
 
       b.LoginTitle,
       b.LoginSubtitle,
@@ -117,22 +127,28 @@ const updateSchoolProfile = async (schoolId, data) => {
     WHERE SchoolId = @SchoolId
       AND IsActive = 1;
     `,
-    {
-      SchoolId: { type: sql.Int, value: schoolId },
-      SchoolName: { type: sql.NVarChar(255), value: data.schoolName },
-      Address: { type: sql.NVarChar(sql.MAX), value: data.address || null },
-      Phone: { type: sql.NVarChar(100), value: data.phone || null },
-      Email: { type: sql.NVarChar(255), value: data.email || null },
-      Website: { type: sql.NVarChar(255), value: data.website || null },
-      TimeZone: {
+    [
+      { name: "SchoolId", type: sql.Int, value: schoolId },
+      { name: "SchoolName", type: sql.NVarChar(255), value: data.schoolName },
+      {
+        name: "Address",
+        type: sql.NVarChar(sql.MAX),
+        value: data.address || null,
+      },
+      { name: "Phone", type: sql.NVarChar(100), value: data.phone || null },
+      { name: "Email", type: sql.NVarChar(255), value: data.email || null },
+      { name: "Website", type: sql.NVarChar(255), value: data.website || null },
+      {
+        name: "TimeZone",
         type: sql.NVarChar(100),
         value: data.timeZone || "Asia/Dubai",
       },
-      CurrencyCode: {
+      {
+        name: "CurrencyCode",
         type: sql.NVarChar(10),
         value: data.currencyCode || "AED",
       },
-    }
+    ]
   );
 };
 
@@ -155,6 +171,17 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         SidebarColor = @SidebarColor,
         TopbarColor = @TopbarColor,
         LoginCardColor = @LoginCardColor,
+
+        UseSidebarGradient = @UseSidebarGradient,
+        SidebarGradientStart = @SidebarGradientStart,
+        SidebarGradientEnd = @SidebarGradientEnd,
+        SidebarGradientDirection = @SidebarGradientDirection,
+
+        UseTopbarGradient = @UseTopbarGradient,
+        TopbarGradientStart = @TopbarGradientStart,
+        TopbarGradientEnd = @TopbarGradientEnd,
+        TopbarGradientDirection = @TopbarGradientDirection,
+
         LoginTitle = @LoginTitle,
         LoginSubtitle = @LoginSubtitle,
         FooterText = @FooterText,
@@ -174,6 +201,17 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         SidebarColor,
         TopbarColor,
         LoginCardColor,
+
+        UseSidebarGradient,
+        SidebarGradientStart,
+        SidebarGradientEnd,
+        SidebarGradientDirection,
+
+        UseTopbarGradient,
+        TopbarGradientStart,
+        TopbarGradientEnd,
+        TopbarGradientDirection,
+
         LoginTitle,
         LoginSubtitle,
         FooterText,
@@ -192,6 +230,17 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         @SidebarColor,
         @TopbarColor,
         @LoginCardColor,
+
+        @UseSidebarGradient,
+        @SidebarGradientStart,
+        @SidebarGradientEnd,
+        @SidebarGradientDirection,
+
+        @UseTopbarGradient,
+        @TopbarGradientStart,
+        @TopbarGradientEnd,
+        @TopbarGradientDirection,
+
         @LoginTitle,
         @LoginSubtitle,
         @FooterText,
@@ -203,49 +252,90 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         1
       );
     `,
-    {
-      SchoolId: { type: sql.Int, value: schoolId },
-      PrimaryColor: {
+    [
+      { name: "SchoolId", type: sql.Int, value: schoolId },
+
+      {
+        name: "PrimaryColor",
         type: sql.NVarChar(20),
-        value: data.primaryColor || "#0B3D2E",
+        value: data.primaryColor || "#1E3A8A",
       },
-      SecondaryColor: {
+      {
+        name: "SecondaryColor",
         type: sql.NVarChar(20),
-        value: data.secondaryColor || "#12324A",
+        value: data.secondaryColor || "#2563EB",
       },
-      AccentColor: {
+      {
+        name: "AccentColor",
         type: sql.NVarChar(20),
-        value: data.accentColor || "#C9A227",
+        value: data.accentColor || "#16A34A",
       },
-      SidebarColor: {
+      {
+        name: "SidebarColor",
         type: sql.NVarChar(20),
-        value: data.sidebarColor || "#0B2239",
+        value: data.sidebarColor || "#061B52",
       },
-      TopbarColor: {
+      {
+        name: "TopbarColor",
         type: sql.NVarChar(20),
-        value: data.topbarColor || "#FFFFFF",
+        value: data.topbarColor || "#071B4D",
       },
-      LoginCardColor: {
+      {
+        name: "LoginCardColor",
         type: sql.NVarChar(20),
         value: data.loginCardColor || "#FFFFFF",
       },
-      LoginTitle: { type: sql.NVarChar(255), value: data.loginTitle || null },
-      LoginSubtitle: {
-        type: sql.NVarChar(255),
-        value: data.loginSubtitle || null,
+
+      {
+        name: "UseSidebarGradient",
+        type: sql.Bit,
+        value: data.useSidebarGradient ? 1 : 0,
       },
-      FooterText: { type: sql.NVarChar(500), value: data.footerText || null },
-      Website: { type: sql.NVarChar(255), value: data.website || null },
-      SupportEmail: {
-        type: sql.NVarChar(255),
-        value: data.supportEmail || null,
+      {
+        name: "SidebarGradientStart",
+        type: sql.NVarChar(20),
+        value: data.sidebarGradientStart || null,
       },
-      SupportPhone: {
-        type: sql.NVarChar(100),
-        value: data.supportPhone || null,
+      {
+        name: "SidebarGradientEnd",
+        type: sql.NVarChar(20),
+        value: data.sidebarGradientEnd || null,
       },
-      UpdatedBy: { type: sql.Int, value: updatedBy || null },
-    }
+      {
+        name: "SidebarGradientDirection",
+        type: sql.NVarChar(30),
+        value: data.sidebarGradientDirection || "180deg",
+      },
+
+      {
+        name: "UseTopbarGradient",
+        type: sql.Bit,
+        value: data.useTopbarGradient ? 1 : 0,
+      },
+      {
+        name: "TopbarGradientStart",
+        type: sql.NVarChar(20),
+        value: data.topbarGradientStart || null,
+      },
+      {
+        name: "TopbarGradientEnd",
+        type: sql.NVarChar(20),
+        value: data.topbarGradientEnd || null,
+      },
+      {
+        name: "TopbarGradientDirection",
+        type: sql.NVarChar(30),
+        value: data.topbarGradientDirection || "90deg",
+      },
+
+      { name: "LoginTitle", type: sql.NVarChar(255), value: data.loginTitle || null },
+      { name: "LoginSubtitle", type: sql.NVarChar(255), value: data.loginSubtitle || null },
+      { name: "FooterText", type: sql.NVarChar(500), value: data.footerText || null },
+      { name: "Website", type: sql.NVarChar(255), value: data.website || null },
+      { name: "SupportEmail", type: sql.NVarChar(255), value: data.supportEmail || null },
+      { name: "SupportPhone", type: sql.NVarChar(100), value: data.supportPhone || null },
+      { name: "UpdatedBy", type: sql.Int, value: updatedBy || null },
+    ]
   );
 };
 
@@ -283,40 +373,28 @@ const insertFileStorage = async ({ file, entityType, entityId, uploadedBy }) => 
 
     SELECT SCOPE_IDENTITY() AS InsertedId;
     `,
-    {
-      OriginalFileName: {
+    [
+      {
+        name: "OriginalFileName",
         type: sql.NVarChar(255),
         value: file.originalname,
       },
-      StoredFileName: {
+      {
+        name: "StoredFileName",
         type: sql.NVarChar(255),
         value: file.filename,
       },
-      FilePath: {
-        type: sql.NVarChar(sql.MAX),
-        value: file.path,
-      },
-      FileType: {
-        type: sql.NVarChar(100),
-        value: file.mimetype,
-      },
-      FileSizeKB: {
+      { name: "FilePath", type: sql.NVarChar(sql.MAX), value: file.path },
+      { name: "FileType", type: sql.NVarChar(100), value: file.mimetype },
+      {
+        name: "FileSizeKB",
         type: sql.Decimal(18, 2),
         value: Number((file.size / 1024).toFixed(2)),
       },
-      EntityType: {
-        type: sql.NVarChar(100),
-        value: entityType,
-      },
-      EntityId: {
-        type: sql.Int,
-        value: entityId || null,
-      },
-      UploadedBy: {
-        type: sql.Int,
-        value: uploadedBy || null,
-      },
-    }
+      { name: "EntityType", type: sql.NVarChar(100), value: entityType },
+      { name: "EntityId", type: sql.Int, value: entityId || null },
+      { name: "UploadedBy", type: sql.Int, value: uploadedBy || null },
+    ]
   );
 
   return insertedId(result);
@@ -368,11 +446,11 @@ const updateBrandingFile = async (schoolId, columnName, fileId, updatedBy) => {
         1
       );
     `,
-    {
-      SchoolId: { type: sql.Int, value: schoolId },
-      FileId: { type: sql.Int, value: fileId },
-      UpdatedBy: { type: sql.Int, value: updatedBy || null },
-    }
+    [
+      { name: "SchoolId", type: sql.Int, value: schoolId },
+      { name: "FileId", type: sql.Int, value: fileId },
+      { name: "UpdatedBy", type: sql.Int, value: updatedBy || null },
+    ]
   );
 };
 

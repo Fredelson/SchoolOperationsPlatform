@@ -1,8 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Reusable Topbar
-// Navy + AUS Green Theme
-// Logo redirects to current user's dashboard
+// ============================================
+//
+// Purpose:
+// Displays platform branding, search,
+// notifications, and user profile actions.
 // ============================================
 
 import { useState } from "react";
@@ -19,6 +23,8 @@ import {
   Menu,
   MenuItem,
   Divider,
+  useTheme,
+  alpha,
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
@@ -31,16 +37,27 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 
 import { useAuth } from "../../context/AuthContext";
+import useBranding from "../../modules/system/hooks/useBranding";
 
-const NAVY = "#071B4D";
-const NAVY_DARK = "#041338";
-const GREEN = "#2E8B3C";
-const GREEN_LIGHT = "#4CAF50";
-const WHITE = "#FFFFFF";
+// ============================================
+// Layout Constants
+// ============================================
+
+const TOPBAR_HEIGHT = 86;
+
+// ============================================
+// Component
+// ============================================
 
 export default function Topbar({ onMenuClick }) {
+  const theme = useTheme();
   const navigate = useNavigate();
+
   const { user, logout } = useAuth();
+  const { branding } = useBranding();
+
+  const school = branding?.school || {};
+  const brand = branding?.branding || {};
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -48,12 +65,25 @@ export default function Topbar({ onMenuClick }) {
   const userName = user?.fullName || user?.FullName || "Unknown User";
   const role = user?.displayRole || user?.role || user?.Role || "Guest";
 
+  const platformTitle =
+    brand.loginTitle || school.schoolName || "Operations Platform";
+
+  const platformSubtitle =
+    brand.loginSubtitle || "Operations Platform";
+
+  const logoPath =
+    brand.logoPath || brand.smallLogoPath || brand.darkLogoPath || null;
+
   const initials = userName
     .split(" ")
     .map((name) => name[0])
     .join("")
     .substring(0, 2)
     .toUpperCase();
+
+  // ============================================
+  // Navigation Helpers
+  // ============================================
 
   const handleMenuClose = () => {
     setAnchorEl(null);
@@ -65,7 +95,6 @@ export default function Topbar({ onMenuClick }) {
     navigate("/login");
   };
 
-  // Role-based dashboard route
   const goToDashboard = () => {
     const roleValue = role.toLowerCase();
 
@@ -73,10 +102,10 @@ export default function Topbar({ onMenuClick }) {
     else if (roleValue.includes("hod")) navigate("/hod/dashboard");
     else if (roleValue.includes("hos")) navigate("/hos/dashboard");
     else if (roleValue.includes("printing")) navigate("/printing/dashboard");
-    else navigate("/teacher/dashboard");
+    else if (roleValue.includes("super")) navigate("/super-admin/dashboard");
+    else navigate("/login");
   };
 
-  // Role-based profile route
   const goToProfile = () => {
     handleMenuClose();
 
@@ -86,8 +115,21 @@ export default function Topbar({ onMenuClick }) {
     else if (roleValue.includes("hod")) navigate("/hod/profile");
     else if (roleValue.includes("hos")) navigate("/hos/profile");
     else if (roleValue.includes("printing")) navigate("/printing/profile");
-    else navigate("/teacher/profile");
+    else if (roleValue.includes("super")) navigate("/super-admin/profile");
+    else navigate("/login");
   };
+
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const topbarBg = theme.palette.platform?.topbar || theme.palette.primary.dark;
+  const topbarText = theme.palette.primary.contrastText;
+  const accent = theme.palette.platform?.accent || theme.palette.success.main;
+
+  // ============================================
+  // UI
+  // ============================================
 
   return (
     <Box
@@ -96,34 +138,34 @@ export default function Topbar({ onMenuClick }) {
         top: 0,
         left: 0,
         right: 0,
-        height: "86px",
-        background: `linear-gradient(90deg, ${NAVY_DARK}, ${NAVY})`,
-        color: WHITE,
+        height: TOPBAR_HEIGHT,
+        bgcolor: topbarBg,
+        color: topbarText,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         px: { xs: 2, md: 3 },
         zIndex: 2000,
-        boxShadow: "0 4px 18px rgba(4,19,56,0.25)",
+        boxShadow: theme.shadows[4],
       }}
     >
-      {/* Left section */}
+      {/* Left Section */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <IconButton
           onClick={onMenuClick}
           sx={{
             display: { xs: "flex", md: "none" },
-            color: WHITE,
+            color: topbarText,
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.08)",
-              color: GREEN_LIGHT,
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
             },
           }}
         >
           <MenuIcon />
         </IconButton>
 
-        {/* Logo and title */}
+        {/* Logo and Title */}
         <Box
           onClick={goToDashboard}
           sx={{
@@ -134,10 +176,11 @@ export default function Topbar({ onMenuClick }) {
             borderRadius: 3,
             px: 1,
             py: 0.7,
-            transition: "all 0.2s ease",
-
+            transition: theme.transitions.create(["background-color"], {
+              duration: theme.transitions.duration.short,
+            }),
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.06)",
+              bgcolor: alpha(topbarText, 0.06),
             },
           }}
         >
@@ -145,25 +188,38 @@ export default function Topbar({ onMenuClick }) {
             sx={{
               width: 76,
               height: 76,
-              bgcolor: WHITE,
+              bgcolor: theme.palette.background.paper,
               borderRadius: 3,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               p: 0.5,
               flexShrink: 0,
+              border: `1px solid ${alpha(topbarText, 0.12)}`,
             }}
           >
-            <Box
-              component="img"
-              src="/arab-unity-logo.png"
-              alt="Arab Unity School"
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
-              }}
-            />
+            {logoPath ? (
+              <Box
+                component="img"
+                src={logoPath}
+                alt={school.schoolName || "School Logo"}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: theme.palette.primary.main,
+                }}
+              >
+                {school.schoolCode || "AUS"}
+              </Typography>
+            )}
           </Box>
 
           <Box sx={{ display: { xs: "none", sm: "block" } }}>
@@ -171,31 +227,31 @@ export default function Topbar({ onMenuClick }) {
               sx={{
                 fontSize: { sm: 21, md: 23 },
                 fontWeight: 900,
-                color: GREEN_LIGHT,
+                color: accent,
                 lineHeight: 1.05,
                 letterSpacing: "0.4px",
               }}
             >
-              ARAB UNITY SCHOOL
+              {platformTitle}
             </Typography>
 
             <Typography
               sx={{
                 mt: 0.4,
                 fontSize: { sm: 13, md: 15 },
-                color: WHITE,
+                color: topbarText,
                 fontWeight: 600,
               }}
             >
-              Photocopy Management System
+              {platformSubtitle}
             </Typography>
           </Box>
         </Box>
 
-        {/* Search bar */}
+        {/* Search Bar */}
         <TextField
           size="small"
-          placeholder="Search requests..."
+          placeholder="Search..."
           sx={{
             width: 420,
             ml: { md: 4 },
@@ -204,25 +260,25 @@ export default function Topbar({ onMenuClick }) {
             "& .MuiOutlinedInput-root": {
               height: 46,
               borderRadius: 3,
-              color: WHITE,
-              bgcolor: "rgba(255,255,255,0.08)",
+              color: topbarText,
+              bgcolor: alpha(topbarText, 0.08),
 
               "& fieldset": {
-                borderColor: "rgba(255,255,255,0.14)",
+                borderColor: alpha(topbarText, 0.14),
               },
 
               "&:hover fieldset": {
-                borderColor: GREEN_LIGHT,
+                borderColor: accent,
               },
 
               "&.Mui-focused fieldset": {
-                borderColor: GREEN_LIGHT,
+                borderColor: accent,
                 borderWidth: "1.5px",
               },
             },
 
             "& input::placeholder": {
-              color: "rgba(255,255,255,0.75)",
+              color: alpha(topbarText, 0.75),
               opacity: 1,
             },
           }}
@@ -230,7 +286,7 @@ export default function Topbar({ onMenuClick }) {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: WHITE }} />
+                  <SearchIcon sx={{ color: topbarText }} />
                 </InputAdornment>
               ),
             },
@@ -238,14 +294,14 @@ export default function Topbar({ onMenuClick }) {
         />
       </Box>
 
-      {/* Right section */}
+      {/* Right Section */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <IconButton
           sx={{
-            color: WHITE,
+            color: topbarText,
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.08)",
-              color: GREEN_LIGHT,
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
             },
           }}
         >
@@ -254,10 +310,10 @@ export default function Topbar({ onMenuClick }) {
 
         <IconButton
           sx={{
-            color: WHITE,
+            color: topbarText,
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.08)",
-              color: GREEN_LIGHT,
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
             },
           }}
         >
@@ -277,9 +333,8 @@ export default function Topbar({ onMenuClick }) {
             borderRadius: 3,
             px: 1,
             py: 0.8,
-
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.08)",
+              bgcolor: alpha(topbarText, 0.08),
             },
           }}
         >
@@ -287,34 +342,52 @@ export default function Topbar({ onMenuClick }) {
             sx={{
               width: 54,
               height: 54,
-              bgcolor: WHITE,
-              color: GREEN,
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.primary.main,
               fontWeight: 900,
               fontSize: 20,
-              border: `2px solid ${GREEN_LIGHT}`,
+              border: `2px solid ${accent}`,
             }}
           >
             {initials}
           </Avatar>
 
           <Box sx={{ display: { xs: "none", md: "block" } }}>
-            <Typography sx={{ fontSize: 15, fontWeight: 800, color: GREEN_LIGHT }}>
+            <Typography
+              sx={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: accent,
+              }}
+            >
               {userName}
             </Typography>
 
-            <Typography sx={{ fontSize: 13, color: WHITE, fontWeight: 600 }}>
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: topbarText,
+                fontWeight: 600,
+              }}
+            >
               {role}
             </Typography>
           </Box>
 
-          <KeyboardArrowDownIcon sx={{ display: { xs: "none", md: "block" } }} />
+          <KeyboardArrowDownIcon
+            sx={{ display: { xs: "none", md: "block" } }}
+          />
         </Box>
 
-        {/* Dropdown */}
+        {/* Profile Menu */}
         <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
           <Box sx={{ px: 2, py: 1.5 }}>
             <Typography fontWeight={800}>{userName}</Typography>
-            <Typography fontSize={13} color={GREEN}>
+
+            <Typography
+              fontSize={13}
+              sx={{ color: theme.palette.primary.main }}
+            >
               {role}
             </Typography>
           </Box>
@@ -322,7 +395,9 @@ export default function Topbar({ onMenuClick }) {
           <Divider />
 
           <MenuItem onClick={goToProfile}>
-            <PersonIcon sx={{ mr: 1.5, color: GREEN }} />
+            <PersonIcon
+              sx={{ mr: 1.5, color: theme.palette.primary.main }}
+            />
             My Profile
           </MenuItem>
 
@@ -332,7 +407,9 @@ export default function Topbar({ onMenuClick }) {
               navigate("/settings");
             }}
           >
-            <SettingsIcon sx={{ mr: 1.5, color: GREEN }} />
+            <SettingsIcon
+              sx={{ mr: 1.5, color: theme.palette.primary.main }}
+            />
             Settings
           </MenuItem>
 

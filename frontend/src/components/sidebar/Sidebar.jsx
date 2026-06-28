@@ -1,15 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // Shared Role-Based Sidebar
+// ============================================
 //
 // Purpose:
-// - Displays sidebar menu based on logged-in user role
-// - Uses shared navigation config from getSidebarItemsByRole
-// - Uses MUI theme colors instead of hardcoded colors
-//
-// Notes:
-// - Old hardcoded role menu arrays were removed
-// - Sidebar is now cleaner and easier to maintain
+// Displays role-based navigation using the
+// platform theme and dynamic branding colors.
 // ============================================
 
 import {
@@ -23,15 +20,18 @@ import {
   alpha,
 } from "@mui/material";
 
-import {
-  Settings,
-  Logout,
-} from "@mui/icons-material";
+import { Settings, Logout } from "@mui/icons-material";
 
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 import { getSidebarItemsByRole } from "../../platform/navigation/sidebar/getSidebarItemsByRole";
+
+// ============================================
+// Layout Constants
+// ============================================
+
+const SIDEBAR_WIDTH = 240;
 
 // ============================================
 // Component
@@ -44,19 +44,32 @@ export default function Sidebar() {
 
   const { user, logout } = useAuth();
 
-  // Support both backend casing styles
   const role = user?.role || user?.Role;
-
-  // Centralized sidebar config
   const menuItems = getSidebarItemsByRole(role);
+
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const sidebarColor =
+    theme.palette.platform?.sidebar || theme.palette.primary.dark;
+
+  const sidebarText = theme.palette.primary.contrastText;
+
+  const accent =
+    theme.palette.platform?.accent || theme.palette.success.main;
+
+  const activeBg = `linear-gradient(
+    135deg,
+    ${accent},
+    ${theme.palette.primary.main}
+  )`;
 
   // ============================================
   // Helpers
   // ============================================
 
-  const isActiveRoute = (path) => {
-    return location.pathname === path;
-  };
+  const isActiveRoute = (path) => location.pathname === path;
 
   const getSettingsPath = () => {
     if (role === "SuperAdmin") return "/super-admin/settings";
@@ -74,47 +87,31 @@ export default function Sidebar() {
   };
 
   // ============================================
-  // Theme-based styles
-  // ============================================
-
-  const sidebarBg = `linear-gradient(
-    180deg,
-    ${theme.palette.primary.dark} 0%,
-    ${theme.palette.primary.main} 100%
-  )`;
-
-  const activeBg = `linear-gradient(
-    135deg,
-    ${theme.palette.success.dark},
-    ${theme.palette.success.main}
-  )`;
-
-  // ============================================
-  // Render
+  // UI
   // ============================================
 
   return (
     <Box
       sx={{
-        width: 240,
+        width: SIDEBAR_WIDTH,
         height: "100%",
-        color: theme.palette.common.white,
+        color: sidebarText,
         display: "flex",
         flexDirection: "column",
         position: "relative",
         overflow: "hidden",
-        background: sidebarBg,
-        borderRight: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+        bgcolor: sidebarColor,
+        borderRight: `1px solid ${alpha(sidebarText, 0.08)}`,
       }}
     >
-      {/* Decorative background glow */}
+      {/* Background Accent */}
       <Box
         sx={{
           position: "absolute",
           inset: 0,
           background: `radial-gradient(
             circle at 20% 20%,
-            ${alpha(theme.palette.success.main, 0.14)},
+            ${alpha(accent, 0.14)},
             transparent 35%
           )`,
           pointerEvents: "none",
@@ -142,12 +139,10 @@ export default function Sidebar() {
                 mb: 1.1,
                 minHeight: 50,
                 px: 1.8,
-                color: active
-                  ? theme.palette.common.white
-                  : alpha(theme.palette.common.white, 0.9),
+                color: active ? sidebarText : alpha(sidebarText, 0.9),
                 background: active ? activeBg : "transparent",
                 boxShadow: active
-                  ? `0 8px 18px ${alpha(theme.palette.success.dark, 0.35)}`
+                  ? `0 8px 18px ${alpha(accent, 0.35)}`
                   : "none",
                 transition: theme.transitions.create(
                   ["background", "transform", "box-shadow"],
@@ -157,9 +152,7 @@ export default function Sidebar() {
                 ),
 
                 "&:hover": {
-                  background: active
-                    ? activeBg
-                    : alpha(theme.palette.success.main, 0.14),
+                  background: active ? activeBg : alpha(accent, 0.14),
                   transform: "translateX(4px)",
                 },
               }}
@@ -167,9 +160,7 @@ export default function Sidebar() {
               <ListItemIcon
                 sx={{
                   minWidth: 38,
-                  color: active
-                    ? theme.palette.common.white
-                    : alpha(theme.palette.common.white, 0.9),
+                  color: active ? sidebarText : alpha(sidebarText, 0.9),
                 }}
               >
                 {item.icon}
@@ -188,13 +179,12 @@ export default function Sidebar() {
         })}
       </List>
 
-      {/* Push settings/logout to bottom */}
       <Box sx={{ flexGrow: 1 }} />
 
       <Divider
         sx={{
           mx: 2,
-          borderColor: alpha(theme.palette.common.white, 0.16),
+          borderColor: alpha(sidebarText, 0.16),
         }}
       />
 
@@ -207,20 +197,19 @@ export default function Sidebar() {
           py: 2,
         }}
       >
-        {/* Settings */}
         <ListItemButton
           onClick={() => navigate(getSettingsPath())}
           sx={{
             borderRadius: 2,
             mb: 1,
             minHeight: 50,
-            color: theme.palette.common.white,
+            color: sidebarText,
             transition: theme.transitions.create(["background", "transform"], {
               duration: theme.transitions.duration.short,
             }),
 
             "&:hover": {
-              background: alpha(theme.palette.success.main, 0.14),
+              background: alpha(accent, 0.14),
               transform: "translateX(4px)",
             },
           }}
@@ -228,7 +217,7 @@ export default function Sidebar() {
           <ListItemIcon
             sx={{
               minWidth: 38,
-              color: theme.palette.common.white,
+              color: sidebarText,
             }}
           >
             <Settings />
@@ -244,13 +233,12 @@ export default function Sidebar() {
           />
         </ListItemButton>
 
-        {/* Logout */}
         <ListItemButton
           onClick={handleLogout}
           sx={{
             borderRadius: 2,
             minHeight: 50,
-            color: theme.palette.common.white,
+            color: sidebarText,
             transition: theme.transitions.create(["background", "transform"], {
               duration: theme.transitions.duration.short,
             }),
@@ -264,7 +252,7 @@ export default function Sidebar() {
           <ListItemIcon
             sx={{
               minWidth: 38,
-              color: theme.palette.common.white,
+              color: sidebarText,
             }}
           >
             <Logout />
@@ -281,12 +269,12 @@ export default function Sidebar() {
         </ListItemButton>
       </List>
 
-      {/* Bottom accent bar */}
+      {/* Bottom Accent Bar */}
       <Box
         sx={{
           height: 4,
           width: "100%",
-          bgcolor: theme.palette.success.main,
+          bgcolor: accent,
         }}
       />
     </Box>

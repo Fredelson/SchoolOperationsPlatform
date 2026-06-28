@@ -5,8 +5,8 @@
 // ============================================
 //
 // Purpose:
-// Converts SQL rows into clean API response
-// objects for frontend branding usage.
+// Converts SQL branding rows into clean API
+// response objects for the frontend.
 // ============================================
 
 const { BRANDING_DEFAULTS } = require("../constants/brandingDefaults");
@@ -40,6 +40,18 @@ const mapBrandingResponse = (row) => {
       topbarColor: row.TopbarColor || BRANDING_DEFAULTS.topbarColor,
       loginCardColor:
         row.LoginCardColor || BRANDING_DEFAULTS.loginCardColor,
+
+      useSidebarGradient: Boolean(row.UseSidebarGradient),
+      sidebarGradientStart: row.SidebarGradientStart || null,
+      sidebarGradientEnd: row.SidebarGradientEnd || null,
+      sidebarGradientDirection:
+        row.SidebarGradientDirection || "180deg",
+
+      useTopbarGradient: Boolean(row.UseTopbarGradient),
+      topbarGradientStart: row.TopbarGradientStart || null,
+      topbarGradientEnd: row.TopbarGradientEnd || null,
+      topbarGradientDirection:
+        row.TopbarGradientDirection || "90deg",
 
       loginTitle:
         row.LoginTitle || row.SchoolName || BRANDING_DEFAULTS.loginTitle,

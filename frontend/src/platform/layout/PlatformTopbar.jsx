@@ -2,17 +2,12 @@
 // ARAB UNITY SCHOOL
 // Operations Platform
 // Platform Topbar
+// ============================================
 //
 // Purpose:
-// Shared responsive topbar for platform roles.
-//
-// Responsive Behavior:
-// - Desktop:
-//   Shows logo, title, search, actions, and user info.
-//
-// - Tablet / Mobile:
-//   Shows hamburger button, smaller logo, title,
-//   notification, and avatar.
+// Shared responsive topbar for platform layouts.
+// Supports branding, gradients, search, actions,
+// mobile menu, and user identity.
 // ============================================
 
 import {
@@ -22,6 +17,8 @@ import {
   IconButton,
   InputBase,
   Typography,
+  alpha,
+  useTheme,
 } from "@mui/material";
 
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
@@ -33,9 +30,10 @@ import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
 
 import { useAuth } from "../../context/AuthContext";
+import useBranding from "../../modules/system/hooks/useBranding";
 
 // ============================================
-// Helper: Topbar Text By Role
+// Role Context
 // ============================================
 
 const getTopbarContext = (role) => {
@@ -43,7 +41,13 @@ const getTopbarContext = (role) => {
     case "SuperAdmin":
       return {
         title: "Dashboard",
-        subtitle: "Super Admin Control Center",
+        subtitle: "Platform Control Center",
+      };
+
+    case "PlatformAdmin":
+      return {
+        title: "Platform Admin",
+        subtitle: "Operations Control Center",
       };
 
     case "PrintingAdmin":
@@ -64,125 +68,135 @@ const getTopbarContext = (role) => {
 // Component
 // ============================================
 
-export default function PlatformTopbar({
-  height = 78,
-  onMenuClick,
-}) {
+export default function PlatformTopbar({ height = 78, onMenuClick }) {
+  const theme = useTheme();
+
   const { user } = useAuth();
+  const { branding } = useBranding();
+
+  const school = branding?.school || {};
+  const brand = branding?.branding || {};
 
   const role = user?.role || user?.Role;
   const context = getTopbarContext(role);
 
-  const displayName =
-    user?.fullName ||
-    user?.FullName ||
-    "User";
+  const displayName = user?.fullName || user?.FullName || "User";
+  const displayRole = user?.displayRole || user?.DisplayRole || role || "User";
+  const initial = displayName?.charAt(0)?.toUpperCase() || "U";
 
-  const displayRole =
-    user?.displayRole ||
-    user?.DisplayRole ||
-    (role === "SuperAdmin"
-      ? "Super Administrator"
-      : role === "PrintingAdmin"
-      ? "Printing Administrator"
-      : role || "User");
+  const logoPath =
+    brand.logoPath || brand.smallLogoPath || brand.darkLogoPath || null;
 
-  const initial =
-    displayName?.charAt(0)?.toUpperCase() || "U";
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const platform = theme.palette.platform || {};
+
+  const topbarBackground = platform.useTopbarGradient
+    ? platform.topbarGradient
+    : platform.topbar || theme.palette.primary.dark;
+
+  const topbarText = theme.palette.primary.contrastText;
+  const accent = platform.accent || theme.palette.success.main;
+
+  // ============================================
+  // UI
+  // ============================================
 
   return (
     <Box
       sx={{
         height,
-        px: {
-          xs: 1,
-          sm: 1.5,
-          md: 3,
-        },
+        px: { xs: 2, md: 4 },
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: 1,
-        color: "#fff",
-        background:
-          "linear-gradient(90deg, #008a3d 0%, #003b46 38%, #061B52 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-
-        // Fixed so content always starts below it.
+        gap: { xs: 1, md: 2 },
+        color: topbarText,
+        background: topbarBackground,
+        borderBottom: `1px solid ${alpha(topbarText, 0.1)}`,
         position: "fixed",
         top: 0,
         left: 0,
         right: 0,
-
-        // Higher than drawer backdrop/top layout.
         zIndex: 1300,
-
         overflow: "hidden",
       }}
     >
-      {/* Left Area */}
+      {/* ===================================== */}
+      {/* LEFT: MENU, LOGO, TITLE */}
+      {/* ===================================== */}
+
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: {
-            xs: 0.6,
-            sm: 1,
-            md: 2,
-          },
+          gap: { xs: 1.5, md: 2.5 },
           minWidth: 0,
           flexShrink: 1,
         }}
       >
-        {/* Hamburger Button: visible below desktop */}
         <IconButton
           onClick={onMenuClick}
           sx={{
-            color: "#fff",
-            display: {
-              xs: "inline-flex",
-              lg: "none",
-            },
+            color: topbarText,
+            display: { xs: "inline-flex", lg: "none" },
             flexShrink: 0,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.1),
+            },
           }}
         >
           <MenuOutlinedIcon />
         </IconButton>
 
-        {/* School Logo */}
         <Box
-          component="img"
-          src="/arab-unity-logo.jpg"
-          alt="Arab Unity School Logo"
           sx={{
-            width: {
-              xs: 56,
-              sm: 72,
-              md: 100,
-            },
-            height: {
-              xs: 42,
-              sm: 50,
-              md: 60,
-            },
-            objectFit: "contain",
-            bgcolor: "#fff",
-            borderRadius: 2,
-            p: 0.5,
+            width: { xs: 64, sm: 76, md: 88 },
+            height: { xs: 48, sm: 54, md: 60 },
+            bgcolor: theme.palette.background.paper,
+            borderRadius: 3,
+            p: 0.7,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             flexShrink: 0,
+            border: `1px solid ${alpha(topbarText, 0.16)}`,
+            boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.12)}`,
           }}
-        />
+        >
+          {logoPath ? (
+            <Box
+              component="img"
+              src={logoPath}
+              alt={school.schoolName || "School Logo"}
+              sx={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          ) : (
+            <Typography
+              sx={{
+                fontWeight: 900,
+                color: theme.palette.primary.main,
+                fontSize: { xs: 13, md: 16 },
+              }}
+            >
+              {school.schoolCode || "AUS"}
+            </Typography>
+          )}
+        </Box>
 
-        {/* Page Title */}
         <Box sx={{ minWidth: 0 }}>
           <Typography
-            fontWeight={900}
             sx={{
-              fontSize: {
-                xs: 13.5,
-                sm: 16,
-                md: 18,
-              },
+              fontWeight: 900,
+              fontSize: { xs: 16, sm: 19, md: 22 },
+              lineHeight: 1.05,
+              color: accent,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -192,13 +206,12 @@ export default function PlatformTopbar({
           </Typography>
 
           <Typography
-            variant="caption"
             sx={{
-              opacity: 0.75,
-              display: {
-                xs: "none",
-                sm: "block",
-              },
+              mt: 0.35,
+              fontSize: { xs: 11, sm: 12.5, md: 14 },
+              fontWeight: 700,
+              color: alpha(topbarText, 0.82),
+              display: { xs: "none", sm: "block" },
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -209,72 +222,69 @@ export default function PlatformTopbar({
         </Box>
       </Box>
 
-      {/* Search Box: hidden on small screens */}
+      {/* ===================================== */}
+      {/* CENTER: SEARCH */}
+      {/* ===================================== */}
+
       <Box
         sx={{
-          width: {
-            md: 280,
-            xl: 420,
-          },
-          height: 44,
+          width: { md: 320, xl: 460 },
+          height: 46,
           px: 2,
-          display: {
-            xs: "none",
-            md: "flex",
-          },
+          display: { xs: "none", md: "flex" },
           alignItems: "center",
-          gap: 1,
-          borderRadius: 3,
-          bgcolor: "rgba(6, 27, 82, 0.35)",
-          border: "1px solid rgba(255,255,255,0.22)",
+          gap: 1.2,
+          borderRadius: 999,
+          bgcolor: alpha(topbarText, 0.1),
+          border: `1px solid ${alpha(topbarText, 0.24)}`,
           backdropFilter: "blur(10px)",
           flexShrink: 1,
         }}
       >
+        <SearchOutlinedIcon sx={{ color: alpha(topbarText, 0.9) }} />
+
         <InputBase
           fullWidth
           placeholder="Search anything..."
           sx={{
-            color: "#fff",
+            color: topbarText,
             fontSize: 14,
             "& input::placeholder": {
-              color: "rgba(255,255,255,0.72)",
+              color: alpha(topbarText, 0.72),
               opacity: 1,
             },
           }}
         />
-
-        <SearchOutlinedIcon sx={{ color: "#fff" }} />
       </Box>
 
-      {/* Right Actions */}
+      {/* ===================================== */}
+      {/* RIGHT: ACTIONS + USER */}
+      {/* ===================================== */}
+
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: {
-            xs: 0,
-            sm: 0.5,
-            md: 1,
-          },
+          gap: { xs: 0.3, sm: 0.7, md: 1 },
           flexShrink: 0,
         }}
       >
-        {/* Notifications */}
-        <IconButton sx={{ color: "#fff" }}>
+        <IconButton
+          sx={{
+            color: topbarText,
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
+          }}
+        >
           <Badge badgeContent={12} color="error">
             <NotificationsNoneOutlinedIcon />
           </Badge>
         </IconButton>
 
-        {/* Mail: hidden on extra small */}
         <IconButton
           sx={{
-            color: "#fff",
-            display: {
-              xs: "none",
-              sm: "inline-flex",
-            },
+            color: topbarText,
+            display: { xs: "none", sm: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
           }}
         >
           <Badge badgeContent={5} color="error">
@@ -282,89 +292,72 @@ export default function PlatformTopbar({
           </Badge>
         </IconButton>
 
-        {/* Settings: desktop/tablet only */}
         <IconButton
           sx={{
-            color: "#fff",
-            display: {
-              xs: "none",
-              md: "inline-flex",
-            },
+            color: topbarText,
+            display: { xs: "none", md: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
           }}
         >
           <SettingsOutlinedIcon />
         </IconButton>
 
-        {/* Help: desktop/tablet only */}
         <IconButton
           sx={{
-            color: "#fff",
-            display: {
-              xs: "none",
-              md: "inline-flex",
-            },
+            color: topbarText,
+            display: { xs: "none", md: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
           }}
         >
           <HelpOutlineOutlinedIcon />
         </IconButton>
 
-        {/* User Profile */}
         <Box
           sx={{
-            ml: {
-              xs: 0.25,
-              md: 1,
-            },
-            pl: {
-              xs: 0,
-              md: 1.5,
-            },
+            ml: { xs: 0.3, md: 1 },
+            pl: { xs: 0, md: 1.6 },
             display: "flex",
             alignItems: "center",
             gap: 1,
             borderLeft: {
               xs: "none",
-              md: "1px solid rgba(255,255,255,0.18)",
+              md: `1px solid ${alpha(topbarText, 0.2)}`,
             },
           }}
         >
           <Avatar
             sx={{
-              width: {
-                xs: 36,
-                md: 42,
-              },
-              height: {
-                xs: 36,
-                md: 42,
-              },
-              bgcolor: "#fff",
-              color: "#061B52",
+              width: { xs: 40, md: 46 },
+              height: { xs: 40, md: 46 },
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.primary.main,
               fontWeight: 900,
-              border: "2px solid rgba(255,255,255,0.45)",
+              border: `2px solid ${accent}`,
             }}
           >
             {initial}
           </Avatar>
 
-          {/* User text only on large screens */}
           <Box sx={{ display: { xs: "none", lg: "block" } }}>
-            <Typography fontWeight={900} fontSize={13.5}>
+            <Typography sx={{ fontWeight: 900, fontSize: 13.5 }}>
               {displayName}
             </Typography>
 
-            <Typography variant="caption" sx={{ opacity: 0.75 }}>
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: alpha(topbarText, 0.75),
+              }}
+            >
               {displayRole}
             </Typography>
           </Box>
 
           <KeyboardArrowDownOutlinedIcon
             sx={{
-              opacity: 0.8,
-              display: {
-                xs: "none",
-                sm: "block",
-              },
+              opacity: 0.85,
+              display: { xs: "none", sm: "block" },
             }}
           />
         </Box>
@@ -372,7 +365,3 @@ export default function PlatformTopbar({
     </Box>
   );
 }
-
-// ============================================
-// End Component
-// ============================================
