@@ -128,6 +128,12 @@ router.use("/lookups", require("../modules/lookups"));
 router.use("/access-levels", require("./security/accessLevelRoutes"));
 
 // ============================================
+// Assignments
+// ============================================
+
+router.use("/assignments", require("../modules/assignments"));
+
+// ============================================
 // SUPER ADMIN
 // ============================================
 //
