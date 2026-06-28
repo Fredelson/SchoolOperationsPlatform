@@ -1,190 +1,313 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Super Admin Sidebar Sections
+// Operations Platform
+// Super Admin Sidebar Menu
+// ============================================
+//
+// Purpose:
+// Defines the Super Admin navigation structure.
+// This file controls menu content only.
+// Sidebar design, layout, theme, and styling are handled
+// by PlatformSidebar.jsx.
+//
+// Notes:
+// - backendReady means the backend already exists.
+// - comingSoon means visible but not released yet.
+// - children are rendered as dropdown items.
 // ============================================
 
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
-import MenuOpenOutlinedIcon from "@mui/icons-material/MenuOpenOutlined";
-import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
-import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
-import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
-import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
-import LocalPrintshopOutlinedIcon from "@mui/icons-material/LocalPrintshopOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
-import ComputerOutlinedIcon from "@mui/icons-material/ComputerOutlined";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
-import BackupOutlinedIcon from "@mui/icons-material/BackupOutlined";
+import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
-import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
+import LocalPrintshopOutlinedIcon from "@mui/icons-material/LocalPrintshopOutlined";
+import ComputerOutlinedIcon from "@mui/icons-material/ComputerOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import DeveloperBoardOutlinedIcon from "@mui/icons-material/DeveloperBoardOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 
 export const superAdminSidebarSections = [
   {
-    title: "Overview",
+    title: "Main",
     items: [
       {
         label: "Dashboard",
         path: "/super-admin/dashboard",
         icon: <DashboardOutlinedIcon />,
+        backendReady: true,
       },
     ],
   },
 
   {
-    title: "Platform Control",
+    title: "Organization",
     items: [
       {
-        label: "Module Manager",
-        path: "/super-admin/modules",
-        icon: <AppsOutlinedIcon />,
+        label: "Organization Profile",
+        path: "/super-admin/organization/profile",
+        icon: <BusinessOutlinedIcon />,
+        backendReady: true,
       },
       {
-        label: "Menu Manager",
-        path: "/super-admin/menus",
-        icon: <MenuOpenOutlinedIcon />,
-      },
-      {
-        label: "Button Manager",
-        path: "/super-admin/buttons",
-        icon: <TouchAppOutlinedIcon />,
-      },
-      {
-        label: "Widget Manager",
-        path: "/super-admin/widgets",
-        icon: <WidgetsOutlinedIcon />,
-      },
-      {
-        label: "Feature Flags",
-        path: "/super-admin/feature-flags",
-        icon: <FlagOutlinedIcon />,
+        label: "Branding & Theme",
+        path: "/super-admin/branding",
+        icon: <PaletteOutlinedIcon />,
+        backendReady: true,
       },
     ],
   },
 
   {
-    title: "Security & Access",
+    title: "Identity & Access",
     items: [
       {
-        label: "User Management",
+        label: "Users",
         path: "/super-admin/users",
         icon: <PeopleAltOutlinedIcon />,
+        backendReady: true,
       },
       {
         label: "Roles",
         path: "/super-admin/roles",
         icon: <ShieldOutlinedIcon />,
+        backendReady: true,
       },
       {
         label: "Access Levels",
         path: "/super-admin/access-levels",
         icon: <AdminPanelSettingsOutlinedIcon />,
+        backendReady: true,
       },
       {
-        label: "Permissions",
-        path: "/super-admin/permissions",
-        icon: <SecurityOutlinedIcon />,
+        label: "Assignment Types",
+        path: "/super-admin/assignment-types",
+        icon: <AssignmentIndOutlinedIcon />,
+        backendReady: true,
+      },
+      {
+        label: "User Assignments",
+        path: "/super-admin/user-assignments",
+        icon: <HubOutlinedIcon />,
+        backendReady: true,
       },
     ],
   },
 
   {
-    title: "Operations Modules",
+    title: "Operations",
     items: [
       {
-        label: "Printing Management",
+        label: "Printing",
         path: "/super-admin/printing",
         icon: <LocalPrintshopOutlinedIcon />,
+        comingSoon: true,
       },
-      {
-        label: "Inventory Management",
-        path: "/super-admin/inventory",
-        icon: <Inventory2OutlinedIcon />,
-      },
-      {
-        label: "IT Service Desk",
-        path: "/super-admin/it-tickets",
-        icon: <ConfirmationNumberOutlinedIcon />,
-      },
+
       {
         label: "IT Asset Management",
-        path: "/super-admin/assets",
+        path: "/super-admin/it-assets",
         icon: <ComputerOutlinedIcon />,
+        children: [
+          {
+            label: "Dashboard",
+            path: "/super-admin/it-assets/dashboard",
+            icon: <DashboardOutlinedIcon />,
+          },
+          {
+            label: "Asset Management",
+            path: "/super-admin/it-assets/assets",
+            icon: <DevicesOutlinedIcon />,
+            children: [
+              { label: "All Assets", path: "/super-admin/it-assets/assets/all" },
+              { label: "Computers", path: "/super-admin/it-assets/assets/computers" },
+              { label: "Printers & Copiers", path: "/super-admin/it-assets/assets/printers-copiers" },
+              { label: "Projectors", path: "/super-admin/it-assets/assets/projectors" },
+              { label: "Network Devices", path: "/super-admin/it-assets/assets/network-devices" },
+              { label: "CCTV Cameras", path: "/super-admin/it-assets/assets/cctv-cameras" },
+              { label: "IP Phones", path: "/super-admin/it-assets/assets/ip-phones" },
+              { label: "LED Screens", path: "/super-admin/it-assets/assets/led-screens" },
+              { label: "Tablets", path: "/super-admin/it-assets/assets/tablets" },
+              { label: "Classroom Audio", path: "/super-admin/it-assets/assets/classroom-audio" },
+            ],
+          },
+          {
+            label: "Asset Assignment",
+            path: "/super-admin/it-assets/assignments",
+            icon: <AssignmentTurnedInOutlinedIcon />,
+            children: [
+              { label: "Current Assignments", path: "/super-admin/it-assets/assignments/current" },
+              { label: "Transfer Requests", path: "/super-admin/it-assets/assignments/transfers" },
+              { label: "Needed Laptops", path: "/super-admin/it-assets/assignments/needed-laptops" },
+              { label: "Assignment History", path: "/super-admin/it-assets/assignments/history" },
+            ],
+          },
+          {
+            label: "Asset Maintenance",
+            path: "/super-admin/it-assets/maintenance",
+            icon: <BuildOutlinedIcon />,
+            children: [
+              { label: "Issues", path: "/super-admin/it-assets/maintenance/issues" },
+              { label: "Maintenance Logs", path: "/super-admin/it-assets/maintenance/logs" },
+              { label: "Maintenance Schedule", path: "/super-admin/it-assets/maintenance/schedule" },
+              { label: "Disposal", path: "/super-admin/it-assets/maintenance/disposal" },
+            ],
+          },
+          {
+            label: "Import Assets",
+            path: "/super-admin/it-assets/import",
+            icon: <UploadFileOutlinedIcon />,
+          },
+          {
+            label: "Asset Groups",
+            path: "/super-admin/it-assets/groups",
+            icon: <GroupsOutlinedIcon />,
+          },
+          {
+            label: "Master Data",
+            path: "/super-admin/it-assets/master-data",
+            icon: <CategoryOutlinedIcon />,
+            children: [
+              { label: "Categories", path: "/super-admin/it-assets/master-data/categories" },
+              { label: "Brands", path: "/super-admin/it-assets/master-data/brands" },
+              { label: "Models", path: "/super-admin/it-assets/master-data/models" },
+              { label: "Statuses", path: "/super-admin/it-assets/master-data/statuses" },
+              { label: "Conditions", path: "/super-admin/it-assets/master-data/conditions" },
+              { label: "Issue Categories", path: "/super-admin/it-assets/master-data/issue-categories" },
+              { label: "Issue Types", path: "/super-admin/it-assets/master-data/issue-types" },
+            ],
+          },
+          {
+            label: "Reports",
+            path: "/super-admin/it-assets/reports",
+            icon: <BarChartOutlinedIcon />,
+            children: [
+              { label: "Inventory", path: "/super-admin/it-assets/reports/inventory" },
+              { label: "Assignment", path: "/super-admin/it-assets/reports/assignment" },
+              { label: "Maintenance", path: "/super-admin/it-assets/reports/maintenance" },
+              { label: "Issues", path: "/super-admin/it-assets/reports/issues" },
+              { label: "Disposal", path: "/super-admin/it-assets/reports/disposal" },
+            ],
+          },
+        ],
+      },
+
+      {
+        label: "IT Help Desk",
+        path: "/super-admin/helpdesk",
+        icon: <ConfirmationNumberOutlinedIcon />,
+        comingSoon: true,
+      },
+      {
+        label: "Inventory",
+        path: "/super-admin/inventory",
+        icon: <Inventory2OutlinedIcon />,
+        comingSoon: true,
+      },
+      {
+        label: "HR",
+        path: "/super-admin/hr",
+        icon: <PeopleAltOutlinedIcon />,
+        comingSoon: true,
       },
       {
         label: "Academic Operations",
         path: "/super-admin/academic",
         icon: <SchoolOutlinedIcon />,
+        comingSoon: true,
       },
       {
-        label: "Teacher Observations",
-        path: "/super-admin/observations",
-        icon: <VisibilityOutlinedIcon />,
-      },
-      {
-        label: "Communication Center",
+        label: "Communication",
         path: "/super-admin/communication",
         icon: <CampaignOutlinedIcon />,
-      },
-      {
-        label: "Reports & Analytics",
-        path: "/super-admin/reports",
-        icon: <BarChartOutlinedIcon />,
-      },
-      {
-        label: "HR Management",
-        path: "/super-admin/hr",
-        icon: <PeopleAltOutlinedIcon />,
+        comingSoon: true,
       },
     ],
   },
 
   {
-    title: "Monitoring",
+    title: "System Configuration",
+    items: [
+      {
+        label: "Departments",
+        path: "/super-admin/settings/departments",
+        icon: <SettingsOutlinedIcon />,
+        backendReady: true,
+      },
+      {
+        label: "Sections",
+        path: "/super-admin/settings/sections",
+        icon: <SettingsOutlinedIcon />,
+        backendReady: true,
+      },
+      {
+        label: "Subjects",
+        path: "/super-admin/settings/subjects",
+        icon: <SettingsOutlinedIcon />,
+        backendReady: true,
+      },
+      {
+        label: "Purposes",
+        path: "/super-admin/settings/purposes",
+        icon: <SettingsOutlinedIcon />,
+        backendReady: true,
+      },
+    ],
+  },
+
+  {
+    title: "Security",
     items: [
       {
         label: "Audit Logs",
-        path: "/super-admin/audit-logs",
-        icon: <HistoryOutlinedIcon />,
-      },
-      {
-        label: "Activity Logs",
-        path: "/super-admin/activity-logs",
-        icon: <HistoryOutlinedIcon />,
+        path: "/super-admin/security/audit-logs",
+        icon: <SecurityOutlinedIcon />,
+        comingSoon: true,
       },
     ],
   },
 
   {
-    title: "System Control",
+    title: "Reports & Analytics",
     items: [
       {
-        label: "System Settings",
-        path: "/super-admin/settings",
-        icon: <SettingsOutlinedIcon />,
+        label: "Platform Reports",
+        path: "/super-admin/reports",
+        icon: <BarChartOutlinedIcon />,
+        comingSoon: true,
+      },
+    ],
+  },
+
+  {
+    title: "Developer / Platform",
+    items: [
+      {
+        label: "Module Manager",
+        path: "/super-admin/platform/modules",
+        icon: <DeveloperBoardOutlinedIcon />,
+        comingSoon: true,
       },
       {
-        label: "Backup & Restore",
-        path: "/super-admin/backups",
-        icon: <BackupOutlinedIcon />,
-      },
-      {
-        label: "Integrations",
-        path: "/super-admin/integrations",
-        icon: <HubOutlinedIcon />,
-      },
-      {
-        label: "Database Tools",
-        path: "/super-admin/database-tools",
-        icon: <StorageOutlinedIcon />,
+        label: "System Health",
+        path: "/super-admin/platform/system-health",
+        icon: <ManageSearchOutlinedIcon />,
+        comingSoon: true,
       },
     ],
   },

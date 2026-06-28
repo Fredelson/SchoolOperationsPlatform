@@ -2,10 +2,14 @@
 // ARAB UNITY SCHOOL
 // Authentication Service
 // ============================================
+//
+// Purpose:
+// Handles authentication API calls and normalizes
+// backend responses for frontend AuthContext.
+// ============================================
 
 import api from "./api";
 
-// Login User
 export const loginUser = async (employeeId, password) => {
   const response = await api.post("/auth/login", {
     employeeId,
@@ -15,9 +19,10 @@ export const loginUser = async (employeeId, password) => {
   return response.data;
 };
 
-// Get Logged-in User
 export const getCurrentUser = async () => {
   const response = await api.get("/auth/me");
 
-  return response.data;
+  const payload = response.data;
+
+  return payload?.user || payload?.data?.user || payload?.data || payload;
 };
