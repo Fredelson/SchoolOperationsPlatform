@@ -42,9 +42,8 @@ export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
 
   const platform = theme.palette.platform || {};
 
-  const sidebarBg = platform.useSidebarGradient
-    ? platform.sidebarGradient
-    : platform.sidebar || theme.palette.primary.dark;
+  const sidebarBg =
+  platform.sidebarBackground || platform.sidebar || theme.palette.primary.dark;
 
   const sidebarText = theme.palette.primary.contrastText;
   const accent = platform.accent || theme.palette.success.main;

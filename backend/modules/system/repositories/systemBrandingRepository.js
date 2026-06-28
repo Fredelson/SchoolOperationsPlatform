@@ -6,7 +6,8 @@
 //
 // Purpose:
 // Handles SQL operations for school profile,
-// branding colors, gradients, and media files.
+// branding colors, background engine settings,
+// and branding media files.
 //
 // Rules:
 // - SQL only
@@ -53,15 +54,19 @@ const getActiveSchoolBranding = async () => {
       b.TopbarColor,
       b.LoginCardColor,
 
-      b.UseSidebarGradient,
+      b.SidebarBackgroundType,
       b.SidebarGradientStart,
+      b.SidebarGradientMiddle,
       b.SidebarGradientEnd,
       b.SidebarGradientDirection,
+      b.SidebarGradientPosition,
 
-      b.UseTopbarGradient,
+      b.TopbarBackgroundType,
       b.TopbarGradientStart,
+      b.TopbarGradientMiddle,
       b.TopbarGradientEnd,
       b.TopbarGradientDirection,
+      b.TopbarGradientPosition,
 
       b.LoginTitle,
       b.LoginSubtitle,
@@ -130,24 +135,12 @@ const updateSchoolProfile = async (schoolId, data) => {
     [
       { name: "SchoolId", type: sql.Int, value: schoolId },
       { name: "SchoolName", type: sql.NVarChar(255), value: data.schoolName },
-      {
-        name: "Address",
-        type: sql.NVarChar(sql.MAX),
-        value: data.address || null,
-      },
+      { name: "Address", type: sql.NVarChar(sql.MAX), value: data.address || null },
       { name: "Phone", type: sql.NVarChar(100), value: data.phone || null },
       { name: "Email", type: sql.NVarChar(255), value: data.email || null },
       { name: "Website", type: sql.NVarChar(255), value: data.website || null },
-      {
-        name: "TimeZone",
-        type: sql.NVarChar(100),
-        value: data.timeZone || "Asia/Dubai",
-      },
-      {
-        name: "CurrencyCode",
-        type: sql.NVarChar(10),
-        value: data.currencyCode || "AED",
-      },
+      { name: "TimeZone", type: sql.NVarChar(100), value: data.timeZone || "Asia/Dubai" },
+      { name: "CurrencyCode", type: sql.NVarChar(10), value: data.currencyCode || "AED" },
     ]
   );
 };
@@ -172,15 +165,19 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         TopbarColor = @TopbarColor,
         LoginCardColor = @LoginCardColor,
 
-        UseSidebarGradient = @UseSidebarGradient,
+        SidebarBackgroundType = @SidebarBackgroundType,
         SidebarGradientStart = @SidebarGradientStart,
+        SidebarGradientMiddle = @SidebarGradientMiddle,
         SidebarGradientEnd = @SidebarGradientEnd,
         SidebarGradientDirection = @SidebarGradientDirection,
+        SidebarGradientPosition = @SidebarGradientPosition,
 
-        UseTopbarGradient = @UseTopbarGradient,
+        TopbarBackgroundType = @TopbarBackgroundType,
         TopbarGradientStart = @TopbarGradientStart,
+        TopbarGradientMiddle = @TopbarGradientMiddle,
         TopbarGradientEnd = @TopbarGradientEnd,
         TopbarGradientDirection = @TopbarGradientDirection,
+        TopbarGradientPosition = @TopbarGradientPosition,
 
         LoginTitle = @LoginTitle,
         LoginSubtitle = @LoginSubtitle,
@@ -202,15 +199,19 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         TopbarColor,
         LoginCardColor,
 
-        UseSidebarGradient,
+        SidebarBackgroundType,
         SidebarGradientStart,
+        SidebarGradientMiddle,
         SidebarGradientEnd,
         SidebarGradientDirection,
+        SidebarGradientPosition,
 
-        UseTopbarGradient,
+        TopbarBackgroundType,
         TopbarGradientStart,
+        TopbarGradientMiddle,
         TopbarGradientEnd,
         TopbarGradientDirection,
+        TopbarGradientPosition,
 
         LoginTitle,
         LoginSubtitle,
@@ -231,15 +232,19 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
         @TopbarColor,
         @LoginCardColor,
 
-        @UseSidebarGradient,
+        @SidebarBackgroundType,
         @SidebarGradientStart,
+        @SidebarGradientMiddle,
         @SidebarGradientEnd,
         @SidebarGradientDirection,
+        @SidebarGradientPosition,
 
-        @UseTopbarGradient,
+        @TopbarBackgroundType,
         @TopbarGradientStart,
+        @TopbarGradientMiddle,
         @TopbarGradientEnd,
         @TopbarGradientDirection,
+        @TopbarGradientPosition,
 
         @LoginTitle,
         @LoginSubtitle,
@@ -255,78 +260,26 @@ const upsertBranding = async (schoolId, data, updatedBy) => {
     [
       { name: "SchoolId", type: sql.Int, value: schoolId },
 
-      {
-        name: "PrimaryColor",
-        type: sql.NVarChar(20),
-        value: data.primaryColor || "#1E3A8A",
-      },
-      {
-        name: "SecondaryColor",
-        type: sql.NVarChar(20),
-        value: data.secondaryColor || "#2563EB",
-      },
-      {
-        name: "AccentColor",
-        type: sql.NVarChar(20),
-        value: data.accentColor || "#16A34A",
-      },
-      {
-        name: "SidebarColor",
-        type: sql.NVarChar(20),
-        value: data.sidebarColor || "#061B52",
-      },
-      {
-        name: "TopbarColor",
-        type: sql.NVarChar(20),
-        value: data.topbarColor || "#071B4D",
-      },
-      {
-        name: "LoginCardColor",
-        type: sql.NVarChar(20),
-        value: data.loginCardColor || "#FFFFFF",
-      },
+      { name: "PrimaryColor", type: sql.NVarChar(20), value: data.primaryColor || "#1E3A8A" },
+      { name: "SecondaryColor", type: sql.NVarChar(20), value: data.secondaryColor || "#2563EB" },
+      { name: "AccentColor", type: sql.NVarChar(20), value: data.accentColor || "#16A34A" },
+      { name: "SidebarColor", type: sql.NVarChar(20), value: data.sidebarColor || "#061B52" },
+      { name: "TopbarColor", type: sql.NVarChar(20), value: data.topbarColor || "#071B4D" },
+      { name: "LoginCardColor", type: sql.NVarChar(20), value: data.loginCardColor || "#FFFFFF" },
 
-      {
-        name: "UseSidebarGradient",
-        type: sql.Bit,
-        value: data.useSidebarGradient ? 1 : 0,
-      },
-      {
-        name: "SidebarGradientStart",
-        type: sql.NVarChar(20),
-        value: data.sidebarGradientStart || null,
-      },
-      {
-        name: "SidebarGradientEnd",
-        type: sql.NVarChar(20),
-        value: data.sidebarGradientEnd || null,
-      },
-      {
-        name: "SidebarGradientDirection",
-        type: sql.NVarChar(30),
-        value: data.sidebarGradientDirection || "180deg",
-      },
+      { name: "SidebarBackgroundType", type: sql.NVarChar(30), value: data.sidebarBackgroundType || "solid" },
+      { name: "SidebarGradientStart", type: sql.NVarChar(20), value: data.sidebarGradientStart || null },
+      { name: "SidebarGradientMiddle", type: sql.NVarChar(20), value: data.sidebarGradientMiddle || null },
+      { name: "SidebarGradientEnd", type: sql.NVarChar(20), value: data.sidebarGradientEnd || null },
+      { name: "SidebarGradientDirection", type: sql.NVarChar(30), value: data.sidebarGradientDirection || "180deg" },
+      { name: "SidebarGradientPosition", type: sql.NVarChar(50), value: data.sidebarGradientPosition || "center" },
 
-      {
-        name: "UseTopbarGradient",
-        type: sql.Bit,
-        value: data.useTopbarGradient ? 1 : 0,
-      },
-      {
-        name: "TopbarGradientStart",
-        type: sql.NVarChar(20),
-        value: data.topbarGradientStart || null,
-      },
-      {
-        name: "TopbarGradientEnd",
-        type: sql.NVarChar(20),
-        value: data.topbarGradientEnd || null,
-      },
-      {
-        name: "TopbarGradientDirection",
-        type: sql.NVarChar(30),
-        value: data.topbarGradientDirection || "90deg",
-      },
+      { name: "TopbarBackgroundType", type: sql.NVarChar(30), value: data.topbarBackgroundType || "solid" },
+      { name: "TopbarGradientStart", type: sql.NVarChar(20), value: data.topbarGradientStart || null },
+      { name: "TopbarGradientMiddle", type: sql.NVarChar(20), value: data.topbarGradientMiddle || null },
+      { name: "TopbarGradientEnd", type: sql.NVarChar(20), value: data.topbarGradientEnd || null },
+      { name: "TopbarGradientDirection", type: sql.NVarChar(30), value: data.topbarGradientDirection || "90deg" },
+      { name: "TopbarGradientPosition", type: sql.NVarChar(50), value: data.topbarGradientPosition || "center" },
 
       { name: "LoginTitle", type: sql.NVarChar(255), value: data.loginTitle || null },
       { name: "LoginSubtitle", type: sql.NVarChar(255), value: data.loginSubtitle || null },
@@ -374,16 +327,8 @@ const insertFileStorage = async ({ file, entityType, entityId, uploadedBy }) => 
     SELECT SCOPE_IDENTITY() AS InsertedId;
     `,
     [
-      {
-        name: "OriginalFileName",
-        type: sql.NVarChar(255),
-        value: file.originalname,
-      },
-      {
-        name: "StoredFileName",
-        type: sql.NVarChar(255),
-        value: file.filename,
-      },
+      { name: "OriginalFileName", type: sql.NVarChar(255), value: file.originalname },
+      { name: "StoredFileName", type: sql.NVarChar(255), value: file.filename },
       { name: "FilePath", type: sql.NVarChar(sql.MAX), value: file.path },
       { name: "FileType", type: sql.NVarChar(100), value: file.mimetype },
       {

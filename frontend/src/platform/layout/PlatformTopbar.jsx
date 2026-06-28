@@ -93,9 +93,8 @@ export default function PlatformTopbar({ height = 78, onMenuClick }) {
 
   const platform = theme.palette.platform || {};
 
-  const topbarBackground = platform.useTopbarGradient
-    ? platform.topbarGradient
-    : platform.topbar || theme.palette.primary.dark;
+ const topbarBackground =
+  platform.topbarBackground || platform.topbar || theme.palette.primary.dark;
 
   const topbarText = theme.palette.primary.contrastText;
   const accent = platform.accent || theme.palette.success.main;

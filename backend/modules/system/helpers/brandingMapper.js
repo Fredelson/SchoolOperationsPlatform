@@ -3,17 +3,8 @@
 // Operations Platform
 // Branding Mapper
 // ============================================
-//
-// Purpose:
-// Converts SQL branding rows into clean API
-// response objects for the frontend.
-// ============================================
 
 const { BRANDING_DEFAULTS } = require("../constants/brandingDefaults");
-
-// ============================================================
-// MAP BRANDING RESPONSE
-// ============================================================
 
 const mapBrandingResponse = (row) => {
   return {
@@ -38,26 +29,24 @@ const mapBrandingResponse = (row) => {
 
       sidebarColor: row.SidebarColor || BRANDING_DEFAULTS.sidebarColor,
       topbarColor: row.TopbarColor || BRANDING_DEFAULTS.topbarColor,
-      loginCardColor:
-        row.LoginCardColor || BRANDING_DEFAULTS.loginCardColor,
+      loginCardColor: row.LoginCardColor || BRANDING_DEFAULTS.loginCardColor,
 
-      useSidebarGradient: Boolean(row.UseSidebarGradient),
+      sidebarBackgroundType: row.SidebarBackgroundType || "solid",
       sidebarGradientStart: row.SidebarGradientStart || null,
+      sidebarGradientMiddle: row.SidebarGradientMiddle || null,
       sidebarGradientEnd: row.SidebarGradientEnd || null,
-      sidebarGradientDirection:
-        row.SidebarGradientDirection || "180deg",
+      sidebarGradientDirection: row.SidebarGradientDirection || "180deg",
+      sidebarGradientPosition: row.SidebarGradientPosition || "center",
 
-      useTopbarGradient: Boolean(row.UseTopbarGradient),
+      topbarBackgroundType: row.TopbarBackgroundType || "solid",
       topbarGradientStart: row.TopbarGradientStart || null,
+      topbarGradientMiddle: row.TopbarGradientMiddle || null,
       topbarGradientEnd: row.TopbarGradientEnd || null,
-      topbarGradientDirection:
-        row.TopbarGradientDirection || "90deg",
+      topbarGradientDirection: row.TopbarGradientDirection || "90deg",
+      topbarGradientPosition: row.TopbarGradientPosition || "center",
 
-      loginTitle:
-        row.LoginTitle || row.SchoolName || BRANDING_DEFAULTS.loginTitle,
-      loginSubtitle:
-        row.LoginSubtitle || BRANDING_DEFAULTS.loginSubtitle,
-
+      loginTitle: row.LoginTitle || row.SchoolName || BRANDING_DEFAULTS.loginTitle,
+      loginSubtitle: row.LoginSubtitle || BRANDING_DEFAULTS.loginSubtitle,
       footerText: row.FooterText || BRANDING_DEFAULTS.footerText,
 
       supportEmail: row.SupportEmail || row.Email || null,

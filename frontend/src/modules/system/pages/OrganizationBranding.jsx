@@ -3,39 +3,20 @@
 // Operations Platform
 // Organization & Branding Page
 // ============================================
-//
-// Purpose:
-// Allows Super Admin to manage school profile,
-// platform colors, login text, and branding.
-// ============================================
 
 import { useEffect, useState } from "react";
-
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Divider,
-  Grid,
-  Stack,
-  TextField,
-  Typography,
-  Alert,
-  useTheme,
-} from "@mui/material";
+import { Alert, Box, Card, CardContent, Stack, Typography } from "@mui/material";
 
 import useBranding from "../hooks/useBranding";
-import {
-  updateSystemBranding,
-} from "../services/brandingService";
+import { updateSystemBranding } from "../services/brandingService";
 
-// ============================================
-// Component
-// ============================================
+import SchoolProfileCard from "../components/branding/SchoolProfileCard";
+import PlatformColorsCard from "../components/branding/PlatformColorsCard";
+import BackgroundBuilderCard from "../components/branding/BackgroundBuilderCard";
+import LoginBrandingCard from "../components/branding/LoginBrandingCard";
+import BrandingActions from "../components/branding/BrandingActions";
 
 export default function OrganizationBranding() {
-  const theme = useTheme();
   const { branding, refreshBranding } = useBranding();
 
   const [form, setForm] = useState({
@@ -45,16 +26,31 @@ export default function OrganizationBranding() {
       phone: "",
       email: "",
       website: "",
-      timeZone: "",
-      currencyCode: "",
+      timeZone: "Asia/Dubai",
+      currencyCode: "AED",
     },
     branding: {
-      primaryColor: "",
-      secondaryColor: "",
-      accentColor: "",
-      sidebarColor: "",
-      topbarColor: "",
-      loginCardColor: "",
+      primaryColor: "#1E3A8A",
+      secondaryColor: "#2563EB",
+      accentColor: "#16A34A",
+      loginCardColor: "#FFFFFF",
+
+      sidebarColor: "#061B52",
+      sidebarBackgroundType: "solid",
+      sidebarGradientStart: "#002B5B",
+      sidebarGradientMiddle: "",
+      sidebarGradientEnd: "#061B52",
+      sidebarGradientDirection: "180deg",
+      sidebarGradientPosition: "center",
+
+      topbarColor: "#071B4D",
+      topbarBackgroundType: "solid",
+      topbarGradientStart: "#007A3D",
+      topbarGradientMiddle: "",
+      topbarGradientEnd: "#002B5B",
+      topbarGradientDirection: "90deg",
+      topbarGradientPosition: "center",
+
       loginTitle: "",
       loginSubtitle: "",
       footerText: "",
@@ -67,10 +63,6 @@ export default function OrganizationBranding() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // ============================================
-  // Load current branding into form
-  // ============================================
-
   useEffect(() => {
     if (!branding) return;
 
@@ -81,16 +73,43 @@ export default function OrganizationBranding() {
         phone: branding.school?.phone || "",
         email: branding.school?.email || "",
         website: branding.school?.website || "",
-        timeZone: branding.school?.timeZone || "",
-        currencyCode: branding.school?.currencyCode || "",
+        timeZone: branding.school?.timeZone || "Asia/Dubai",
+        currencyCode: branding.school?.currencyCode || "AED",
       },
       branding: {
-        primaryColor: branding.branding?.primaryColor || "",
-        secondaryColor: branding.branding?.secondaryColor || "",
-        accentColor: branding.branding?.accentColor || "",
-        sidebarColor: branding.branding?.sidebarColor || "",
-        topbarColor: branding.branding?.topbarColor || "",
-        loginCardColor: branding.branding?.loginCardColor || "",
+        primaryColor: branding.branding?.primaryColor || "#1E3A8A",
+        secondaryColor: branding.branding?.secondaryColor || "#2563EB",
+        accentColor: branding.branding?.accentColor || "#16A34A",
+        loginCardColor: branding.branding?.loginCardColor || "#FFFFFF",
+
+        sidebarColor: branding.branding?.sidebarColor || "#061B52",
+        sidebarBackgroundType:
+          branding.branding?.sidebarBackgroundType || "solid",
+        sidebarGradientStart:
+          branding.branding?.sidebarGradientStart || "#002B5B",
+        sidebarGradientMiddle:
+          branding.branding?.sidebarGradientMiddle || "",
+        sidebarGradientEnd:
+          branding.branding?.sidebarGradientEnd || "#061B52",
+        sidebarGradientDirection:
+          branding.branding?.sidebarGradientDirection || "180deg",
+        sidebarGradientPosition:
+          branding.branding?.sidebarGradientPosition || "center",
+
+        topbarColor: branding.branding?.topbarColor || "#071B4D",
+        topbarBackgroundType:
+          branding.branding?.topbarBackgroundType || "solid",
+        topbarGradientStart:
+          branding.branding?.topbarGradientStart || "#007A3D",
+        topbarGradientMiddle:
+          branding.branding?.topbarGradientMiddle || "",
+        topbarGradientEnd:
+          branding.branding?.topbarGradientEnd || "#002B5B",
+        topbarGradientDirection:
+          branding.branding?.topbarGradientDirection || "90deg",
+        topbarGradientPosition:
+          branding.branding?.topbarGradientPosition || "center",
+
         loginTitle: branding.branding?.loginTitle || "",
         loginSubtitle: branding.branding?.loginSubtitle || "",
         footerText: branding.branding?.footerText || "",
@@ -100,10 +119,6 @@ export default function OrganizationBranding() {
     });
   }, [branding]);
 
-  // ============================================
-  // Helpers
-  // ============================================
-
   const updateField = (section, field, value) => {
     setForm((prev) => ({
       ...prev,
@@ -112,6 +127,10 @@ export default function OrganizationBranding() {
         [field]: value,
       },
     }));
+  };
+
+  const updateBrandingField = (field, value) => {
+    updateField("branding", field, value);
   };
 
   const handleSave = async () => {
@@ -135,19 +154,25 @@ export default function OrganizationBranding() {
     }
   };
 
-  // ============================================
-  // UI
-  // ============================================
+  const inputGrid = {
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      sm: "repeat(2, 1fr)",
+      lg: "repeat(3, 1fr)",
+    },
+    gap: 2,
+  };
 
   return (
-    <Box>
-      <Stack spacing={1} sx={{ mb: 3 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Stack spacing={0.5} sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight={900}>
           Organization & Branding
         </Typography>
 
         <Typography color="text.secondary">
-          Manage school identity, platform colors, and login branding.
+          Manage school identity, platform colors, backgrounds, and login branding.
         </Typography>
       </Stack>
 
@@ -163,327 +188,67 @@ export default function OrganizationBranding() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        {/* LEFT: FORM */}
-        <Grid item xs={12} lg={8}>
-          <Stack spacing={3}>
-            {/* Organization */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" fontWeight={900}>
-                  Organization Information
-                </Typography>
+      <Stack spacing={3}>
+        <SchoolProfileCard
+          form={form}
+          updateField={updateField}
+          inputGrid={inputGrid}
+        />
 
-                <Divider sx={{ my: 2 }} />
+        <PlatformColorsCard
+          form={form}
+          updateBrandingField={updateBrandingField}
+          inputGrid={inputGrid}
+        />
 
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="School Name"
-                      value={form.school.schoolName}
-                      onChange={(e) =>
-                        updateField("school", "schoolName", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Website"
-                      value={form.school.website}
-                      onChange={(e) =>
-                        updateField("school", "website", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Address"
-                      value={form.school.address}
-                      onChange={(e) =>
-                        updateField("school", "address", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Phone"
-                      value={form.school.phone}
-                      onChange={(e) =>
-                        updateField("school", "phone", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      value={form.school.email}
-                      onChange={(e) =>
-                        updateField("school", "email", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Time Zone"
-                      value={form.school.timeZone}
-                      onChange={(e) =>
-                        updateField("school", "timeZone", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Currency"
-                      value={form.school.currencyCode}
-                      onChange={(e) =>
-                        updateField("school", "currencyCode", e.target.value)
-                      }
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-
-            {/* Colors */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" fontWeight={900}>
-                  Platform Colors
-                </Typography>
-
-                <Divider sx={{ my: 2 }} />
-
-                <Grid container spacing={2}>
-                  {[
-                    ["primaryColor", "Primary Color"],
-                    ["secondaryColor", "Secondary Color"],
-                    ["accentColor", "Accent Color"],
-                    ["sidebarColor", "Sidebar Color"],
-                    ["topbarColor", "Topbar Color"],
-                    ["loginCardColor", "Login Card Color"],
-                  ].map(([field, label]) => (
-                    <Grid item xs={12} sm={6} md={4} key={field}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1.5,
-                        }}
-                      >
-                        <Box
-                          component="input"
-                          type="color"
-                          value={form.branding[field] || "#000000"}
-                          onChange={(e) =>
-                            updateField("branding", field, e.target.value)
-                          }
-                          sx={{
-                            width: 56,
-                            height: 56,
-                            border: "none",
-                            padding: 0,
-                            cursor: "pointer",
-                            bgcolor: "transparent",
-                          }}
-                        />
-
-                        <TextField
-                          fullWidth
-                          label={label}
-                          value={form.branding[field] || ""}
-                          onChange={(e) =>
-                            updateField("branding", field, e.target.value)
-                          }
-                          placeholder="#000000"
-                        />
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-
-            {/* Login */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" fontWeight={900}>
-                  Login Branding
-                </Typography>
-
-                <Divider sx={{ my: 2 }} />
-
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Login Title"
-                      value={form.branding.loginTitle}
-                      onChange={(e) =>
-                        updateField("branding", "loginTitle", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Login Subtitle"
-                      value={form.branding.loginSubtitle}
-                      onChange={(e) =>
-                        updateField("branding", "loginSubtitle", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Footer Text"
-                      value={form.branding.footerText}
-                      onChange={(e) =>
-                        updateField("branding", "footerText", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Support Email"
-                      value={form.branding.supportEmail}
-                      onChange={(e) =>
-                        updateField("branding", "supportEmail", e.target.value)
-                      }
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Support Phone"
-                      value={form.branding.supportPhone}
-                      onChange={(e) =>
-                        updateField("branding", "supportPhone", e.target.value)
-                      }
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleSave}
-              disabled={saving}
-              sx={{ alignSelf: "flex-start", px: 4 }}
+        <Card>
+          <CardContent>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+                gap: 3,
+              }}
             >
-              {saving ? "Saving..." : "Save Branding"}
-            </Button>
-          </Stack>
-        </Grid>
+              <BackgroundBuilderCard
+                title="Sidebar Background"
+                description="Controls the platform sidebar background."
+                typeField="sidebarBackgroundType"
+                colorField="sidebarColor"
+                startField="sidebarGradientStart"
+                middleField="sidebarGradientMiddle"
+                endField="sidebarGradientEnd"
+                directionField="sidebarGradientDirection"
+                positionField="sidebarGradientPosition"
+                form={form}
+                updateBrandingField={updateBrandingField}
+              />
 
-        {/* RIGHT: LIVE PREVIEW */}
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ position: "sticky", top: 110 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={900}>
-                Live Preview
-              </Typography>
+              <BackgroundBuilderCard
+                title="Topbar Background"
+                description="Controls the platform topbar background."
+                typeField="topbarBackgroundType"
+                colorField="topbarColor"
+                startField="topbarGradientStart"
+                middleField="topbarGradientMiddle"
+                endField="topbarGradientEnd"
+                directionField="topbarGradientDirection"
+                positionField="topbarGradientPosition"
+                form={form}
+                updateBrandingField={updateBrandingField}
+              />
+            </Box>
+          </CardContent>
+        </Card>
 
-              <Divider sx={{ my: 2 }} />
+        <LoginBrandingCard
+          form={form}
+          updateBrandingField={updateBrandingField}
+          inputGrid={inputGrid}
+        />
 
-              <Box
-                sx={{
-                  borderRadius: 3,
-                  overflow: "hidden",
-                  border: `1px solid ${theme.palette.divider}`,
-                }}
-              >
-                <Box
-                  sx={{
-                    height: 56,
-                    bgcolor: form.branding.topbarColor,
-                    color: theme.palette.primary.contrastText,
-                    display: "flex",
-                    alignItems: "center",
-                    px: 2,
-                    fontWeight: 900,
-                  }}
-                >
-                  Topbar
-                </Box>
-
-                <Box sx={{ display: "flex", minHeight: 180 }}>
-                  <Box
-                    sx={{
-                      width: 110,
-                      bgcolor: form.branding.sidebarColor,
-                      color: theme.palette.primary.contrastText,
-                      p: 2,
-                      fontWeight: 800,
-                    }}
-                  >
-                    Sidebar
-                  </Box>
-
-                  <Box
-                    sx={{
-                      flex: 1,
-                      p: 2,
-                      bgcolor: theme.palette.background.default,
-                    }}
-                  >
-                    <Card
-                      sx={{
-                        p: 2,
-                        bgcolor: form.branding.loginCardColor,
-                      }}
-                    >
-                      <Typography
-                        fontWeight={900}
-                        sx={{ color: form.branding.primaryColor }}
-                      >
-                        {form.branding.loginTitle || "Login Title"}
-                      </Typography>
-
-                      <Typography
-                        sx={{ color: form.branding.secondaryColor }}
-                      >
-                        {form.branding.loginSubtitle || "Login Subtitle"}
-                      </Typography>
-
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        sx={{
-                          mt: 2,
-                          bgcolor: form.branding.primaryColor,
-                        }}
-                      >
-                        Login Button
-                      </Button>
-                    </Card>
-                  </Box>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <BrandingActions saving={saving} onSave={handleSave} />
+      </Stack>
     </Box>
   );
 }
