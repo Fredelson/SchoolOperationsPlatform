@@ -74,6 +74,26 @@ const PERMISSIONS = {
   LOOKUPS: {
     VIEW: "lookups.view",
   },
+
+  PRINTING: {
+    DASHBOARD_VIEW: "printing.dashboard.view",
+    QUEUE_VIEW: "printing.queue.view",
+    REQUEST_VIEW: "printing.request.view",
+
+    START: "printing.request.start",
+    HOLD: "printing.request.hold",
+    RESUME: "printing.request.resume",
+    COMPLETE: "printing.request.complete",
+    CANCEL: "printing.request.cancel",
+
+    HISTORY_VIEW: "printing.history.view",
+
+    INVENTORY_VIEW: "printing.inventory.view",
+    INVENTORY_UPDATE: "printing.inventory.update",
+
+    PURCHASES_VIEW: "printing.purchases.view",
+    PURCHASES_CREATE: "printing.purchases.create",
+  },
 };
 
 module.exports = PERMISSIONS;

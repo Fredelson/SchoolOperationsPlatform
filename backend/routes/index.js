@@ -116,15 +116,19 @@ router.use(
 );
 
 // ============================================================
-// PRINTING MODULE (Legacy)
+// PRINTING MODULE (Modern)
 // ============================================================
 //
-// Planned Migration:
-//
+// Migrated to:
 // modules/printing
+//
+// Legacy paper-stock and purchases remain temporarily until
+// their modern repositories/services/controllers are completed.
 // ============================================================
 
-router.use("/printing", require("./printing/printingRoutes"));
+router.use("/printing", require("../modules/printing/routes/printingRoutes"));
+
+// Legacy routes still active until next migration step
 router.use("/paper-stock", require("./printing/paperStockRoutes"));
 router.use("/purchases", require("./printing/purchaseRoutes"));
 
