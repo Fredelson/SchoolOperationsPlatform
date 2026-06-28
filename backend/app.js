@@ -1,29 +1,46 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Express App Configuration
+// Express Application Configuration
+// ============================================
 //
 // Purpose:
-// - Configure middleware
-// - Register API routes
-// - Serve uploads
-// - Define health check
+// - Configure Express application.
+// - Register global middleware.
+// - Serve static files.
+// - Register the central API router.
+// - Configure global error handling.
+//
+// Architecture:
+//
+// server.js
+//      ↓
+// app.js
+//      ↓
+// routes/index.js
+//      ↓
+// Feature Modules
+//
+// Rules:
+// - No business logic.
+// - No SQL.
+// - No route definitions except the API gateway.
 // ============================================
 
-const errorMiddleware = require("./middleware/errorMiddleware");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
 const apiRoutes = require("./routes");
+const errorMiddleware = require("./middleware/errorMiddleware");
 
 // ============================================
-// Initialize Express App
+// Create Express Application
 // ============================================
 
 const app = express();
 
 // ============================================
-// Middleware
+// Global Middleware
 // ============================================
 
 app.use(
@@ -39,32 +56,77 @@ app.use(
   })
 );
 
+// Parse JSON requests
 app.use(express.json({ limit: "50mb" }));
+
+// Parse URL encoded requests
 app.use(express.urlencoded({ extended: true }));
 
-// Static uploads
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// ============================================
+// Static File Hosting
+// ============================================
+//
+// Uploaded attachments
+//
 
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
+
+// ============================================
 // Health Check
+// ============================================
+
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
-    message: "ARAB UNITY SCHOOL Backend API Running",
+    message: "Arab Unity School Operations Platform API",
+    version: "1.0.0",
   });
 });
 
-// All API routes
+// ============================================
+// API Gateway
+// ============================================
+//
+// Every backend module is registered through
+// routes/index.js.
+//
+// Example:
+//
+// /api/auth
+// /api/users
+// /api/roles
+// /api/assignments
+//
+// ============================================
+
 app.use("/api", apiRoutes);
 
-// 404 fallback
+// ============================================
+// 404 Handler
+// ============================================
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "API route not found",
+    message: "API endpoint not found.",
     path: req.originalUrl,
   });
 });
 
+// ============================================
+// Global Error Handler
+// ============================================
+//
+// Must always be the LAST middleware.
+//
+
 app.use(errorMiddleware);
+
+// ============================================
+// Export Express App
+// ============================================
 
 module.exports = app;

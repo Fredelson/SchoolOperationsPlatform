@@ -5,76 +5,70 @@
 // ============================================
 //
 // Purpose:
-// - Register all API endpoints.
+// - Register all platform API endpoints.
 // - Keep app.js clean.
-// - Organize routes by feature/module.
-// - Provide one central place for API registration.
+// - Separate modern feature modules from
+//   legacy routes still awaiting migration.
 //
 // Architecture:
 //
+// server.js
+//      ↓
 // app.js
-//    │
-//    ▼
+//      ↓
 // routes/index.js
-//    │
-//    ├── Auth
-//    ├── Users
-//    ├── Requests
-//    ├── Printing
-//    ├── Teacher
-//    ├── Master Data
-//    ├── Lookups
-//    ├── Super Admin
-//    └── Uploads
+//      ↓
+// Feature Modules / Legacy Routes
 //
-// Notes:
-// - Do NOT place business logic here.
-// - Only register routers.
+// Rules:
+// - Register routers only.
+// - No SQL.
+// - No business logic.
+// - No middleware logic.
 // ============================================
 
 const express = require("express");
+
 const router = express.Router();
 
-// ============================================
-// AUTH MODULE
-// ============================================
+// ============================================================
+// MODERN FEATURE MODULES (Repository → Service → Controller)
+// ============================================================
 //
-// Handles:
-//
-// POST   /api/auth/login
-// GET    /api/auth/me
-//
-// This module has already been migrated to the
-// new feature-based architecture.
-//
+// These modules have already been migrated to the new
+// enterprise architecture.
+// ============================================================
 
-const authRoutes = require("../modules/auth");
-
-/**
- * Register Auth Module
- *
- * Final endpoints:
- *
- * POST /api/auth/login
- * GET  /api/auth/me
- */
-router.use("/auth", authRoutes);
-
-// ============================================
-// USER MANAGEMENT
-// ============================================
-//
-// Legacy routes.
-// These will be migrated later into:
-// modules/users
-//
-
+router.use("/auth", require("../modules/auth"));
 router.use("/users", require("../modules/users"));
+router.use("/lookups", require("../modules/lookups"));
+router.use("/assignments", require("../modules/assignments"));
+router.use("/roles", require("../modules/roles"));
+
+// ============================================================
+// SECURITY MODULES
+// ============================================================
+//
+// These will gradually migrate into modules/security.
+// ============================================================
+
+router.use("/access-levels", require("./security/accessLevelRoutes"));
+
+// ============================================================
+// USER IMPORT
+// ============================================================
+//
+// Temporary legacy endpoint.
+//
+// Planned Migration:
+// modules/users/import
+// ============================================================
+
 router.use("/admin", require("./users/userImportRoutes"));
 
-// ============================================
-// REQUEST WORKFLOW
-// ============================================
+// ============================================================
+// REQUEST WORKFLOW (Legacy)
+// ============================================================
 //
 // Teacher
 //      ↓
@@ -84,6 +78,10 @@ router.use("/admin", require("./users/userImportRoutes"));
 //      ↓
 // Printing
 //
+// Planned Migration:
+//
+// modules/requests
+// ============================================================
 
 router.use("/requests", require("./requests/requestRoutes"));
 router.use("/hod", require("./requests/hodRoutes"));
@@ -91,9 +89,14 @@ router.use("/hos", require("./requests/hosRoutes"));
 router.use("/limits", require("./requests/limitRoutes"));
 router.use("/distributions", require("./requests/distributionRoutes"));
 
-// ============================================
-// TEACHER MODULE
-// ============================================
+// ============================================================
+// TEACHER MODULE (Legacy)
+// ============================================================
+//
+// Planned Migration:
+//
+// modules/teacher
+// ============================================================
 
 router.use(
   "/teacher/dashboard",
@@ -105,40 +108,44 @@ router.use(
   require("./teacher/teacherReportRoutes")
 );
 
-// ============================================
-// PRINTING MODULE
-// ============================================
+// ============================================================
+// PRINTING MODULE (Legacy)
+// ============================================================
+//
+// Planned Migration:
+//
+// modules/printing
+// ============================================================
 
 router.use("/printing", require("./printing/printingRoutes"));
 router.use("/paper-stock", require("./printing/paperStockRoutes"));
 router.use("/purchases", require("./printing/purchaseRoutes"));
 
-// ============================================
+// ============================================================
 // FILE UPLOADS
-// ============================================
+// ============================================================
 
 router.use("/uploads", require("./uploads/uploadRoutes"));
 
-// ============================================
-// MASTER DATA
-// ============================================
+// ============================================================
+// MASTER DATA (Legacy)
+// ============================================================
+//
+// Planned Migration:
+//
+// modules/master
+// ============================================================
 
 router.use("/master", require("./master/masterRoutes"));
-router.use("/lookups", require("../modules/lookups"));
-router.use("/access-levels", require("./security/accessLevelRoutes"));
 
-// ============================================
-// Assignments
-// ============================================
-
-router.use("/assignments", require("../modules/assignments"));
-
-// ============================================
-// SUPER ADMIN
-// ============================================
+// ============================================================
+// SUPER ADMIN FOUNDATION (Legacy)
+// ============================================================
 //
-// Foundation module for the platform.
+// Planned Migration:
 //
+// modules/super-admin
+// ============================================================
 
 router.use(
   "/superadmin/dashboard",
@@ -195,8 +202,8 @@ router.use(
   require("./superadmin/auditLogRoutes")
 );
 
-// ============================================
+// ============================================================
 // EXPORT ROUTER
-// ============================================
+// ============================================================
 
 module.exports = router;

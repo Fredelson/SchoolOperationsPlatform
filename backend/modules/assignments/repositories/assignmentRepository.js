@@ -27,14 +27,8 @@ const {
   insertedId,
 } = require("../../../shared/database");
 
-
 /**
  * Gets all active assignment types.
- *
- * Used by:
- * GET /api/assignments/types
- *
- * @returns {Promise<Array>} Assignment type records.
  */
 async function getAssignmentTypes() {
   const result = await executeQuery(`
@@ -58,9 +52,6 @@ async function getAssignmentTypes() {
 
 /**
  * Gets all active assignments for a specific user.
- *
- * Used by:
- * GET /api/assignments/users/:userId
  */
 async function getUserAssignments(userId) {
   const result = await executeQuery(
@@ -116,20 +107,14 @@ async function getUserAssignments(userId) {
       AND ua.IsActive = 1
     ORDER BY ua.IsPrimary DESC, at.SortOrder ASC, at.AssignmentName ASC;
     `,
-    [
-      {
-        name: "UserId",
-        type: sql.Int,
-        value: userId,
-      },
-    ]
+    [{ name: "UserId", type: sql.Int, value: userId }]
   );
 
   return rows(result);
 }
 
 /**
- * Finds a user by ID.
+ * Finds a platform user by ID.
  */
 async function findUserById(userId) {
   const result = await executeQuery(
@@ -201,10 +186,58 @@ async function findAcademicYearById(academicYearId) {
 }
 
 /**
- * Checks whether an active assignment already exists for the same user,
- * assignment type, academic year, and exact scope.
+ * Finds an active user assignment by assignment ID.
+ *
+ * Used by:
+ * - Update assignment
+ * - Soft delete assignment
+ * - Set primary assignment
  */
-async function findDuplicateAssignment(userId, data) {
+async function findUserAssignmentById(userAssignmentId) {
+  const result = await executeQuery(
+    `
+    SELECT
+      UserAssignmentId,
+      UserId,
+      AssignmentTypeId,
+      AcademicYearId,
+      DepartmentId,
+      SectionId,
+      SubjectId,
+      YearLevelId,
+      ClassId,
+      RoomId,
+      StartDate,
+      EndDate,
+      IsPrimary,
+      IsActive,
+      CreatedBy,
+      CreatedAt,
+      UpdatedAt
+    FROM dbo.UserAssignments
+    WHERE UserAssignmentId = @UserAssignmentId
+      AND IsActive = 1;
+    `,
+    [
+      {
+        name: "UserAssignmentId",
+        type: sql.Int,
+        value: userAssignmentId,
+      },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
+ * Checks whether an active assignment already exists for the same user,
+ * assignment type, academic year, and exact assignment scope.
+ *
+ * Optional excludeUserAssignmentId is used during update so the current
+ * record does not detect itself as a duplicate.
+ */
+async function findDuplicateAssignment(userId, data, excludeUserAssignmentId = null) {
   const result = await executeQuery(
     `
     SELECT
@@ -219,7 +252,11 @@ async function findDuplicateAssignment(userId, data) {
       AND ISNULL(YearLevelId, 0) = ISNULL(@YearLevelId, 0)
       AND ISNULL(ClassId, 0) = ISNULL(@ClassId, 0)
       AND ISNULL(RoomId, 0) = ISNULL(@RoomId, 0)
-      AND IsActive = 1;
+      AND IsActive = 1
+      AND (
+        @ExcludeUserAssignmentId IS NULL
+        OR UserAssignmentId <> @ExcludeUserAssignmentId
+      );
     `,
     [
       { name: "UserId", type: sql.Int, value: userId },
@@ -231,6 +268,11 @@ async function findDuplicateAssignment(userId, data) {
       { name: "YearLevelId", type: sql.Int, value: data.yearLevelId },
       { name: "ClassId", type: sql.Int, value: data.classId },
       { name: "RoomId", type: sql.Int, value: data.roomId },
+      {
+        name: "ExcludeUserAssignmentId",
+        type: sql.Int,
+        value: excludeUserAssignmentId,
+      },
     ]
   );
 
@@ -238,12 +280,12 @@ async function findDuplicateAssignment(userId, data) {
 }
 
 /**
- * Clears previous primary assignment for the same user and assignment type.
+ * Clears all primary assignments for a user.
  *
- * Rule:
- * A user may have one primary record per assignment type.
+ * Platform Rule:
+ * A user may have many assignments, but only one primary assignment.
  */
-async function clearPrimaryAssignment(userId, assignmentTypeId) {
+async function clearPrimaryAssignment(userId) {
   await executeQuery(
     `
     UPDATE dbo.UserAssignments
@@ -251,17 +293,9 @@ async function clearPrimaryAssignment(userId, assignmentTypeId) {
       IsPrimary = 0,
       UpdatedAt = GETDATE()
     WHERE UserId = @UserId
-      AND AssignmentTypeId = @AssignmentTypeId
       AND IsActive = 1;
     `,
-    [
-      { name: "UserId", type: sql.Int, value: userId },
-      {
-        name: "AssignmentTypeId",
-        type: sql.Int,
-        value: assignmentTypeId,
-      },
-    ]
+    [{ name: "UserId", type: sql.Int, value: userId }]
   );
 }
 
@@ -331,13 +365,120 @@ async function createUserAssignment(userId, data, createdBy) {
   return insertedId(result, "UserAssignmentId");
 }
 
+/**
+ * Updates an existing active user assignment.
+ */
+async function updateUserAssignment(userAssignmentId, data) {
+  await executeQuery(
+    `
+    UPDATE dbo.UserAssignments
+    SET
+      AssignmentTypeId = @AssignmentTypeId,
+      AcademicYearId = @AcademicYearId,
+      DepartmentId = @DepartmentId,
+      SectionId = @SectionId,
+      SubjectId = @SubjectId,
+      YearLevelId = @YearLevelId,
+      ClassId = @ClassId,
+      RoomId = @RoomId,
+      StartDate = @StartDate,
+      EndDate = @EndDate,
+      IsPrimary = @IsPrimary,
+      UpdatedAt = GETDATE()
+    WHERE UserAssignmentId = @UserAssignmentId
+      AND IsActive = 1;
+    `,
+    [
+      {
+        name: "UserAssignmentId",
+        type: sql.Int,
+        value: userAssignmentId,
+      },
+      { name: "AssignmentTypeId", type: sql.Int, value: data.assignmentTypeId },
+      { name: "AcademicYearId", type: sql.Int, value: data.academicYearId },
+      { name: "DepartmentId", type: sql.Int, value: data.departmentId },
+      { name: "SectionId", type: sql.Int, value: data.sectionId },
+      { name: "SubjectId", type: sql.Int, value: data.subjectId },
+      { name: "YearLevelId", type: sql.Int, value: data.yearLevelId },
+      { name: "ClassId", type: sql.Int, value: data.classId },
+      { name: "RoomId", type: sql.Int, value: data.roomId },
+      { name: "StartDate", type: sql.Date, value: data.startDate },
+      { name: "EndDate", type: sql.Date, value: data.endDate },
+      { name: "IsPrimary", type: sql.Bit, value: data.isPrimary },
+    ]
+  );
+}
+
+/**
+ * Soft deletes an assignment.
+ *
+ * Important:
+ * This preserves assignment history and avoids breaking reports.
+ */
+async function softDeleteUserAssignment(userAssignmentId) {
+  await executeQuery(
+    `
+    UPDATE dbo.UserAssignments
+    SET
+      IsActive = 0,
+      IsPrimary = 0,
+      EndDate = ISNULL(EndDate, CAST(GETDATE() AS DATE)),
+      UpdatedAt = GETDATE()
+    WHERE UserAssignmentId = @UserAssignmentId
+      AND IsActive = 1;
+    `,
+    [
+      {
+        name: "UserAssignmentId",
+        type: sql.Int,
+        value: userAssignmentId,
+      },
+    ]
+  );
+}
+
+/**
+ * Sets one assignment as the user's primary assignment.
+ *
+ * This is done in one SQL statement so the user cannot end up with
+ * multiple primary assignments.
+ */
+async function setPrimaryUserAssignment(userId, userAssignmentId) {
+  await executeQuery(
+    `
+    UPDATE dbo.UserAssignments
+    SET
+      IsPrimary =
+        CASE
+          WHEN UserAssignmentId = @UserAssignmentId THEN 1
+          ELSE 0
+        END,
+      UpdatedAt = GETDATE()
+    WHERE UserId = @UserId
+      AND IsActive = 1;
+    `,
+    [
+      { name: "UserId", type: sql.Int, value: userId },
+      {
+        name: "UserAssignmentId",
+        type: sql.Int,
+        value: userAssignmentId,
+      },
+    ]
+  );
+}
+
 module.exports = {
   getAssignmentTypes,
   getUserAssignments,
   findUserById,
   findAssignmentTypeById,
   findAcademicYearById,
+  findUserAssignmentById,
   findDuplicateAssignment,
   clearPrimaryAssignment,
   createUserAssignment,
+  updateUserAssignment,
+  softDeleteUserAssignment,
+  setPrimaryUserAssignment,
 };
