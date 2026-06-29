@@ -5,35 +5,37 @@
 // ============================================
 //
 // Purpose:
-// Shared create/edit dialog for Module Manager.
-// Used for both adding and updating platform modules.
+// Reusable Create/Edit dialog for Module Manager.
+//
+// Phase 4A:
+// - UI only
+// - No API submit yet
 // ============================================
 
 import {
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  DialogActions,
   Grid,
-  MenuItem,
   TextField,
+  MenuItem,
 } from "@mui/material";
 
-import AppButton from "@ui/AppButton";
+import AppButton from "@platform/ui/AppButton";
 
 // ============================================
-// Constants
+// Options
 // ============================================
+
+const STATUS_OPTIONS = [
+  { value: true, label: "Active" },
+  { value: false, label: "Inactive" },
+];
 
 const VISIBILITY_OPTIONS = [
-  {
-    value: 1,
-    label: "Visible",
-  },
-  {
-    value: 2,
-    label: "Hidden",
-  },
+  { value: true, label: "Visible" },
+  { value: false, label: "Hidden" },
 ];
 
 // ============================================
@@ -43,99 +45,93 @@ const VISIBILITY_OPTIONS = [
 export default function ModuleFormDialog({
   open,
   mode = "create",
-  formData,
-  saving = false,
+  values,
   onChange,
   onClose,
-  onSave,
+  onSubmit,
 }) {
   const isEdit = mode === "edit";
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>
-        {isEdit ? "Edit Module" : "Add Module"}
+      <DialogTitle fontWeight={900}>
+        {isEdit ? "Edit Module" : "Create Module"}
       </DialogTitle>
 
       <DialogContent dividers>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{ mt: 0.5 }}>
           <Grid item xs={12} md={6}>
             <TextField
-              label="Module Key"
-              value={formData.moduleKey}
-              onChange={(event) => onChange("moduleKey", event.target.value)}
               fullWidth
-              required
-              disabled={isEdit}
-              helperText={isEdit ? "Module key cannot be changed after creation." : ""}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
               label="Module Name"
-              value={formData.moduleName}
-              onChange={(event) => onChange("moduleName", event.target.value)}
-              fullWidth
-              required
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Description"
-              value={formData.description}
-              onChange={(event) => onChange("description", event.target.value)}
-              fullWidth
-              multiline
-              minRows={3}
+              value={values.moduleName}
+              onChange={(e) => onChange("moduleName", e.target.value)}
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Icon"
-              value={formData.icon}
-              onChange={(event) => onChange("icon", event.target.value)}
               fullWidth
-              placeholder="Example: Settings, Widgets, Inventory"
+              label="Module Key"
+              value={values.moduleKey}
+              onChange={(e) => onChange("moduleKey", e.target.value)}
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
+              fullWidth
               label="Base Route"
-              value={formData.baseRoute}
-              onChange={(event) => onChange("baseRoute", event.target.value)}
-              fullWidth
-              placeholder="/super-admin/modules"
+              value={values.baseRoute}
+              onChange={(e) => onChange("baseRoute", e.target.value)}
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
-              label="Sort Order"
-              type="number"
-              value={formData.sortOrder}
-              onChange={(event) =>
-                onChange("sortOrder", Number(event.target.value))
-              }
               fullWidth
+              label="Icon"
+              value={values.icon}
+              onChange={(e) => onChange("icon", e.target.value)}
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Sort Order"
+              value={values.sortOrder}
+              onChange={(e) => onChange("sortOrder", e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
             <TextField
               select
-              label="Visibility"
-              value={formData.visibilityStatusId}
-              onChange={(event) =>
-                onChange("visibilityStatusId", Number(event.target.value))
-              }
               fullWidth
+              label="Status"
+              value={values.isActive}
+              onChange={(e) => onChange("isActive", e.target.value)}
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <MenuItem key={String(option.value)} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              select
+              fullWidth
+              label="Visibility"
+              value={values.isVisible}
+              onChange={(e) => onChange("isVisible", e.target.value)}
             >
               {VISIBILITY_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
+                <MenuItem key={String(option.value)} value={option.value}>
                   {option.label}
                 </MenuItem>
               ))}
@@ -145,11 +141,11 @@ export default function ModuleFormDialog({
       </DialogContent>
 
       <DialogActions>
-        <AppButton variant="outlined" onClick={onClose} disabled={saving}>
+        <AppButton variant="outlined" onClick={onClose}>
           Cancel
         </AppButton>
 
-        <AppButton variant="contained" onClick={onSave} loading={saving}>
+        <AppButton variant="contained" onClick={onSubmit}>
           {isEdit ? "Save Changes" : "Create Module"}
         </AppButton>
       </DialogActions>

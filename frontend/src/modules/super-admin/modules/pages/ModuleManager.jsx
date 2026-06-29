@@ -9,16 +9,15 @@
 // Provides the entry page for managing
 // platform modules.
 //
-// Phase 2 includes:
-// - Page title
-// - KPI cards
-// - Toolbar
-// - Search
-// - Status filter
-// - Visibility filter
-// - Add Module button
+// Current phase:
+// Phase 4D
+// - Create Module connected to API
+// - Edit Module connected to API
+// - Reuses ModuleFormDialog
 //
 // ============================================
+
+import { useState } from "react";
 
 import { Add } from "@mui/icons-material";
 
@@ -37,13 +36,16 @@ import {
 import usePageTitle from "@platform/hooks/usePageTitle";
 import AppButton from "@platform/ui/AppButton";
 import AppToolbar from "@platform/ui/AppToolbar";
+import AppDataTable from "@platform/ui/AppDataTable";
 
 // ============================================
 // Module Components
 // ============================================
 
 import ModuleKpiCards from "../cards/ModuleKpiCards";
+import ModuleFormDialog from "../dialogs/ModuleFormDialog";
 import { useModuleManager } from "../hooks/useModuleManager";
+import { getModuleColumns } from "../columns/moduleColumns";
 
 // ============================================
 // Filter Options
@@ -62,18 +64,67 @@ const VISIBILITY_OPTIONS = [
 ];
 
 // ============================================
+// Default Form State
+// ============================================
+
+const DEFAULT_FORM = {
+  moduleName: "",
+  moduleKey: "",
+  baseRoute: "",
+  icon: "",
+  sortOrder: 0,
+  isActive: true,
+  isVisible: true,
+};
+
+// ============================================
+// Helpers
+// ============================================
+
+function getModuleId(module) {
+  return module?.moduleId ?? module?.ModuleId;
+}
+
+function mapModuleToForm(module) {
+  return {
+    moduleName: module?.moduleName ?? module?.ModuleName ?? "",
+    moduleKey: module?.moduleKey ?? module?.ModuleKey ?? "",
+    baseRoute: module?.baseRoute ?? module?.BaseRoute ?? "",
+    icon: module?.icon ?? module?.Icon ?? "",
+    sortOrder: module?.sortOrder ?? module?.SortOrder ?? 0,
+    isActive: Boolean(module?.isActive ?? module?.IsActive),
+    isVisible: Boolean(module?.isVisible ?? module?.IsVisible),
+  };
+}
+
+function mapFormToPayload(formValues) {
+  return {
+    moduleName: formValues.moduleName,
+    moduleKey: formValues.moduleKey,
+    baseRoute: formValues.baseRoute,
+    icon: formValues.icon,
+    sortOrder: Number(formValues.sortOrder || 0),
+    isActive: Boolean(formValues.isActive),
+    isVisible: Boolean(formValues.isVisible),
+  };
+}
+
+// ============================================
 // Component
 // ============================================
 
 export default function ModuleManager() {
-  // Browser tab title
   usePageTitle("AUS | Module Manager");
 
-  // Module Manager state and actions
   const manager = useModuleManager();
 
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [formValues, setFormValues] = useState(DEFAULT_FORM);
+  const [selectedModule, setSelectedModule] = useState(null);
+
   // ==========================================
-  // Handlers
+  // Filter Handlers
   // ==========================================
 
   const handleSearchChange = (event) => {
@@ -97,11 +148,61 @@ export default function ModuleManager() {
     }));
   };
 
+  // ==========================================
+  // Dialog Handlers
+  // ==========================================
+
   const handleAddModule = () => {
-    // Phase 4:
-    // This will open the Create Module dialog.
-    console.log("Add Module");
+    setSelectedModule(null);
+    setFormMode("create");
+    setFormValues(DEFAULT_FORM);
+    setFormOpen(true);
   };
+
+  const handleEditModule = (module) => {
+    setSelectedModule(module);
+    setFormMode("edit");
+    setFormValues(mapModuleToForm(module));
+    setFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setSelectedModule(null);
+    setFormValues(DEFAULT_FORM);
+  };
+
+  const handleFormChange = (field, value) => {
+    setFormValues((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmitForm = async () => {
+    const payload = mapFormToPayload(formValues);
+
+    const result =
+      formMode === "edit"
+        ? await manager.updateModule(getModuleId(selectedModule), payload)
+        : await manager.createModule(payload);
+
+    if (result.success) {
+      handleCloseForm();
+    }
+  };
+
+  // ==========================================
+  // Table Columns
+  // ==========================================
+
+  const columns = getModuleColumns({
+    onView: (module) => console.log("View Module:", module),
+    onEdit: handleEditModule,
+    onActivate: (module) => console.log("Activate Module:", module),
+    onDeactivate: (module) => console.log("Deactivate Module:", module),
+    onDelete: (module) => console.log("Delete Module:", module),
+  });
 
   // ==========================================
   // Render
@@ -110,7 +211,6 @@ export default function ModuleManager() {
   return (
     <Box>
       <Stack spacing={3}>
-        {/* Page heading */}
         <Box>
           <Typography variant="h4" fontWeight={900}>
             Module Manager
@@ -121,10 +221,8 @@ export default function ModuleManager() {
           </Typography>
         </Box>
 
-        {/* Live KPI cards */}
         <ModuleKpiCards kpis={manager.kpis} />
 
-        {/* Phase 2 toolbar */}
         <AppToolbar
           left={
             <>
@@ -134,12 +232,7 @@ export default function ModuleManager() {
                 placeholder="Search by name or key..."
                 value={manager.filters?.search || ""}
                 onChange={handleSearchChange}
-                sx={{
-                  minWidth: {
-                    xs: "100%",
-                    sm: 260,
-                  },
-                }}
+                sx={{ minWidth: { xs: "100%", sm: 260 } }}
               />
 
               <TextField
@@ -148,12 +241,7 @@ export default function ModuleManager() {
                 label="Status"
                 value={manager.filters?.status || "all"}
                 onChange={handleStatusChange}
-                sx={{
-                  minWidth: {
-                    xs: "100%",
-                    sm: 170,
-                  },
-                }}
+                sx={{ minWidth: { xs: "100%", sm: 170 } }}
               >
                 {STATUS_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -168,12 +256,7 @@ export default function ModuleManager() {
                 label="Visibility"
                 value={manager.filters?.visibility || "all"}
                 onChange={handleVisibilityChange}
-                sx={{
-                  minWidth: {
-                    xs: "100%",
-                    sm: 180,
-                  },
-                }}
+                sx={{ minWidth: { xs: "100%", sm: 180 } }}
               >
                 {VISIBILITY_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -194,8 +277,22 @@ export default function ModuleManager() {
           }
         />
 
-        {/* Phase 3: AppDataTable will be added here */}
+        <AppDataTable
+          rows={manager.filteredModules || manager.modules || []}
+          columns={columns}
+          loading={manager.loading}
+          getRowId={(row) => row.moduleId ?? row.ModuleId}
+        />
       </Stack>
+
+      <ModuleFormDialog
+        open={formOpen}
+        mode={formMode}
+        values={formValues}
+        onChange={handleFormChange}
+        onClose={handleCloseForm}
+        onSubmit={handleSubmitForm}
+      />
     </Box>
   );
 }

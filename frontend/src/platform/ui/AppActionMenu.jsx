@@ -77,6 +77,7 @@ export default function AppActionMenu({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        disableScrollLock
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -84,6 +85,13 @@ export default function AppActionMenu({
         transformOrigin={{
           vertical: "top",
           horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            minWidth: 140,
+            borderRadius: 2,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+          },
         }}
       >
         {items.map((item, index) => (

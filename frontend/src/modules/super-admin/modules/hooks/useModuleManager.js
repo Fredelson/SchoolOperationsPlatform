@@ -7,7 +7,10 @@
 // Purpose:
 // Handles Module Manager page state,
 // live module loading, KPI calculation,
-// and Phase 2 toolbar filter state.
+// toolbar filters, and module CRUD actions.
+//
+// Architecture:
+// ModuleManager.jsx -> useModuleManager -> moduleApi
 // ============================================
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -25,6 +28,18 @@ const DEFAULT_FILTERS = {
 };
 
 // ============================================
+// Helpers
+// ============================================
+
+function getBool(row, camelKey, sqlKey) {
+  return Boolean(row?.[camelKey] ?? row?.[sqlKey]);
+}
+
+function getText(row, camelKey, sqlKey) {
+  return String(row?.[camelKey] ?? row?.[sqlKey] ?? "").toLowerCase();
+}
+
+// ============================================
 // Hook
 // ============================================
 
@@ -35,6 +50,7 @@ export function useModuleManager() {
 
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -58,10 +74,6 @@ export function useModuleManager() {
         response ||
         [];
 
-      console.log("MODULE API RESPONSE:", response);
-      console.log("FIRST MODULE:", moduleRows?.[0]);
-      console.log("MODULE COUNT:", moduleRows.length);
-
       setModules(Array.isArray(moduleRows) ? moduleRows : []);
     } catch (err) {
       console.error("Failed to load modules:", err);
@@ -73,6 +85,70 @@ export function useModuleManager() {
   }, []);
 
   // ==========================================
+  // Create Module
+  // ==========================================
+
+  const createModule = useCallback(
+    async (payload) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        await moduleApi.create(payload);
+
+        await fetchModules();
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to create module:", err);
+        setError(err);
+
+        return {
+          success: false,
+          error: err,
+        };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchModules]
+  );
+
+  // ==========================================
+  // Update Module
+  // ==========================================
+
+  const updateModule = useCallback(
+    async (moduleId, payload) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        await moduleApi.update(moduleId, payload);
+
+        await fetchModules();
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to update module:", err);
+        setError(err);
+
+        return {
+          success: false,
+          error: err,
+        };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchModules]
+  );
+
+  // ==========================================
   // Initial Load
   // ==========================================
 
@@ -81,20 +157,59 @@ export function useModuleManager() {
   }, [fetchModules]);
 
   // ==========================================
+  // Filtered Modules
+  // ==========================================
+
+  const filteredModules = useMemo(() => {
+    return modules.filter((moduleItem) => {
+      const search = filters.search.trim().toLowerCase();
+
+      const moduleName = getText(moduleItem, "moduleName", "ModuleName");
+      const moduleKey = getText(moduleItem, "moduleKey", "ModuleKey");
+      const baseRoute = getText(moduleItem, "baseRoute", "BaseRoute");
+
+      const isActive = getBool(moduleItem, "isActive", "IsActive");
+      const isVisible =
+        getBool(moduleItem, "isVisible", "IsVisible") ||
+        moduleItem?.visibilityStatusId === 1;
+
+      const matchesSearch =
+        !search ||
+        moduleName.includes(search) ||
+        moduleKey.includes(search) ||
+        baseRoute.includes(search);
+
+      const matchesStatus =
+        filters.status === "all" ||
+        (filters.status === "active" && isActive) ||
+        (filters.status === "inactive" && !isActive);
+
+      const matchesVisibility =
+        filters.visibility === "all" ||
+        (filters.visibility === "visible" && isVisible) ||
+        (filters.visibility === "hidden" && !isVisible);
+
+      return matchesSearch && matchesStatus && matchesVisibility;
+    });
+  }, [modules, filters]);
+
+  // ==========================================
   // KPI Calculation
   // ==========================================
 
   const kpis = useMemo(() => {
     const totalModules = modules.length;
 
-    const activeModules = modules.filter(
-      (moduleItem) => moduleItem.isActive === true
+    const activeModules = modules.filter((moduleItem) =>
+      getBool(moduleItem, "isActive", "IsActive")
     ).length;
 
     const inactiveModules = totalModules - activeModules;
 
     const visibleModules = modules.filter(
-      (moduleItem) => moduleItem.visibilityStatusId === 1
+      (moduleItem) =>
+        getBool(moduleItem, "isVisible", "IsVisible") ||
+        moduleItem?.visibilityStatusId === 1
     ).length;
 
     return {
@@ -111,8 +226,11 @@ export function useModuleManager() {
 
   return {
     modules,
+    filteredModules,
     kpis,
+
     loading,
+    saving,
     error,
 
     filters,
@@ -120,5 +238,8 @@ export function useModuleManager() {
 
     fetchModules,
     refreshModules: fetchModules,
+
+    createModule,
+    updateModule,
   };
 }

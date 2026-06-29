@@ -1,159 +1,134 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Module Manager Table Columns
+// Module Manager Columns
+// ============================================
+//
+// Purpose:
+// Defines reusable table columns for the Super Admin
+// Module Manager page.
+//
+// Used by:
+// ModuleManager -> AppDataTable -> moduleColumns
 // ============================================
 
-import { Stack, Typography } from "@mui/material";
+import AppChip from "@platform/ui/AppChip";
+import AppActionMenu from "@platform/ui/AppActionMenu";
 
-import EditIcon from "@mui/icons-material/Edit";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-
-import AppChip from "@ui/AppChip";
-import AppActionMenu from "@ui/AppActionMenu";
 
 // ============================================
 // Helpers
 // ============================================
 
-const getVisibilityLabel = (visibilityStatusId) => {
-  switch (Number(visibilityStatusId)) {
-    case 1:
-      return "Visible";
-    case 2:
-      return "Hidden";
-    default:
-      return "Unknown";
-  }
-};
+function getValue(row, camelKey, sqlKey, fallback = "-") {
+  return row?.[camelKey] ?? row?.[sqlKey] ?? fallback;
+}
 
-const getVisibilityColor = (visibilityStatusId) => {
-  switch (Number(visibilityStatusId)) {
-    case 1:
-      return "success";
-    case 2:
-      return "default";
-    default:
-      return "warning";
-  }
-};
+function getBooleanValue(row, camelKey, sqlKey) {
+  return Boolean(row?.[camelKey] ?? row?.[sqlKey]);
+}
 
 // ============================================
 // Columns Factory
 // ============================================
 
 export function getModuleColumns({
+  onView,
   onEdit,
-  onToggleStatus,
+  onActivate,
+  onDeactivate,
   onDelete,
-}) {
+} = {}) {
   return [
     {
-      id: "module",
-      label: "Module",
-      render: (row) => (
-        <Stack spacing={0.4}>
-          <Typography variant="body2" fontWeight={700}>
-            {row.moduleName}
-          </Typography>
+      field: "moduleName",
+      headerName: "Module Name",
+      render: (row) => getValue(row, "moduleName", "ModuleName"),
+    },
+    {
+      field: "moduleKey",
+      headerName: "Module Key",
+      render: (row) => getValue(row, "moduleKey", "ModuleKey"),
+    },
+    {
+      field: "baseRoute",
+      headerName: "Base Route",
+      render: (row) => getValue(row, "baseRoute", "BaseRoute"),
+    },
+    {
+      field: "icon",
+      headerName: "Icon",
+      render: (row) => getValue(row, "icon", "Icon"),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      render: (row) => {
+        const isActive = getBooleanValue(row, "isActive", "IsActive");
 
-          <Typography variant="caption" color="text.secondary">
-            {row.moduleKey}
-          </Typography>
-        </Stack>
-      ),
+        return (
+          <AppChip
+            label={isActive ? "Active" : "Inactive"}
+            color={isActive ? "success" : "default"}
+            size="small"
+          />
+        );
+      },
     },
     {
-      id: "baseRoute",
-      label: "Route",
-      render: (row) => (
-        <Typography variant="body2" color="text.secondary">
-          {row.baseRoute || "—"}
-        </Typography>
-      ),
+      field: "visibility",
+      headerName: "Visibility",
+      render: (row) => {
+        const isVisible = getBooleanValue(row, "isVisible", "IsVisible");
+
+        return (
+          <AppChip
+            label={isVisible ? "Visible" : "Hidden"}
+            color={isVisible ? "success" : "warning"}
+            size="small"
+          />
+        );
+      },
     },
     {
-      id: "icon",
-      label: "Icon",
-      render: (row) => (
-        <Typography variant="body2" color="text.secondary">
-          {row.icon || "—"}
-        </Typography>
-      ),
+      field: "sortOrder",
+      headerName: "Sort Order",
+      render: (row) => getValue(row, "sortOrder", "SortOrder", 0),
     },
     {
-      id: "sortOrder",
-      label: "Sort",
-      align: "center",
-      render: (row) => (
-        <Typography variant="body2">
-          {row.sortOrder ?? 0}
-        </Typography>
-      ),
-    },
-    {
-      id: "status",
-      label: "Status",
-      align: "center",
-      render: (row) => (
-        <AppChip
-          label={row.isActive ? "Active" : "Inactive"}
-          color={row.isActive ? "success" : "default"}
-          size="small"
-        />
-      ),
-    },
-    {
-      id: "visibility",
-      label: "Visibility",
-      align: "center",
-      render: (row) => (
-        <AppChip
-          label={getVisibilityLabel(row.visibilityStatusId)}
-          color={getVisibilityColor(row.visibilityStatusId)}
-          size="small"
-        />
-      ),
-    },
-    {
-      id: "protected",
-      label: "Protected",
-      align: "center",
-      render: (row) =>
-        row.isProtected ? (
-          <AppChip label="Protected" color="warning" size="small" />
-        ) : (
-          <AppChip label="Editable" color="default" size="small" />
-        ),
-    },
-    {
-      id: "actions",
-      label: "",
+      field: "actions",
+      headerName: "Actions",
       align: "right",
-      render: (row) => (
+      render: (row) => {
+        const isActive = getBooleanValue(row, "isActive", "IsActive");
+
+        return (
         <AppActionMenu
-          items={[
+            items={[
             {
-              label: "Edit",
-              icon: <EditIcon fontSize="small" />,
-              onClick: () => onEdit(row),
+                label: "View",
+                onClick: () => onView?.(row),
             },
             {
-              label: row.isActive ? "Deactivate" : "Activate",
-              icon: <PowerSettingsNewIcon fontSize="small" />,
-              onClick: () => onToggleStatus(row),
+                label: "Edit",
+                onClick: () => onEdit?.(row),
             },
             {
-              label: "Delete",
-              icon: <DeleteOutlineIcon fontSize="small" />,
-              color: "error.main",
-              disabled: row.isProtected,
-              onClick: () => onDelete(row),
+                label: isActive ? "Deactivate" : "Activate",
+                onClick: () =>
+                isActive ? onDeactivate?.(row) : onActivate?.(row),
             },
-          ]}
+            {
+                label: "Delete",
+                color: "error",
+                onClick: () => onDelete?.(row),
+            },
+            ]}
         />
-      ),
+        );
+      },
     },
   ];
 }
+
+export default getModuleColumns;
