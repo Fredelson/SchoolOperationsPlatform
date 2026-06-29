@@ -5,8 +5,8 @@
 // ============================================
 //
 // Purpose:
-// Registers public, protected, and role-based
-// application routes.
+// Registers public, protected, role-based,
+// and layout-based application routes.
 // ============================================
 
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -90,15 +90,35 @@ const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
 const printingRoles = ["PrintingAdmin", "SuperAdmin"];
 const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
 
-const platformAdminRoles = ["SuperAdmin", "PrintingAdmin", "PlatformAdmin"];
+const platformAdminRoles = [
+  "SuperAdmin",
+  "Super Admin",
+  "super-admin",
+  "PrintingAdmin",
+  "PlatformAdmin",
+];
+
+const superAdminRoles = [
+  "SuperAdmin",
+  "Super Admin",
+  "super-admin",
+];
 
 // ============================================
-// Helper: Render Layout Routes
+// Helper: Protected Layout Routes
 // ============================================
 
-const renderLayoutRoutes = (routes) =>
+const renderProtectedLayoutRoutes = (routes, allowedRoles) =>
   routes.map((route) => (
-    <Route key={route.path} path={route.path} element={route.element}>
+    <Route
+      key={route.path}
+      path={route.path}
+      element={
+        <ProtectedRoute allowedRoles={allowedRoles}>
+          {route.element}
+        </ProtectedRoute>
+      }
+    >
       {route.children?.map((child) => (
         <Route
           key={child.path || "index"}
@@ -117,23 +137,22 @@ const renderLayoutRoutes = (routes) =>
 export default function App() {
   return (
     <Routes>
-      {/* ===================================== */}
-      {/* Public Routes */}
-      {/* ===================================== */}
-
+      {/* Public */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* ===================================== */}
-      {/* Layout-Based Routes */}
-      {/* ===================================== */}
+      {/* Super Admin Layout Routes */}
+      {renderProtectedLayoutRoutes(
+        superAdminLayoutRoutes,
+        superAdminRoles
+      )}
 
-      {renderLayoutRoutes(superAdminLayoutRoutes)}
-      {renderLayoutRoutes(printingAdminLayoutRoutes)}
+      {/* Printing Admin Layout Routes */}
+      {renderProtectedLayoutRoutes(
+        printingAdminLayoutRoutes,
+        printingRoles
+      )}
 
-      {/* ===================================== */}
-      {/* Platform Foundation Routes */}
-      {/* ===================================== */}
-
+      {/* Platform Foundation */}
       <Route
         path="/system/branding"
         element={
@@ -143,10 +162,7 @@ export default function App() {
         }
       />
 
-      {/* ===================================== */}
-      {/* Teacher Routes */}
-      {/* ===================================== */}
-
+      {/* Teacher */}
       <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
 
       <Route
@@ -212,10 +228,7 @@ export default function App() {
         }
       />
 
-      {/* ===================================== */}
-      {/* HOD Routes */}
-      {/* ===================================== */}
-
+      {/* HOD */}
       <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
 
       <Route
@@ -308,10 +321,7 @@ export default function App() {
         }
       />
 
-      {/* ===================================== */}
-      {/* HOS Routes */}
-      {/* ===================================== */}
-
+      {/* HOS */}
       <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
 
       <Route
@@ -341,14 +351,8 @@ export default function App() {
         }
       />
 
-      {/* ===================================== */}
-      {/* Printing / Platform Admin Routes */}
-      {/* ===================================== */}
-
-      <Route
-        path="/printing"
-        element={<Navigate to="/printing/dashboard" replace />}
-      />
+      {/* Printing Legacy Direct Routes */}
+      <Route path="/printing" element={<Navigate to="/printing/dashboard" replace />} />
 
       <Route
         path="/printing/dashboard"
@@ -431,10 +435,7 @@ export default function App() {
         }
       />
 
-      {/* ===================================== */}
-      {/* Default / Fallback Routes */}
-      {/* ===================================== */}
-
+      {/* Default */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
