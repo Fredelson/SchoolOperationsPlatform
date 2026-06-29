@@ -18,7 +18,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 const modules = [
   { name: "Printing", status: "Active", flag: "ON" },

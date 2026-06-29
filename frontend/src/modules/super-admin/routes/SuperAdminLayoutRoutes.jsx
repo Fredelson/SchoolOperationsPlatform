@@ -28,29 +28,31 @@
 // ├── settings
 // └── future modules...
 //
+  import { Navigate } from "react-router-dom";
+
+  import ModuleGuard from "@components/permissions/ModuleGuard";
+  import { MODULES } from "@config/modules";
+
+  import PlatformLayout from "@layouts/PlatformLayout";
 // ============================================
 
-import { Navigate } from "react-router-dom";
-
-import ModuleGuard from "../../../components/permissions/ModuleGuard";
-import { MODULES } from "../../../config/modules";
-
-import PlatformLayout from "../../../platform/layout/PlatformLayout";
-
 // ============================================
-// Existing Pages
+// Feature Pages
 // ============================================
 
-import SuperAdminDashboard from "../pages/SuperAdminDashboard";
-import ModuleManager from "../pages/ModuleManager";
-import MenuManager from "../pages/MenuManager";
-import ButtonManager from "../pages/ButtonManager";
-import WidgetManager from "../pages/WidgetManager";
-import FeatureFlags from "../pages/FeatureFlags";
-import RolesManager from "../pages/RolesManager";
-import PermissionsMatrix from "../pages/PermissionsMatrix";
-import AuditLogs from "../pages/AuditLogs";
-import SystemSettings from "../pages/SystemSettings";
+import SuperAdminDashboard from "../dashboard/pages/SuperAdminDashboard";
+
+import ModuleManager from "../modules/pages/ModuleManager";
+import MenuManager from "../menus/pages/MenuManager";
+import ButtonManager from "../buttons/pages/ButtonManager";
+import WidgetManager from "../widgets/pages/WidgetManager";
+import FeatureFlags from "../feature-flags/pages/FeatureFlags";
+
+import RolesManager from "../roles/pages/RolesManager";
+import PermissionsMatrix from "../permissions/pages/PermissionsMatrix";
+
+import AuditLogs from "../audit-logs/pages/AuditLogs";
+import SystemSettings from "../settings/pages/SystemSettings";
 
 // ============================================
 // Temporary Placeholder Page

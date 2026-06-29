@@ -1,26 +1,25 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Menu Manager Page
+// Roles Manager Page
 // Phase 3 Super Admin UI Foundation
 // ============================================
 //
 // Description:
-// This page will allow Super Admin to manage
-// sidebar/menu items for the whole platform.
+// This page allows Super Admin to manage
+// platform roles and access levels.
 //
 // Responsibilities:
-// - Display platform menu items
-// - Control menu visibility
-// - Control menu order
-// - Connect menus to modules
-// - Connect menus to permissions
+// - Display system roles
+// - Show role descriptions
+// - Show active/inactive state
+// - Prepare role permission assignment
 //
 // Future Enhancements:
-// - Drag and drop menu ordering
-// - Parent/child menu grouping
-// - Icon selector
-// - Role-based menu preview
+// - Add/Edit/Delete roles
+// - Assign permissions to roles
+// - Clone role permissions
+// - Role-based dashboard preview
 //
 // ============================================
 
@@ -35,45 +34,42 @@ import {
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
-import MenuOpenOutlinedIcon from "@mui/icons-material/MenuOpenOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
-// Temporary Menu Data
+// Temporary Role Data
 // Later this will come from backend database
 // ============================================
 
-const menuItems = [
+const roles = [
   {
-    label: "Dashboard",
-    module: "SuperAdmin",
-    path: "/super-admin/dashboard",
-    status: "Visible",
-    order: 1,
+    name: "Super Admin",
+    key: "SuperAdmin",
+    description: "Full system access and platform control.",
+    status: "Active",
   },
   {
-    label: "Module Manager",
-    module: "SuperAdmin",
-    path: "/super-admin/modules",
-    status: "Visible",
-    order: 2,
+    name: "Printing Admin",
+    key: "PrintingAdmin",
+    description: "Manages printing queue, inventory, and completed jobs.",
+    status: "Active",
   },
   {
-    label: "Menu Manager",
-    module: "SuperAdmin",
-    path: "/super-admin/menus",
-    status: "Visible",
-    order: 3,
+    name: "Teacher",
+    key: "Teacher",
+    description: "Creates and tracks own photocopy requests.",
+    status: "Active",
   },
 ];
 
 // ============================================
-// Menu Manager Component
+// Roles Manager Component
 // ============================================
 
-export default function MenuManager() {
-  usePageTitle("AUS | Menu Manager");
+export default function RolesManager() {
+  usePageTitle("AUS | Roles Manager");
 
   return (
     <Box>
@@ -89,11 +85,11 @@ export default function MenuManager() {
       >
         <Box>
           <Typography variant="h4" fontWeight={900}>
-            Menu Manager
+            Roles Manager
           </Typography>
 
           <Typography variant="body2" color="text.secondary">
-            Manage sidebar menus, routes, order, visibility, and permissions.
+            Manage roles, access levels, and future permission assignments.
           </Typography>
         </Box>
 
@@ -106,15 +102,15 @@ export default function MenuManager() {
             fontWeight: 700,
           }}
         >
-          Add Menu
+          Add Role
         </Button>
       </Box>
 
-      {/* Menu List */}
+      {/* Roles List */}
       <Stack spacing={2}>
-        {menuItems.map((item) => (
+        {roles.map((role) => (
           <Card
-            key={item.path}
+            key={role.key}
             sx={{
               borderRadius: 4,
               border: "1px solid #e5e7eb",
@@ -142,33 +138,26 @@ export default function MenuManager() {
                     placeItems: "center",
                   }}
                 >
-                  <MenuOpenOutlinedIcon />
+                  <ShieldOutlinedIcon />
                 </Box>
 
                 <Box>
-                  <Typography fontWeight={900}>{item.label}</Typography>
+                  <Typography fontWeight={900}>{role.name}</Typography>
 
                   <Typography variant="body2" color="text.secondary">
-                    {item.path}
+                    {role.description}
                   </Typography>
                 </Box>
               </Box>
 
               {/* Right Section */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Chip size="small" label={`Order ${item.order}`} />
+                <Chip size="small" label={role.key} variant="outlined" />
 
                 <Chip
                   size="small"
-                  label={item.module}
-                  color="success"
-                  variant="outlined"
-                />
-
-                <Chip
-                  size="small"
-                  label={item.status}
-                  color={item.status === "Visible" ? "success" : "default"}
+                  label={role.status}
+                  color={role.status === "Active" ? "success" : "default"}
                 />
               </Box>
             </CardContent>

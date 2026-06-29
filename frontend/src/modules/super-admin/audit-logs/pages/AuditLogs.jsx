@@ -36,7 +36,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
 // Temporary Audit Log Data

@@ -22,7 +22,7 @@ import {
   AppSection,
   AppDataTable,
   AppChip,
-} from "../../../platform/ui";
+} from "@ui";
 
 export default function SuperAdminDashboard() {
   const columns = [

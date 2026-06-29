@@ -36,7 +36,7 @@ import {
 
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
 // Temporary Settings Data

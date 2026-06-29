@@ -36,7 +36,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
 // Temporary Widget Data

@@ -37,7 +37,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
 // Temporary Button Data

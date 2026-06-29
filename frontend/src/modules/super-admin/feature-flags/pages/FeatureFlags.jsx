@@ -35,7 +35,7 @@ import {
 
 import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 // ============================================
 // Temporary Feature Flag Data
