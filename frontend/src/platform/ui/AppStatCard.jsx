@@ -1,23 +1,22 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// AppStatCard
+// App Stat Card
 // ============================================
 //
 // Purpose:
-// Reusable KPI/stat card for dashboards,
-// reports, and module overview pages.
+// Single reusable KPI/stat card for platform pages.
+// Used by dashboards, module manager, menu manager,
+// user management, assets, reports, and future modules.
 // ============================================
 
 import {
-  Box,
+  Card,
+  CardContent,
   Stack,
   Typography,
-  alpha,
-  useTheme,
+  Box,
 } from "@mui/material";
-
-import AppCard from "./AppCard";
 
 // ============================================
 // Component
@@ -26,78 +25,71 @@ import AppCard from "./AppCard";
 export default function AppStatCard({
   title,
   value,
+  helperText,
   icon = null,
-  helperText = null,
-  color,
-  sx = {},
+  color = "primary.main",
 }) {
-  const theme = useTheme();
-
-  const statColor =
-    color || theme.palette.platform?.accent || theme.palette.primary.main;
-
   return (
-    <AppCard sx={sx}>
-      <Stack direction="row" spacing={2} alignItems="center">
-        {icon && (
-          <Box
-            sx={{
-              width: 54,
-              height: 54,
-              borderRadius: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: alpha(statColor, 0.12),
-              color: statColor,
-
-              "& svg": {
-                fontSize: 30,
-              },
-            }}
-          >
-            {icon}
-          </Box>
-        )}
-
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontSize: 13,
-              fontWeight: 800,
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            {title}
-          </Typography>
-
-          <Typography
-            sx={{
-              mt: 0.4,
-              fontSize: 28,
-              fontWeight: 900,
-              lineHeight: 1.1,
-              color: "text.primary",
-            }}
-          >
-            {value}
-          </Typography>
-
-          {helperText && (
+    <Card
+      elevation={0}
+      sx={{
+        height: "100%",
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <CardContent>
+        <Stack
+          direction="row"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Box>
             <Typography
+              variant="body2"
+              color="text.secondary"
+              fontWeight={600}
+            >
+              {title}
+            </Typography>
+
+            <Typography
+              variant="h4"
+              fontWeight={800}
+              sx={{ mt: 1 }}
+            >
+              {value ?? 0}
+            </Typography>
+
+            {helperText && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {helperText}
+              </Typography>
+            )}
+          </Box>
+
+          {icon && (
+            <Box
               sx={{
-                mt: 0.5,
-                fontSize: 13,
-                color: "text.secondary",
+                width: 42,
+                height: 42,
+                borderRadius: 2,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: "action.hover",
+                color,
               }}
             >
-              {helperText}
-            </Typography>
+              {icon}
+            </Box>
           )}
-        </Box>
-      </Stack>
-    </AppCard>
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }

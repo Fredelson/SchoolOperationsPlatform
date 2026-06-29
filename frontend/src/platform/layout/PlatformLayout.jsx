@@ -95,7 +95,9 @@ export default function PlatformLayout() {
             xs: 0,
             lg: `${SIDEBAR_WIDTH}px`,
           },
-          pt: `${TOPBAR_HEIGHT}px`,
+          pt: `calc(${TOPBAR_HEIGHT}px + 15px)`,
+          px: { xs: 2, md: 3 },
+          pb: { xs: 2, md: 3 },
           width: {
             xs: "100%",
             lg: `calc(100% - ${SIDEBAR_WIDTH}px)`,
@@ -104,7 +106,6 @@ export default function PlatformLayout() {
           minHeight: "100vh",
           maxWidth: "100%",
           overflowX: "hidden",
-          p: 0,
         }}
       >
         <Outlet />
