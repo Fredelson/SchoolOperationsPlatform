@@ -1,74 +1,85 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Super Admin Dashboard Page
+// Operations Platform
+// Super Admin Dashboard
+// ============================================
 //
 // Purpose:
-// Main render-only dashboard page.
-//
-// Important:
-// Dashboard data should stay inside:
-// src/modules/super-admin/data/superAdminDashboardData.jsx
+// Main dashboard for Super Admin using the
+// reusable platform UI foundation.
 // ============================================
 
-import { Box } from "@mui/material";
-
-import AllModules from "../../../components/dashboard/AllModules";
-import KpiGrid from "../../../components/common/KpiGrid";
-
-import DashboardHeader from "../../../components/layout/DashboardHeader";
-import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
-import DashboardBottomRow from "../../../components/layout/DashboardBottomRow";
+import { Grid, Stack } from "@mui/material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import PeopleIcon from "@mui/icons-material/People";
+import SecurityIcon from "@mui/icons-material/Security";
+import AppsIcon from "@mui/icons-material/Apps";
 
 import {
-  dashboardStats,
-  platformActivityData,
-  moduleStatus,
-  systemHealth,
-  recentActivities,
-  modulesOverview,
-  pendingApprovals,
-  topPrintRequests,
-  ticketStatus,
-  assetSummary,
-} from "../data/superAdminDashboardData";
-
-// ============================================
-// Component
-// ============================================
+  AppBreadcrumbs,
+  AppPageHeader,
+  AppStatCard,
+  AppSection,
+  AppDataTable,
+  AppChip,
+} from "../../../platform/ui";
 
 export default function SuperAdminDashboard() {
+  const columns = [
+    { field: "module", headerName: "Module" },
+    {
+      field: "status",
+      headerName: "Status",
+      render: (row) => <AppChip label={row.status} status={row.status} />,
+    },
+    { field: "owner", headerName: "Owner" },
+  ];
+
+  const rows = [
+    { id: 1, module: "Platform Foundation", status: "Healthy", owner: "IT Department" },
+    { id: 2, module: "Printing", status: "Active", owner: "Printing Admin" },
+    { id: 3, module: "IT Asset Management", status: "In Progress", owner: "IT Department" },
+  ];
+
   return (
-    <Box
-      sx={{
-        p: { xs: 1.5, md: 2 },
-        bgcolor: "#f8fafc",
-        minHeight: "100vh",
-      }}
-    >
-      {/* Page Header */}
-      <DashboardHeader />
-
-      {/* KPI Cards */}
-      <KpiGrid stats={dashboardStats} />
-
-      {/* Platform Analytics */}
-      <DashboardMiddleRow
-        platformActivityData={platformActivityData}
-        moduleStatusData={moduleStatus}
-        systemHealthData={systemHealth}
-        recentActivityData={recentActivities}
+    <>
+      <AppBreadcrumbs
+        items={[
+          { label: "Dashboard" },
+        ]}
       />
 
-      {/* Platform Modules */}
-      <AllModules modules={modulesOverview} />
-
-      {/* Bottom Dashboard Row */}
-      <DashboardBottomRow
-        topPrintRequests={topPrintRequests}
-        ticketStatus={ticketStatus}
-        assetSummary={assetSummary}
-        pendingApprovals={pendingApprovals}
+      <AppPageHeader
+        title="Super Admin Dashboard"
+        subtitle="Platform overview, system health, modules, permissions, and operational controls."
       />
-    </Box>
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <AppStatCard title="Users" value="70" icon={<PeopleIcon />} />
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <AppStatCard title="Modules" value="8" icon={<AppsIcon />} />
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <AppStatCard title="Security" value="Healthy" icon={<SecurityIcon />} />
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <AppStatCard title="Platform" value="Online" icon={<DashboardIcon />} />
+        </Grid>
+      </Grid>
+
+      <Stack spacing={3}>
+        <AppSection
+          title="Module Status"
+          subtitle="Current operational status of enabled platform modules."
+        >
+          <AppDataTable columns={columns} rows={rows} />
+        </AppSection>
+      </Stack>
+    </>
   );
 }

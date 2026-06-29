@@ -19,6 +19,7 @@ export default function AppToolbar({
   left = null,
   right = null,
   children = null,
+  card = false,
   sx = {},
 }) {
   return (
@@ -30,6 +31,15 @@ export default function AppToolbar({
         justifyContent: "space-between",
         gap: 2,
         flexDirection: { xs: "column", md: "row" },
+
+        ...(card && {
+          p: 2,
+          borderRadius: 3,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+        }),
+
         ...sx,
       }}
     >
@@ -42,7 +52,12 @@ export default function AppToolbar({
       </Stack>
 
       {right && (
-        <Stack direction="row" spacing={1.5}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent={{ xs: "flex-start", md: "flex-end" }}
+          flexWrap="wrap"
+        >
           {right}
         </Stack>
       )}
