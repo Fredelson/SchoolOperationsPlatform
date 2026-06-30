@@ -17,6 +17,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { moduleApi } from "../api/moduleApi";
 
+import useAppNotification from "@platform/ui/feedback/useAppNotification";
+
 // ============================================
 // Default Filters
 // ============================================
@@ -39,6 +41,10 @@ function getText(row, camelKey, sqlKey) {
   return String(row?.[camelKey] ?? row?.[sqlKey] ?? "").toLowerCase();
 }
 
+function getModuleId(moduleItem) {
+  return moduleItem?.moduleId ?? moduleItem?.ModuleId;
+}
+
 // ============================================
 // Hook
 // ============================================
@@ -54,6 +60,12 @@ export function useModuleManager() {
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+
+  // ==========================================
+  // Platform Notifications
+  // ==========================================
+
+  const notification = useAppNotification();
 
   // ==========================================
   // Load Modules
@@ -79,10 +91,12 @@ export function useModuleManager() {
       console.error("Failed to load modules:", err);
       setError(err);
       setModules([]);
+
+      notification.showError("Failed to load modules.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notification]);
 
   // ==========================================
   // Create Module
@@ -95,8 +109,9 @@ export function useModuleManager() {
         setError(null);
 
         await moduleApi.create(payload);
-
         await fetchModules();
+
+        notification.showSuccess("Module created successfully.");
 
         return {
           success: true,
@@ -104,6 +119,8 @@ export function useModuleManager() {
       } catch (err) {
         console.error("Failed to create module:", err);
         setError(err);
+
+        notification.showError("Failed to create module.");
 
         return {
           success: false,
@@ -113,7 +130,7 @@ export function useModuleManager() {
         setSaving(false);
       }
     },
-    [fetchModules]
+    [fetchModules, notification]
   );
 
   // ==========================================
@@ -127,8 +144,9 @@ export function useModuleManager() {
         setError(null);
 
         await moduleApi.update(moduleId, payload);
-
         await fetchModules();
+
+        notification.showSuccess("Module updated successfully.");
 
         return {
           success: true,
@@ -136,6 +154,8 @@ export function useModuleManager() {
       } catch (err) {
         console.error("Failed to update module:", err);
         setError(err);
+
+        notification.showError("Failed to update module.");
 
         return {
           success: false,
@@ -145,7 +165,130 @@ export function useModuleManager() {
         setSaving(false);
       }
     },
-    [fetchModules]
+    [fetchModules, notification]
+  );
+
+  // ==========================================
+  // Activate Module
+  // ==========================================
+
+  const activateModule = useCallback(
+    async (moduleItem) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const moduleId = getModuleId(moduleItem);
+
+        if (!moduleId) {
+          throw new Error("Module ID is missing.");
+        }
+
+        await moduleApi.activate(moduleId);
+        await fetchModules();
+
+        notification.showSuccess("Module activated successfully.");
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to activate module:", err);
+        setError(err);
+
+        notification.showError("Failed to activate module.");
+
+        return {
+          success: false,
+          error: err,
+        };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchModules, notification]
+  );
+
+  // ==========================================
+  // Deactivate Module
+  // ==========================================
+
+  const deactivateModule = useCallback(
+    async (moduleItem) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const moduleId = getModuleId(moduleItem);
+
+        if (!moduleId) {
+          throw new Error("Module ID is missing.");
+        }
+
+        await moduleApi.deactivate(moduleId);
+        await fetchModules();
+
+        notification.showSuccess("Module deactivated successfully.");
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to deactivate module:", err);
+        setError(err);
+
+        notification.showError("Failed to deactivate module.");
+
+        return {
+          success: false,
+          error: err,
+        };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchModules, notification]
+  );
+
+  // ==========================================
+  // Delete Module
+  // ==========================================
+
+  const deleteModule = useCallback(
+    async (moduleItem) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const moduleId = getModuleId(moduleItem);
+
+        if (!moduleId) {
+          throw new Error("Module ID is missing.");
+        }
+
+        await moduleApi.remove(moduleId);
+        await fetchModules();
+
+        notification.showSuccess("Module deleted successfully.");
+
+        return {
+          success: true,
+        };
+      } catch (err) {
+        console.error("Failed to delete module:", err);
+        setError(err);
+
+        notification.showError("Failed to delete module.");
+
+        return {
+          success: false,
+          error: err,
+        };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchModules, notification]
   );
 
   // ==========================================
@@ -241,5 +384,8 @@ export function useModuleManager() {
 
     createModule,
     updateModule,
+    activateModule,
+    deactivateModule,
+    deleteModule,
   };
 }

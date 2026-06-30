@@ -13,6 +13,7 @@
 // - Empty state
 // - Pagination
 // - Responsive
+// - Custom row ID support
 // - Reusable for every module
 //
 // ============================================
@@ -48,12 +49,18 @@ export default function AppDataTable({
   onPageChange,
   onRowsPerPageChange,
 
+  getRowId,
+
   emptyTitle = "No records found",
   emptyMessage = "There is currently no data available.",
 
   stickyHeader = false,
   maxHeight = 650,
 }) {
+  // ==========================================
+  // Loading State
+  // ==========================================
+
   if (loading) {
     return (
       <AppCard>
@@ -70,6 +77,10 @@ export default function AppDataTable({
     );
   }
 
+  // ==========================================
+  // Empty State
+  // ==========================================
+
   if (!rows.length) {
     return (
       <AppCard>
@@ -80,6 +91,10 @@ export default function AppDataTable({
       </AppCard>
     );
   }
+
+  // ==========================================
+  // Render
+  // ==========================================
 
   return (
     <AppCard noPadding>
@@ -108,20 +123,26 @@ export default function AppDataTable({
           </TableHead>
 
           <TableBody>
-            {rows.map((row, rowIndex) => (
-              <TableRow hover key={row.id ?? rowIndex}>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.field}
-                    align={column.align}
-                  >
-                    {column.render
-                      ? column.render(row)
-                      : row[column.field]}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {rows.map((row, rowIndex) => {
+              const rowId = getRowId
+                ? getRowId(row)
+                : row.id ?? row.Id ?? rowIndex;
+
+              return (
+                <TableRow hover key={rowId}>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.field}
+                      align={column.align}
+                    >
+                      {column.render
+                        ? column.render(row)
+                        : row[column.field]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

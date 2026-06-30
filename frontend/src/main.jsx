@@ -28,6 +28,8 @@ import { PermissionProvider } from "./context/PermissionContext";
 import { FeatureFlagProvider } from "./providers/FeatureFlagProvider";
 import { BrandingProvider } from "./modules/system/context/BrandingContext";
 import PlatformThemeProvider from "./theme/provider/PlatformThemeProvider";
+import { AppNotificationProvider } from "./platform/ui/feedback/AppNotificationProvider";
+
 
 import "./index.css";
 
@@ -43,7 +45,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <FeatureFlagProvider>
             <BrandingProvider>
               <PlatformThemeProvider>
-                <App />
+                <AppNotificationProvider>
+                  <App />
+                </AppNotificationProvider>
               </PlatformThemeProvider>
             </BrandingProvider>
           </FeatureFlagProvider>

@@ -10,10 +10,12 @@
 // platform modules.
 //
 // Current phase:
-// Phase 4D
-// - Create Module connected to API
-// - Edit Module connected to API
+// Phase 5
+// - Delete Module connected to API
+// - Activate / Deactivate connected to API
 // - Reuses ModuleFormDialog
+// - Reuses DeleteModuleDialog
+// - Disables row actions while saving
 //
 // ============================================
 
@@ -44,8 +46,10 @@ import AppDataTable from "@platform/ui/AppDataTable";
 
 import ModuleKpiCards from "../cards/ModuleKpiCards";
 import ModuleFormDialog from "../dialogs/ModuleFormDialog";
+import DeleteModuleDialog from "../dialogs/DeleteModuleDialog";
 import { useModuleManager } from "../hooks/useModuleManager";
 import { getModuleColumns } from "../columns/moduleColumns";
+import AppEmptyState from "@platform/ui/AppEmptyState";
 
 // ============================================
 // Filter Options
@@ -83,6 +87,10 @@ const DEFAULT_FORM = {
 
 function getModuleId(module) {
   return module?.moduleId ?? module?.ModuleId;
+}
+
+function getModuleName(module) {
+  return module?.moduleName ?? module?.ModuleName ?? "this module";
 }
 
 function mapModuleToForm(module) {
@@ -123,6 +131,9 @@ export default function ModuleManager() {
   const [formValues, setFormValues] = useState(DEFAULT_FORM);
   const [selectedModule, setSelectedModule] = useState(null);
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [moduleToDelete, setModuleToDelete] = useState(null);
+
   // ==========================================
   // Filter Handlers
   // ==========================================
@@ -149,7 +160,7 @@ export default function ModuleManager() {
   };
 
   // ==========================================
-  // Dialog Handlers
+  // Form Dialog Handlers
   // ==========================================
 
   const handleAddModule = () => {
@@ -167,6 +178,8 @@ export default function ModuleManager() {
   };
 
   const handleCloseForm = () => {
+    if (manager.saving) return;
+
     setFormOpen(false);
     setSelectedModule(null);
     setFormValues(DEFAULT_FORM);
@@ -193,15 +206,54 @@ export default function ModuleManager() {
   };
 
   // ==========================================
+  // Delete Dialog Handlers
+  // ==========================================
+
+  const handleOpenDelete = (module) => {
+    setModuleToDelete(module);
+    setDeleteOpen(true);
+  };
+
+  const handleCloseDelete = () => {
+    if (manager.saving) return;
+
+    setDeleteOpen(false);
+    setModuleToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    const result = await manager.deleteModule(moduleToDelete);
+
+    if (result.success) {
+      handleCloseDelete();
+    }
+  };
+
+  // ==========================================
+  // Activate / Deactivate Handlers
+  // ==========================================
+
+  const handleActivateModule = async (module) => {
+    await manager.activateModule(module);
+  };
+
+  const handleDeactivateModule = async (module) => {
+    await manager.deactivateModule(module);
+  };
+
+  // ==========================================
   // Table Columns
   // ==========================================
 
   const columns = getModuleColumns({
     onView: (module) => console.log("View Module:", module),
     onEdit: handleEditModule,
-    onActivate: (module) => console.log("Activate Module:", module),
-    onDeactivate: (module) => console.log("Deactivate Module:", module),
-    onDelete: (module) => console.log("Delete Module:", module),
+    onActivate: handleActivateModule,
+    onDeactivate: handleDeactivateModule,
+    onDelete: handleOpenDelete,
+
+    // Prevents duplicate row actions while create/update/delete/activate/deactivate is running.
+    disabled: manager.saving,
   });
 
   // ==========================================
@@ -232,6 +284,7 @@ export default function ModuleManager() {
                 placeholder="Search by name or key..."
                 value={manager.filters?.search || ""}
                 onChange={handleSearchChange}
+                disabled={manager.saving}
                 sx={{ minWidth: { xs: "100%", sm: 260 } }}
               />
 
@@ -241,6 +294,7 @@ export default function ModuleManager() {
                 label="Status"
                 value={manager.filters?.status || "all"}
                 onChange={handleStatusChange}
+                disabled={manager.saving}
                 sx={{ minWidth: { xs: "100%", sm: 170 } }}
               >
                 {STATUS_OPTIONS.map((option) => (
@@ -256,6 +310,7 @@ export default function ModuleManager() {
                 label="Visibility"
                 value={manager.filters?.visibility || "all"}
                 onChange={handleVisibilityChange}
+                disabled={manager.saving}
                 sx={{ minWidth: { xs: "100%", sm: 180 } }}
               >
                 {VISIBILITY_OPTIONS.map((option) => (
@@ -271,11 +326,28 @@ export default function ModuleManager() {
               variant="contained"
               startIcon={<Add />}
               onClick={handleAddModule}
+              disabled={manager.saving}
             >
               Add Module
             </AppButton>
           }
         />
+
+        {manager.error ? (
+          <AppEmptyState
+            title="Failed to load modules"
+            message="Something went wrong while loading the module list."
+            actionLabel="Retry"
+            onAction={manager.refreshModules}
+          />
+        ) : (
+          <AppDataTable
+            rows={manager.filteredModules || manager.modules || []}
+            columns={columns}
+            loading={manager.loading}
+            getRowId={(row) => row.moduleId ?? row.ModuleId}
+          />
+        )}
 
         <AppDataTable
           rows={manager.filteredModules || manager.modules || []}
@@ -289,9 +361,18 @@ export default function ModuleManager() {
         open={formOpen}
         mode={formMode}
         values={formValues}
+        loading={manager.saving}
         onChange={handleFormChange}
         onClose={handleCloseForm}
         onSubmit={handleSubmitForm}
+      />
+
+      <DeleteModuleDialog
+        open={deleteOpen}
+        moduleName={getModuleName(moduleToDelete)}
+        loading={manager.saving}
+        onCancel={handleCloseDelete}
+        onConfirm={handleConfirmDelete}
       />
     </Box>
   );

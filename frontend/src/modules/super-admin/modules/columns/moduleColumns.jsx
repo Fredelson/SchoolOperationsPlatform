@@ -15,7 +15,6 @@
 import AppChip from "@platform/ui/AppChip";
 import AppActionMenu from "@platform/ui/AppActionMenu";
 
-
 // ============================================
 // Helpers
 // ============================================
@@ -38,6 +37,7 @@ export function getModuleColumns({
   onActivate,
   onDeactivate,
   onDelete,
+  disabled = false,
 } = {}) {
   return [
     {
@@ -103,28 +103,32 @@ export function getModuleColumns({
         const isActive = getBooleanValue(row, "isActive", "IsActive");
 
         return (
-        <AppActionMenu
+          <AppActionMenu
             items={[
-            {
+              {
                 label: "View",
+                disabled,
                 onClick: () => onView?.(row),
-            },
-            {
+              },
+              {
                 label: "Edit",
+                disabled,
                 onClick: () => onEdit?.(row),
-            },
-            {
+              },
+              {
                 label: isActive ? "Deactivate" : "Activate",
+                disabled,
                 onClick: () =>
-                isActive ? onDeactivate?.(row) : onActivate?.(row),
-            },
-            {
+                  isActive ? onDeactivate?.(row) : onActivate?.(row),
+              },
+              {
                 label: "Delete",
                 color: "error",
+                disabled,
                 onClick: () => onDelete?.(row),
-            },
+              },
             ]}
-        />
+          />
         );
       },
     },

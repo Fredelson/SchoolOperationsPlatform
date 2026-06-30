@@ -5,11 +5,16 @@
 // ============================================
 //
 // Purpose:
-// Confirms module deletion using the shared
-// platform confirmation dialog.
+// Reusable confirmation dialog used by the
+// Module Manager before deleting a module.
+//
+// Architecture:
+// DeleteModuleDialog
+//        ↓
+// AppConfirmDialog
 // ============================================
 
-import AppConfirmDialog from "@ui/AppConfirmDialog";
+import AppConfirmDialog from "@platform/ui/AppConfirmDialog";
 
 // ============================================
 // Component
@@ -17,25 +22,21 @@ import AppConfirmDialog from "@ui/AppConfirmDialog";
 
 export default function DeleteModuleDialog({
   open,
-  moduleItem,
-  saving = false,
-  onClose,
+  moduleName,
+  loading = false,
+  onCancel,
   onConfirm,
 }) {
   return (
     <AppConfirmDialog
       open={open}
       title="Delete Module"
-      message={
-        moduleItem
-          ? `Are you sure you want to delete "${moduleItem.moduleName}"? This action cannot be undone.`
-          : "Are you sure you want to delete this module?"
-      }
+      message={`Are you sure you want to delete "${moduleName}"? This action cannot be undone.`}
       confirmText="Delete"
       cancelText="Cancel"
       confirmColor="error"
-      loading={saving}
-      onClose={onClose}
+      loading={loading}
+      onCancel={onCancel}
       onConfirm={onConfirm}
     />
   );
