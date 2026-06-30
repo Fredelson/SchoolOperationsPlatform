@@ -4,52 +4,22 @@
 // Super Admin
 // Module Manager
 // ============================================
-//
-// Purpose:
-// Provides the entry page for managing
-// platform modules.
-//
-// Current phase:
-// Phase 5
-// - Delete Module connected to API
-// - Activate / Deactivate connected to API
-// - Reuses ModuleFormDialog
-// - Reuses DeleteModuleDialog
-// - Disables row actions while saving
-//
-// ============================================
 
 import { useState } from "react";
-
 import { Add } from "@mui/icons-material";
-
-import {
-  Box,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-
-// ============================================
-// Platform Components
-// ============================================
+import { Box, MenuItem, Stack, TextField, Typography } from "@mui/material";
 
 import usePageTitle from "@platform/hooks/usePageTitle";
 import AppButton from "@platform/ui/AppButton";
 import AppToolbar from "@platform/ui/AppToolbar";
 import AppDataTable from "@platform/ui/AppDataTable";
-
-// ============================================
-// Module Components
-// ============================================
+import AppEmptyState from "@platform/ui/AppEmptyState";
 
 import ModuleKpiCards from "../cards/ModuleKpiCards";
 import ModuleFormDialog from "../dialogs/ModuleFormDialog";
 import DeleteModuleDialog from "../dialogs/DeleteModuleDialog";
 import { useModuleManager } from "../hooks/useModuleManager";
 import { getModuleColumns } from "../columns/moduleColumns";
-import AppEmptyState from "@platform/ui/AppEmptyState";
 
 // ============================================
 // Filter Options
@@ -78,7 +48,10 @@ const DEFAULT_FORM = {
   icon: "",
   sortOrder: 0,
   isActive: true,
-  isVisible: true,
+
+  // IMPORTANT:
+  // Form uses backend visibility status key.
+  visibilityStatusKey: "enabled",
 };
 
 // ============================================
@@ -93,6 +66,28 @@ function getModuleName(module) {
   return module?.moduleName ?? module?.ModuleName ?? "this module";
 }
 
+function normalizeKey(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getVisibilityStatusKey(module) {
+  const visibilityStatusId = Number(
+    module?.visibilityStatusId ?? module?.VisibilityStatusId
+  );
+
+  const visibilityStatusKey = normalizeKey(
+    module?.visibilityStatusKey ?? module?.VisibilityStatusKey
+  );
+
+  if (visibilityStatusId === 1) return "enabled";
+  if (visibilityStatusId === 2) return "hidden";
+
+  if (visibilityStatusKey === "enabled") return "enabled";
+  if (visibilityStatusKey === "hidden") return "hidden";
+
+  return "enabled";
+}
+
 function mapModuleToForm(module) {
   return {
     moduleName: module?.moduleName ?? module?.ModuleName ?? "",
@@ -101,14 +96,19 @@ function mapModuleToForm(module) {
     icon: module?.icon ?? module?.Icon ?? "",
     sortOrder: module?.sortOrder ?? module?.SortOrder ?? 0,
     isActive: Boolean(module?.isActive ?? module?.IsActive),
-    isVisible:
-      Boolean(module?.isVisible ?? module?.IsVisible) ||
-      module?.visibilityStatusId === 1 ||
-      module?.VisibilityStatusId === 1,
-      };
-    }
+
+    // IMPORTANT:
+    // Do not use Boolean(isVisible) because SQL visibility ID 2 means Hidden.
+    visibilityStatusKey: getVisibilityStatusKey(module),
+  };
+}
 
 function mapFormToPayload(formValues) {
+  const visibilityStatusKey =
+    normalizeKey(formValues.visibilityStatusKey) === "hidden"
+      ? "hidden"
+      : "enabled";
+
   return {
     moduleName: formValues.moduleName,
     moduleKey: formValues.moduleKey,
@@ -116,8 +116,10 @@ function mapFormToPayload(formValues) {
     icon: formValues.icon,
     sortOrder: Number(formValues.sortOrder || 0),
     isActive: Boolean(formValues.isActive),
-    isVisible: Boolean(formValues.isVisible),
-    visibilityStatusId: Boolean(formValues.isVisible) ? 1 : 2,
+
+    // Send both fields so backend can accept either format.
+    visibilityStatusKey,
+    visibilityStatusId: visibilityStatusKey === "enabled" ? 1 : 2,
   };
 }
 
@@ -255,8 +257,6 @@ export default function ModuleManager() {
     onActivate: handleActivateModule,
     onDeactivate: handleDeactivateModule,
     onDelete: handleOpenDelete,
-
-    // Prevents duplicate row actions while create/update/delete/activate/deactivate is running.
     disabled: manager.saving,
   });
 
@@ -350,11 +350,6 @@ export default function ModuleManager() {
             columns={columns}
             loading={manager.loading}
             getRowId={(row) => row.moduleId ?? row.ModuleId}
-
-            // ==========================================
-            // Server-side Pagination
-            // ==========================================
-
             page={manager.pagination.page}
             rowsPerPage={manager.pagination.rowsPerPage}
             totalRows={manager.pagination.totalRows}

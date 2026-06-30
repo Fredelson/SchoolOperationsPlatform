@@ -27,19 +27,26 @@ function getBooleanValue(row, camelKey, sqlKey) {
   return Boolean(row?.[camelKey] ?? row?.[sqlKey]);
 }
 
+function normalizeKey(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 function getVisibilityValue(row) {
-  const visibilityStatusId =
-    row?.visibilityStatusId ?? row?.VisibilityStatusId;
-
-  const visibilityStatusKey = String(
-    row?.visibilityStatusKey ?? row?.VisibilityStatusKey ?? ""
-  ).toLowerCase();
-
-  return (
-    visibilityStatusId === 1 ||
-    visibilityStatusKey === "enabled" ||
-    visibilityStatusKey === "visible"
+  const visibilityStatusId = Number(
+    row?.visibilityStatusId ?? row?.VisibilityStatusId
   );
+
+  const visibilityStatusKey = normalizeKey(
+    row?.visibilityStatusKey ?? row?.VisibilityStatusKey
+  );
+
+  if (visibilityStatusId === 1) return true;
+  if (visibilityStatusId === 2) return false;
+
+  if (visibilityStatusKey === "enabled") return true;
+  if (visibilityStatusKey === "hidden") return false;
+
+  return false;
 }
 
 // ============================================

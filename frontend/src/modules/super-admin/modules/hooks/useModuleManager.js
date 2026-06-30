@@ -51,6 +51,10 @@ function getModuleId(moduleItem) {
   return moduleItem?.moduleId ?? moduleItem?.ModuleId;
 }
 
+function normalizeKey(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 function mapStatusToIsActive(status) {
   if (status === "active") return true;
   if (status === "inactive") return false;
@@ -63,6 +67,37 @@ function mapVisibilityToStatusKey(visibility) {
   if (visibility === "hidden") return "hidden";
 
   return "";
+}
+
+// ============================================
+// Visibility Helper
+// ============================================
+//
+// IMPORTANT:
+// Do not use Boolean(visibilityStatusId).
+// SQL value 2 means Hidden, but Boolean(2) is true in JavaScript.
+// ============================================
+
+export function isModuleVisible(moduleItem) {
+  const statusId = Number(
+    moduleItem?.visibilityStatusId ?? moduleItem?.VisibilityStatusId
+  );
+
+  const statusKey = normalizeKey(
+    moduleItem?.visibilityStatusKey ?? moduleItem?.VisibilityStatusKey
+  );
+
+  if (statusId === 1) return true;
+  if (statusId === 2) return false;
+
+  if (statusKey === "enabled") return true;
+  if (statusKey === "hidden") return false;
+
+  return false;
+}
+
+export function getModuleVisibilityKey(moduleItem) {
+  return isModuleVisible(moduleItem) ? "enabled" : "hidden";
 }
 
 // ============================================
@@ -394,11 +429,8 @@ export function useModuleManager() {
 
     const inactiveModules = modules.length - activeModules;
 
-    const visibleModules = modules.filter(
-      (moduleItem) =>
-        getBool(moduleItem, "isVisible", "IsVisible") ||
-        moduleItem?.visibilityStatusId === 1 ||
-        moduleItem?.VisibilityStatusId === 1
+    const visibleModules = modules.filter((moduleItem) =>
+      isModuleVisible(moduleItem)
     ).length;
 
     return {
@@ -437,5 +469,9 @@ export function useModuleManager() {
     activateModule,
     deactivateModule,
     deleteModule,
+
+    // Visibility helpers for ModuleManager.jsx / moduleColumns.jsx
+    isModuleVisible,
+    getModuleVisibilityKey,
   };
 }

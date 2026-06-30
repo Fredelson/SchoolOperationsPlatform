@@ -1,0 +1,62 @@
+
+src\components\common\Topbar.jsx:254:          placeholder="Search..."
+src\components\common\Topbar.jsx:280:            "& input::placeholder": {
+src\components\dashboard\SubjectAnalyticsCards.jsx:10:// Temporary subject analytics data
+src\components\dialogs\RequestDetailsDialog.jsx:54:  if (!request) return null;
+src\components\dialogs\RequestDetailsDialog.jsx:416:                placeholder="Add comment before approving, returning, or rejecting..."
+src\components\dialogs\RequestDetailsDialog.jsx:742:// Small Icon Placeholder
+src\context\AuthContext.jsx:11:// Temporary Notice:
+src\context\AuthContext.jsx:47:  // Temporary Permissions
+src\context\AuthContext.jsx:68:  // Temporary Permission Loader
+src\context\PermissionContext.jsx:5:// Temporary frontend-only version.
+src\modules\printing-admin\data\printingDashboardData.jsx:6:// Temporary dashboard data for Printing Admin
+src\modules\printing-admin\pages\InventoryTransactions.jsx:141:              placeholder="Request number, remarks, user"
+src\modules\printing-admin\pages\PaperDistributions.jsx:243:                  placeholder="Type Employee ID or Name..."
+src\modules\printing-admin\routes\PrintingAdminLayoutRoutes.jsx:15:// - Real pages can replace placeholders later
+src\modules\printing-admin\routes\PrintingAdminLayoutRoutes.jsx:32:// Shared Placeholder Page
+src\modules\super-admin\audit-logs\pages\AuditLogs.jsx:42:// Temporary Audit Log Data
+src\modules\super-admin\buttons\pages\ButtonManager.jsx:43:// Temporary Button Data
+src\modules\super-admin\dashboard\data\superAdminDashboardData.jsx:6:// Temporary dashboard data until backend APIs
+src\modules\super-admin\feature-flags\pages\FeatureFlags.jsx:41:// Temporary Feature Flag Data
+src\modules\super-admin\menus\pages\MenuManager.jsx:43:// Temporary Menu Data
+src\modules\super-admin\modules\pages\ModuleManager.jsx:255:    onView: (module) => console.log("View Module:", module),
+src\modules\super-admin\modules\pages\ModuleManager.jsx:288:                placeholder="Search by name or key..."
+src\modules\super-admin\pages\SuperAdminComingSoon.jsx:7:// - Temporary reusable placeholder for planned modules
+src\modules\super-admin\pages\SuperAdminComingSoon.jsx:27:          This page is currently a placeholder. Later, this module will be
+src\modules\super-admin\permissions\pages\PermissionsMatrix.jsx:45:// Temporary Permission Matrix Data
+src\modules\super-admin\roles\pages\RolesManager.jsx:42:// Temporary Role Data
+src\modules\super-admin\routes\SuperAdminLayoutRoutes.jsx:47:// Temporary Placeholder Page
+src\modules\super-admin\settings\pages\SystemSettings.jsx:42:// Temporary Settings Data
+src\modules\super-admin\widgets\pages\WidgetManager.jsx:42:// Temporary Widget Data
+src\modules\system\components\branding\ColorPickerField.jsx:38:        placeholder="#000000"
+src\modules\teacher\pages\Attachments.jsx:278:                placeholder="Search attachments by name or request ID..."
+src\modules\teacher\pages\CreateRequest.jsx:465:      // Add temporary loading files immediately
+src\modules\teacher\pages\CreateRequest.jsx:525:      console.log("PAGE COUNT BACKEND ERROR:", err.response?.data);
+src\modules\teacher\pages\CreateRequest.jsx:660:      console.log("REQUEST PAYLOAD:", payload);
+src\modules\teacher\pages\CreateRequest.jsx:673:      console.log("Request Created:", response.data);
+src\modules\teacher\pages\CreateRequest.jsx:722:          console.log("Uploading attachment:", {
+src\modules\teacher\pages\CreateRequest.jsx:740:          console.log("UPLOAD RESPONSE:", uploadResponse.data);
+src\modules\teacher\pages\CreateRequest.jsx:755:      console.log("BACKEND ERROR:", err.response?.data);
+src\modules\teacher\pages\CreateRequest.jsx:1147:        placeholder="Add any additional information or special instructions..."
+src\modules\teacher\pages\CreateRequest.jsx:1476:                  placeholder="e.g. 1-3,5,8-10"
+src\modules\teacher\pages\MyRequests.jsx:340:              placeholder="Search request ID, purpose or subject..."
+src\modules\teacher\pages\RequestDetails.jsx:97:        console.log("REQUEST DETAILS RESPONSE:", response.data);
+src\modules\teacher\pages\TeacherDashboard.jsx:137:        console.log("Teacher Dashboard Response:", response);
+src\modules\teacher\pages\TeacherDashboard.jsx:138:        console.log("Purpose Breakdown Response:", response.purposeBreakdown);
+src\modules\teacher\pages\TeacherReports.jsx:1182:          placeholder="Search requests..."
+src\platform\buttons\ActionButton.jsx:36:  // if (!allowed) return null;
+src\platform\layout\PlatformTopbar.jsx:252:          placeholder="Search anything..."
+src\platform\layout\PlatformTopbar.jsx:256:            "& input::placeholder": {
+src\platform\navigation\sidebar\getSidebarItemsByRole.js:8:// Temporary fallback while sidebar is being moved
+src\platform\ui\AppBreadcrumbs.jsx:24:  if (!items.length) return null;
+src\platform\ui\AppSearch.jsx:26:  placeholder = "Search...",
+src\platform\ui\AppSearch.jsx:36:      placeholder={placeholder}
+src\routes\ProtectedRoute.jsx:19:  console.log("AUTH USER:", user);
+src\routes\ProtectedRoute.jsx:20:console.log("AUTH LOADING:", loading);
+src\routes\ProtectedRoute.jsx:42:    console.log("BLOCKED ROLE:", userRole);
+src\routes\ProtectedRoute.jsx:43:    console.log("ALLOWED ROLES:", allowed);
+src\routes\ProtectedRoute.jsx:44:    console.log("USER:", user);
+src\routes\ProtectedRoute.jsx:48:  console.log("NORMALIZED USER ROLE:", userRole);
+src\routes\ProtectedRoute.jsx:49:console.log("ALLOWED ROLES:", allowed);
+src\utils\sidebarPermissionFilter.js:123:      return null;
+
