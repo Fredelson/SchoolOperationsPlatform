@@ -101,9 +101,12 @@ function mapModuleToForm(module) {
     icon: module?.icon ?? module?.Icon ?? "",
     sortOrder: module?.sortOrder ?? module?.SortOrder ?? 0,
     isActive: Boolean(module?.isActive ?? module?.IsActive),
-    isVisible: Boolean(module?.isVisible ?? module?.IsVisible),
-  };
-}
+    isVisible:
+      Boolean(module?.isVisible ?? module?.IsVisible) ||
+      module?.visibilityStatusId === 1 ||
+      module?.VisibilityStatusId === 1,
+      };
+    }
 
 function mapFormToPayload(formValues) {
   return {
@@ -114,6 +117,7 @@ function mapFormToPayload(formValues) {
     sortOrder: Number(formValues.sortOrder || 0),
     isActive: Boolean(formValues.isActive),
     isVisible: Boolean(formValues.isVisible),
+    visibilityStatusId: Boolean(formValues.isVisible) ? 1 : 2,
   };
 }
 
@@ -348,13 +352,6 @@ export default function ModuleManager() {
             getRowId={(row) => row.moduleId ?? row.ModuleId}
           />
         )}
-
-        <AppDataTable
-          rows={manager.filteredModules || manager.modules || []}
-          columns={columns}
-          loading={manager.loading}
-          getRowId={(row) => row.moduleId ?? row.ModuleId}
-        />
       </Stack>
 
       <ModuleFormDialog

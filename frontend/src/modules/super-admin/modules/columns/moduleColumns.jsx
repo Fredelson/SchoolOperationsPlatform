@@ -79,8 +79,10 @@ export function getModuleColumns({
       field: "visibility",
       headerName: "Visibility",
       render: (row) => {
-        const isVisible = getBooleanValue(row, "isVisible", "IsVisible");
-
+        const isVisible =
+          getBooleanValue(row, "isVisible", "IsVisible") ||
+          row?.visibilityStatusId === 1 ||
+          row?.VisibilityStatusId === 1;
         return (
           <AppChip
             label={isVisible ? "Visible" : "Hidden"}
