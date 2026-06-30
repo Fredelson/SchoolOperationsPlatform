@@ -27,6 +27,21 @@ function getBooleanValue(row, camelKey, sqlKey) {
   return Boolean(row?.[camelKey] ?? row?.[sqlKey]);
 }
 
+function getVisibilityValue(row) {
+  const visibilityStatusId =
+    row?.visibilityStatusId ?? row?.VisibilityStatusId;
+
+  const visibilityStatusKey = String(
+    row?.visibilityStatusKey ?? row?.VisibilityStatusKey ?? ""
+  ).toLowerCase();
+
+  return (
+    visibilityStatusId === 1 ||
+    visibilityStatusKey === "enabled" ||
+    visibilityStatusKey === "visible"
+  );
+}
+
 // ============================================
 // Columns Factory
 // ============================================
@@ -79,10 +94,8 @@ export function getModuleColumns({
       field: "visibility",
       headerName: "Visibility",
       render: (row) => {
-        const isVisible =
-          getBooleanValue(row, "isVisible", "IsVisible") ||
-          row?.visibilityStatusId === 1 ||
-          row?.VisibilityStatusId === 1;
+        const isVisible = getVisibilityValue(row);
+
         return (
           <AppChip
             label={isVisible ? "Visible" : "Hidden"}
