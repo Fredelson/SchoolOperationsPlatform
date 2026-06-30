@@ -1,7 +1,8 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Super Admin Menu Manager Exports
+// Platform CRUD Exports
 // ============================================
 
-export { default as MenuManager } from "./pages/MenuManager";
+export { useCrudManager } from "./useCrudManager";
+export { default as CrudDeleteDialog } from "./CrudDeleteDialog";

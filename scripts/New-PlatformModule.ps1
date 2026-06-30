@@ -11,7 +11,7 @@ param(
     [string]$FrontendArea = "super-admin"
 )
 
-$kebabName = ($Name -replace '([a-z])([A-Z])', '$1-$2').ToLower()
+$kebabName = $Name.ToLower()
 $camelName = $Name.Substring(0,1).ToLower() + $Name.Substring(1)
 $pascalName = $Name.Substring(0,1).ToUpper() + $Name.Substring(1)
 
