@@ -71,7 +71,7 @@ import * as XLSX from "xlsx";
 import DashboardLayout from "../../../components/layout/DashboardLayout";
 import Sidebar from "../../../components/sidebar/Sidebar";
 import Topbar from "../../../components/common/Topbar";
-import usePageTitle from "../../../hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { getTeacherReportsData } from "../../../services/teacherReportService";
 import { getMasterData } from "../../../services/masterService";
