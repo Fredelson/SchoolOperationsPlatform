@@ -17,7 +17,7 @@ import LoginBrandingCard from "../components/branding/LoginBrandingCard";
 import BrandingActions from "../components/branding/BrandingActions";
 import { AppPageHeader } from "../../../platform/ui";
 import BrandingMediaCard from "../components/branding/BrandingMediaCard";
-import usePageTitle from "../../../platform/hooks/usePageTitle";
+import usePageTitle from "@platform/hooks/usePageTitle";
 
 export default function OrganizationBranding() {
   const { branding, refreshBranding } = useBranding();

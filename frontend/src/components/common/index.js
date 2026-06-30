@@ -14,7 +14,6 @@ export { default as DateFilter } from "./DateFilter";
 export { default as DepartmentFilter } from "./DepartmentFilter";
 export { default as KpiCard } from "./KpiCard";
 export { default as KpiGrid } from "./KpiGrid";
-export { default as MenuGate } from "./MenuGate";
 export { default as PageHeader } from "./PageHeader";
 export { default as StatCard } from "./StatCard";
 export { default as StatusChip } from "./StatusChip";
