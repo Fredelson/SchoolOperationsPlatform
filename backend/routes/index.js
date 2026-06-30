@@ -38,6 +38,7 @@ router.use("/permissions", require("../modules/permissions"));
 router.use("/role-permissions", require("../modules/rolePermissions"));
 router.use("/navigation", require("../modules/navigation"));
 router.use("/modules", require("../modules/modules"));
+router.use("/menus", require("../modules/menus"));
 
 router.use(
   "/user-permission-overrides",
@@ -154,7 +155,7 @@ router.use(
   require("./superadmin/userPermissionOverrideRoutes")
 );
 router.use("/superadmin/roles", require("./superadmin/roleRoutes"));
-router.use("/superadmin/menus", require("./superadmin/menuRoutes"));
+// router.use("/superadmin/menus", require("./superadmin/menuRoutes"));
 router.use("/superadmin/buttons", require("./superadmin/buttonRoutes"));
 router.use("/superadmin/widgets", require("./superadmin/widgetRoutes"));
 router.use("/superadmin/feature-flags", require("./superadmin/featureFlagRoutes"));
