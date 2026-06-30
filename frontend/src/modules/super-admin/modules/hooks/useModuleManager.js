@@ -7,7 +7,7 @@
 // Purpose:
 // Handles Module Manager page state,
 // live module loading, KPI calculation,
-// toolbar filters, and module CRUD actions.
+// toolbar filters, pagination, and module CRUD actions.
 //
 // Architecture:
 // ModuleManager.jsx -> useModuleManager -> moduleApi
@@ -30,6 +30,16 @@ const DEFAULT_FILTERS = {
 };
 
 // ============================================
+// Default Pagination
+// ============================================
+
+const DEFAULT_PAGINATION = {
+  page: 0,
+  rowsPerPage: 10,
+  totalRows: 0,
+};
+
+// ============================================
 // Helpers
 // ============================================
 
@@ -37,12 +47,22 @@ function getBool(row, camelKey, sqlKey) {
   return Boolean(row?.[camelKey] ?? row?.[sqlKey]);
 }
 
-function getText(row, camelKey, sqlKey) {
-  return String(row?.[camelKey] ?? row?.[sqlKey] ?? "").toLowerCase();
-}
-
 function getModuleId(moduleItem) {
   return moduleItem?.moduleId ?? moduleItem?.ModuleId;
+}
+
+function mapStatusToIsActive(status) {
+  if (status === "active") return true;
+  if (status === "inactive") return false;
+
+  return "";
+}
+
+function mapVisibilityToStatusKey(visibility) {
+  if (visibility === "visible") return "enabled";
+  if (visibility === "hidden") return "hidden";
+
+  return "";
 }
 
 // ============================================
@@ -60,6 +80,7 @@ export function useModuleManager() {
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
 
   // ==========================================
   // Platform Notifications
@@ -76,17 +97,34 @@ export function useModuleManager() {
       setLoading(true);
       setError(null);
 
-      const response = await moduleApi.getAll();
+      const response = await moduleApi.getAll({
+        page: pagination.page + 1,
+        pageSize: pagination.rowsPerPage,
+        search: filters.search || "",
+        isActive: mapStatusToIsActive(filters.status),
+        statusKey: mapVisibilityToStatusKey(filters.visibility),
+      });
+
+      const payload = response?.data || response;
 
       const moduleRows =
-        response?.data ||
-        response?.modules ||
-        response?.result ||
-        response?.recordset ||
-        response ||
+        payload?.items ||
+        payload?.data?.items ||
+        payload?.modules ||
+        payload?.result ||
+        payload?.recordset ||
         [];
 
       setModules(Array.isArray(moduleRows) ? moduleRows : []);
+
+      setPagination((previous) => ({
+        ...previous,
+        totalRows:
+          payload?.totalRows ??
+          payload?.data?.totalRows ??
+          moduleRows.length ??
+          0,
+      }));
     } catch (err) {
       console.error("Failed to load modules:", err);
       setError(err);
@@ -96,7 +134,51 @@ export function useModuleManager() {
     } finally {
       setLoading(false);
     }
-  }, [notification]);
+  }, [
+    filters.search,
+    filters.status,
+    filters.visibility,
+    pagination.page,
+    pagination.rowsPerPage,
+    notification,
+  ]);
+
+  // ==========================================
+  // Pagination Handlers
+  // ==========================================
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPagination((previous) => ({
+      ...previous,
+      page: newPage,
+    }));
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setPagination((previous) => ({
+      ...previous,
+      page: 0,
+      rowsPerPage: Number(event.target.value),
+    }));
+  }, []);
+
+  // ==========================================
+  // Filter Handler
+  // ==========================================
+
+  const updateFilters = useCallback((updater) => {
+    setFilters((previous) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(previous) : updater;
+
+      return nextFilters;
+    });
+
+    setPagination((previous) => ({
+      ...previous,
+      page: 0,
+    }));
+  }, []);
 
   // ==========================================
   // Create Module
@@ -300,59 +382,23 @@ export function useModuleManager() {
   }, [fetchModules]);
 
   // ==========================================
-  // Filtered Modules
-  // ==========================================
-
-  const filteredModules = useMemo(() => {
-    return modules.filter((moduleItem) => {
-      const search = filters.search.trim().toLowerCase();
-
-      const moduleName = getText(moduleItem, "moduleName", "ModuleName");
-      const moduleKey = getText(moduleItem, "moduleKey", "ModuleKey");
-      const baseRoute = getText(moduleItem, "baseRoute", "BaseRoute");
-
-      const isActive = getBool(moduleItem, "isActive", "IsActive");
-      const isVisible =
-        getBool(moduleItem, "isVisible", "IsVisible") ||
-        moduleItem?.visibilityStatusId === 1;
-
-      const matchesSearch =
-        !search ||
-        moduleName.includes(search) ||
-        moduleKey.includes(search) ||
-        baseRoute.includes(search);
-
-      const matchesStatus =
-        filters.status === "all" ||
-        (filters.status === "active" && isActive) ||
-        (filters.status === "inactive" && !isActive);
-
-      const matchesVisibility =
-        filters.visibility === "all" ||
-        (filters.visibility === "visible" && isVisible) ||
-        (filters.visibility === "hidden" && !isVisible);
-
-      return matchesSearch && matchesStatus && matchesVisibility;
-    });
-  }, [modules, filters]);
-
-  // ==========================================
   // KPI Calculation
   // ==========================================
 
   const kpis = useMemo(() => {
-    const totalModules = modules.length;
+    const totalModules = pagination.totalRows;
 
     const activeModules = modules.filter((moduleItem) =>
       getBool(moduleItem, "isActive", "IsActive")
     ).length;
 
-    const inactiveModules = totalModules - activeModules;
+    const inactiveModules = modules.length - activeModules;
 
     const visibleModules = modules.filter(
       (moduleItem) =>
         getBool(moduleItem, "isVisible", "IsVisible") ||
-        moduleItem?.visibilityStatusId === 1
+        moduleItem?.visibilityStatusId === 1 ||
+        moduleItem?.VisibilityStatusId === 1
     ).length;
 
     return {
@@ -361,7 +407,7 @@ export function useModuleManager() {
       inactiveModules,
       visibleModules,
     };
-  }, [modules]);
+  }, [modules, pagination.totalRows]);
 
   // ==========================================
   // Return API
@@ -369,7 +415,7 @@ export function useModuleManager() {
 
   return {
     modules,
-    filteredModules,
+    filteredModules: modules,
     kpis,
 
     loading,
@@ -377,7 +423,11 @@ export function useModuleManager() {
     error,
 
     filters,
-    setFilters,
+    setFilters: updateFilters,
+
+    pagination,
+    handlePageChange,
+    handleRowsPerPageChange,
 
     fetchModules,
     refreshModules: fetchModules,

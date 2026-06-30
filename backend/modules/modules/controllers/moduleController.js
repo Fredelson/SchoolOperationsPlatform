@@ -6,25 +6,50 @@
 //
 // Purpose:
 // Handles HTTP requests for the Module Manager.
-// Controllers stay thin and delegate business
-// logic to the service layer.
+//
+// Architecture:
+// Routes
+//    ↓
+// Controller
+//    ↓
+// Service
+//
+// Controllers remain thin and contain no
+// business logic.
 // ============================================
 
 const moduleService = require("../services/moduleService");
 
+// ============================================
+// Get Modules
+// ============================================
+//
+// Supports:
+//
+// Legacy
+// GET /api/modules
+//
+// Paginated
+// GET /api/modules?page=1&pageSize=10
+// ============================================
+
 const getModules = async (req, res, next) => {
   try {
-    const modules = await moduleService.getModules(req.query);
+    const result = await moduleService.getModules(req.query);
 
     return res.status(200).json({
       success: true,
       message: "Modules retrieved successfully.",
-      data: modules,
+      data: result,
     });
   } catch (error) {
     next(error);
   }
 };
+
+// ============================================
+// Get Module By Id
+// ============================================
 
 const getModuleById = async (req, res, next) => {
   try {
@@ -40,6 +65,10 @@ const getModuleById = async (req, res, next) => {
   }
 };
 
+// ============================================
+// Create Module
+// ============================================
+
 const createModule = async (req, res, next) => {
   try {
     const module = await moduleService.createModule(req.body);
@@ -54,9 +83,16 @@ const createModule = async (req, res, next) => {
   }
 };
 
+// ============================================
+// Update Module
+// ============================================
+
 const updateModule = async (req, res, next) => {
   try {
-    const module = await moduleService.updateModule(req.params.id, req.body);
+    const module = await moduleService.updateModule(
+      req.params.id,
+      req.body
+    );
 
     return res.status(200).json({
       success: true,
@@ -67,6 +103,10 @@ const updateModule = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// Activate Module
+// ============================================
 
 const activateModule = async (req, res, next) => {
   try {
@@ -82,6 +122,10 @@ const activateModule = async (req, res, next) => {
   }
 };
 
+// ============================================
+// Deactivate Module
+// ============================================
+
 const deactivateModule = async (req, res, next) => {
   try {
     const module = await moduleService.deactivateModule(req.params.id);
@@ -96,6 +140,10 @@ const deactivateModule = async (req, res, next) => {
   }
 };
 
+// ============================================
+// Delete Module
+// ============================================
+
 const deleteModule = async (req, res, next) => {
   try {
     const result = await moduleService.deleteModule(req.params.id);
@@ -109,6 +157,10 @@ const deleteModule = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getModules,

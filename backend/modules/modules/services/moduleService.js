@@ -7,6 +7,9 @@
 // Purpose:
 // Contains business rules for the platform
 // Module Registry.
+//
+// Architecture:
+// Repository -> Service -> Controller -> Routes
 // ============================================
 
 const moduleRepository = require("../repositories/moduleRepository");
@@ -16,6 +19,10 @@ const {
   PROTECTED_MODULE_KEYS,
 } = require("../constants/moduleDefaults");
 
+// ============================================
+// Helpers
+// ============================================
+
 const normalizeModuleKey = (moduleKey) => {
   return String(moduleKey || "")
     .trim()
@@ -23,18 +30,62 @@ const normalizeModuleKey = (moduleKey) => {
     .replace(/\s+/g, "_");
 };
 
+const toNullableBoolean = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  return value === "true" || value === true;
+};
+
+const hasPagination = (filters = {}) => {
+  return filters.page !== undefined || filters.pageSize !== undefined;
+};
+
+// ============================================
+// Get Modules
+// ============================================
+//
+// Purpose:
+// Supports both legacy full-list loading and
+// new server-side pagination.
+//
+// Backward compatible behavior:
+// - No page/pageSize => returns array
+// - With page/pageSize => returns paginated object
+// ============================================
+
 const getModules = async (filters = {}) => {
-  const rows = await moduleRepository.getModules({
+  const sharedFilters = {
     search: filters.search || "",
     statusKey: filters.statusKey || "",
-    isActive:
-      filters.isActive === undefined || filters.isActive === ""
-        ? null
-        : filters.isActive === "true" || filters.isActive === true,
-  });
+    isActive: toNullableBoolean(filters.isActive),
+  };
+
+  if (hasPagination(filters)) {
+    const paginatedResult = await moduleRepository.getModulesPaginated({
+      ...sharedFilters,
+      page: filters.page,
+      pageSize: filters.pageSize,
+    });
+
+    return {
+      items: mapModules(paginatedResult.items),
+      page: paginatedResult.page,
+      pageSize: paginatedResult.pageSize,
+      totalRows: paginatedResult.totalRows,
+      totalPages: paginatedResult.totalPages,
+    };
+  }
+
+  const rows = await moduleRepository.getModules(sharedFilters);
 
   return mapModules(rows);
 };
+
+// ============================================
+// Get Module By ID
+// ============================================
 
 const getModuleById = async (moduleId) => {
   const module = await moduleRepository.getModuleById(moduleId);
@@ -47,6 +98,10 @@ const getModuleById = async (moduleId) => {
 
   return mapModule(module);
 };
+
+// ============================================
+// Create Module
+// ============================================
 
 const createModule = async (payload) => {
   const moduleKey = normalizeModuleKey(payload.moduleKey);
@@ -84,6 +139,10 @@ const createModule = async (payload) => {
   return mapModule(created);
 };
 
+// ============================================
+// Update Module
+// ============================================
+
 const updateModule = async (moduleId, payload) => {
   const existing = await moduleRepository.getModuleById(moduleId);
 
@@ -111,7 +170,9 @@ const updateModule = async (moduleId, payload) => {
     baseRoute: payload.baseRoute || null,
     visibilityStatusId,
     isActive:
-      payload.isActive === undefined ? existing.IsActive : Boolean(payload.isActive),
+      payload.isActive === undefined
+        ? existing.IsActive
+        : Boolean(payload.isActive),
     sortOrder:
       payload.sortOrder === undefined
         ? existing.SortOrder
@@ -121,12 +182,20 @@ const updateModule = async (moduleId, payload) => {
   return mapModule(updated);
 };
 
+// ============================================
+// Activate Module
+// ============================================
+
 const activateModule = async (moduleId) => {
   await getModuleById(moduleId);
 
   const updated = await moduleRepository.setModuleActiveState(moduleId, true);
   return mapModule(updated);
 };
+
+// ============================================
+// Deactivate Module
+// ============================================
 
 const deactivateModule = async (moduleId) => {
   const existing = await getModuleById(moduleId);
@@ -140,6 +209,10 @@ const deactivateModule = async (moduleId) => {
   const updated = await moduleRepository.setModuleActiveState(moduleId, false);
   return mapModule(updated);
 };
+
+// ============================================
+// Delete Module
+// ============================================
 
 const deleteModule = async (moduleId) => {
   const existing = await getModuleById(moduleId);
@@ -157,6 +230,10 @@ const deleteModule = async (moduleId) => {
     moduleId,
   };
 };
+
+// ============================================
+// Exports
+// ============================================
 
 module.exports = {
   getModules,

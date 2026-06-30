@@ -3,8 +3,20 @@
 // Operations Platform
 // Module Repository
 // ============================================
+//
+// Purpose:
+// Handles SQL Server data access for the
+// platform Module Manager.
+//
+// Architecture:
+// Repository -> Service -> Controller -> Routes
+// ============================================
 
 const { sql, poolPromise } = require("../../../config/db");
+
+// ============================================
+// Base Select
+// ============================================
 
 const baseSelect = `
   SELECT
@@ -26,30 +38,129 @@ const baseSelect = `
     ON vs.VisibilityStatusId = m.VisibilityStatusId
 `;
 
-const getModules = async ({ search = "", statusKey = "", isActive = null } = {}) => {
-  const pool = await poolPromise;
+// ============================================
+// Shared Filter Clause
+// ============================================
 
-  const request = pool.request()
+const moduleFilterWhereClause = `
+  WHERE
+    (
+      @Search = '%%'
+      OR m.ModuleKey LIKE @Search
+      OR m.ModuleName LIKE @Search
+      OR m.Description LIKE @Search
+      OR m.BaseRoute LIKE @Search
+    )
+    AND (@StatusKey IS NULL OR vs.StatusKey = @StatusKey)
+    AND (@IsActive IS NULL OR m.IsActive = @IsActive)
+`;
+
+// ============================================
+// Shared Filter Inputs
+// ============================================
+
+function attachModuleFilterInputs(
+  request,
+  { search = "", statusKey = "", isActive = null } = {}
+) {
+  return request
     .input("Search", sql.NVarChar(150), `%${search}%`)
     .input("StatusKey", sql.NVarChar(50), statusKey || null)
     .input("IsActive", sql.Bit, isActive);
+}
+
+// ============================================
+// Get Modules - Full List
+// ============================================
+
+const getModules = async ({ search = "", statusKey = "", isActive = null } = {}) => {
+  const pool = await poolPromise;
+
+  const request = attachModuleFilterInputs(pool.request(), {
+    search,
+    statusKey,
+    isActive,
+  });
 
   const result = await request.query(`
     ${baseSelect}
-    WHERE
-      (
-        @Search = '%%'
-        OR m.ModuleKey LIKE @Search
-        OR m.ModuleName LIKE @Search
-        OR m.Description LIKE @Search
-      )
-      AND (@StatusKey IS NULL OR vs.StatusKey = @StatusKey)
-      AND (@IsActive IS NULL OR m.IsActive = @IsActive)
+    ${moduleFilterWhereClause}
     ORDER BY m.SortOrder ASC, m.ModuleName ASC;
   `);
 
   return result.recordset;
 };
+
+// ============================================
+// Get Modules - Paginated
+// ============================================
+
+const getModulesPaginated = async ({
+  search = "",
+  statusKey = "",
+  isActive = null,
+  page = 1,
+  pageSize = 10,
+} = {}) => {
+  const pool = await poolPromise;
+
+  const safePage = Math.max(Number(page) || 1, 1);
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 10, 1), 100);
+  const offset = (safePage - 1) * safePageSize;
+
+  // ==========================================
+  // Count total matching rows
+  // ==========================================
+
+  const countRequest = attachModuleFilterInputs(pool.request(), {
+    search,
+    statusKey,
+    isActive,
+  });
+
+  const countResult = await countRequest.query(`
+    SELECT COUNT(1) AS TotalRows
+    FROM dbo.Modules m
+    INNER JOIN dbo.FeatureVisibilityStatuses vs
+      ON vs.VisibilityStatusId = m.VisibilityStatusId
+    ${moduleFilterWhereClause};
+  `);
+
+  const totalRows = countResult.recordset[0]?.TotalRows || 0;
+  const totalPages = Math.ceil(totalRows / safePageSize);
+
+  // ==========================================
+  // Fetch current page
+  // ==========================================
+
+  const pageRequest = attachModuleFilterInputs(pool.request(), {
+    search,
+    statusKey,
+    isActive,
+  })
+    .input("Offset", sql.Int, offset)
+    .input("PageSize", sql.Int, safePageSize);
+
+  const pageResult = await pageRequest.query(`
+    ${baseSelect}
+    ${moduleFilterWhereClause}
+    ORDER BY m.SortOrder ASC, m.ModuleName ASC
+    OFFSET @Offset ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+  `);
+
+  return {
+    items: pageResult.recordset,
+    totalRows,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages,
+  };
+};
+
+// ============================================
+// Get Module By ID
+// ============================================
 
 const getModuleById = async (moduleId) => {
   const pool = await poolPromise;
@@ -64,6 +175,10 @@ const getModuleById = async (moduleId) => {
   return result.recordset[0] || null;
 };
 
+// ============================================
+// Get Module By Key
+// ============================================
+
 const getModuleByKey = async (moduleKey) => {
   const pool = await poolPromise;
 
@@ -76,6 +191,10 @@ const getModuleByKey = async (moduleKey) => {
 
   return result.recordset[0] || null;
 };
+
+// ============================================
+// Get Visibility Status ID By Key
+// ============================================
 
 const getVisibilityStatusIdByKey = async (statusKey) => {
   const pool = await poolPromise;
@@ -90,6 +209,10 @@ const getVisibilityStatusIdByKey = async (statusKey) => {
 
   return result.recordset[0]?.VisibilityStatusId || null;
 };
+
+// ============================================
+// Create Module
+// ============================================
 
 const createModule = async (payload) => {
   const pool = await poolPromise;
@@ -134,6 +257,10 @@ const createModule = async (payload) => {
   return getModuleById(result.recordset[0].ModuleId);
 };
 
+// ============================================
+// Update Module
+// ============================================
+
 const updateModule = async (moduleId, payload) => {
   const pool = await poolPromise;
 
@@ -163,6 +290,10 @@ const updateModule = async (moduleId, payload) => {
   return getModuleById(moduleId);
 };
 
+// ============================================
+// Set Module Active State
+// ============================================
+
 const setModuleActiveState = async (moduleId, isActive) => {
   const pool = await poolPromise;
 
@@ -179,6 +310,10 @@ const setModuleActiveState = async (moduleId, isActive) => {
   return getModuleById(moduleId);
 };
 
+// ============================================
+// Delete Module
+// ============================================
+
 const deleteModule = async (moduleId) => {
   const pool = await poolPromise;
 
@@ -192,8 +327,13 @@ const deleteModule = async (moduleId) => {
   return true;
 };
 
+// ============================================
+// Exports
+// ============================================
+
 module.exports = {
   getModules,
+  getModulesPaginated,
   getModuleById,
   getModuleByKey,
   getVisibilityStatusIdByKey,

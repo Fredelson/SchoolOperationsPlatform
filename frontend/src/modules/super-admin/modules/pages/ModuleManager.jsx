@@ -350,6 +350,16 @@ export default function ModuleManager() {
             columns={columns}
             loading={manager.loading}
             getRowId={(row) => row.moduleId ?? row.ModuleId}
+
+            // ==========================================
+            // Server-side Pagination
+            // ==========================================
+
+            page={manager.pagination.page}
+            rowsPerPage={manager.pagination.rowsPerPage}
+            totalRows={manager.pagination.totalRows}
+            onPageChange={manager.handlePageChange}
+            onRowsPerPageChange={manager.handleRowsPerPageChange}
           />
         )}
       </Stack>

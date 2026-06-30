@@ -3,14 +3,40 @@
 // Operations Platform
 // Module Manager API
 // ============================================
+//
+// Purpose:
+// Centralized frontend API service for the
+// Super Admin Module Manager.
+//
+// Architecture:
+// ModuleManager.jsx
+//    ↓
+// useModuleManager
+//    ↓
+// moduleApi
+//    ↓
+// Backend /modules API
+// ============================================
 
 import api from "@services/api";
 
 const BASE_URL = "/modules";
 
 export const moduleApi = {
-  getAll: async () => {
-    const response = await api.get(BASE_URL);
+  // ==========================================
+  // Get Modules
+  // ==========================================
+  //
+  // Supports both:
+  // - Legacy full list: getAll()
+  // - Paginated list: getAll({ page, pageSize, search, status, visibility })
+  // ==========================================
+
+  getAll: async (params = {}) => {
+    const response = await api.get(BASE_URL, {
+      params,
+    });
+
     return response.data;
   },
 
