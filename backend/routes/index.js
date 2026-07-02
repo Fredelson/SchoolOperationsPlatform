@@ -39,6 +39,7 @@ router.use("/role-permissions", require("../modules/rolePermissions"));
 router.use("/navigation", require("../modules/navigation"));
 router.use("/modules", require("../modules/modules"));
 router.use("/menus", require("../modules/menus"));
+router.use("/buttons", require("../modules/buttons"));
 
 router.use(
   "/user-permission-overrides",

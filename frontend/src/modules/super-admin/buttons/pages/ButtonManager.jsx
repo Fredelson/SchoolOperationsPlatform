@@ -1,175 +1,251 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Button Manager Page
-// Phase 3 Super Admin UI Foundation
+// Super Admin - Button Manager
 // ============================================
 //
-// Description:
-// This page allows Super Admin to manage
-// action buttons across the whole platform.
+// Purpose:
+// Manage backend-driven action buttons, permissions,
+// feature flags, module ownership, and visibility.
 //
-// Responsibilities:
-// - Display registered buttons/actions
-// - Connect buttons to modules
-// - Connect buttons to permissions
-// - Control button visibility
-// - Prepare future UI-based permission control
+// Architecture:
+// ButtonManager.jsx
+//    ↓
+// useButtonManager
+//    ↓
+// buttonApi
+//    ↓
+// Backend /api/buttons
 //
-// Future Enhancements:
-// - Add/Edit/Delete buttons from UI
-// - Assign buttons to roles
-// - Button order control
-// - Button preview by role
-//
+// Rules:
+// - No API calls here
+// - No duplicated CRUD logic here
+// - Page only composes hook + reusable components
 // ============================================
 
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Stack,
-  Typography,
-} from "@mui/material";
-
-import AddIcon from "@mui/icons-material/Add";
-import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
+import { useMemo } from "react";
+import { Add } from "@mui/icons-material";
+import { Box, MenuItem, Stack, TextField, Typography } from "@mui/material";
 
 import usePageTitle from "@platform/hooks/usePageTitle";
+import AppButton from "@platform/ui/AppButton";
+import AppToolbar from "@platform/ui/AppToolbar";
+import AppDataTable from "@platform/ui/AppDataTable";
+import AppEmptyState from "@platform/ui/AppEmptyState";
+
+import ButtonKPICards from "../components/ButtonKPICards";
+import ButtonDialog from "../components/ButtonDialog";
+import ButtonDeleteDialog from "../components/ButtonDeleteDialog";
+import useButtonManager from "../hooks/useButtonManager";
+import { getButtonColumns } from "../components/ButtonColumns";
 
 // ============================================
-// Temporary Button Data
-// Later this will come from backend database
+// Helpers
 // ============================================
 
-const actionButtons = [
-  {
-    name: "Create User",
-    module: "Users",
-    permission: "Users.Create",
-    status: "Active",
-  },
-  {
-    name: "Edit User",
-    module: "Users",
-    permission: "Users.Edit",
-    status: "Active",
-  },
-  {
-    name: "Delete User",
-    module: "Users",
-    permission: "Users.Delete",
-    status: "Active",
-  },
-];
+function getButtonId(row) {
+  return row?.buttonId ?? row?.ButtonId;
+}
+
+function getLookupId(row, camelKey, sqlKey) {
+  return row?.[camelKey] ?? row?.[sqlKey];
+}
+
+function getLookupName(row, camelKey, sqlKey) {
+  return row?.[camelKey] ?? row?.[sqlKey] ?? "Unknown";
+}
 
 // ============================================
-// Button Manager Component
+// Component
 // ============================================
 
 export default function ButtonManager() {
   usePageTitle("AUS | Button Manager");
 
+  const manager = useButtonManager();
+
+  // ============================================
+  // Table Columns
+  // ============================================
+
+  const columns = useMemo(
+    () =>
+      getButtonColumns({
+        onEdit: manager.openEditDialog,
+        onDelete: manager.openDeleteDialog,
+        disabled: manager.saving || manager.deleting,
+      }),
+    [
+      manager.openEditDialog,
+      manager.openDeleteDialog,
+      manager.saving,
+      manager.deleting,
+    ]
+  );
+
+  // ============================================
+  // Render
+  // ============================================
+
   return (
     <Box>
-      {/* Page Header */}
-      <Box
-        sx={{
-          mb: 3,
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 2,
-          alignItems: "center",
-        }}
-      >
+      <Stack spacing={3}>
+        {/* Page Header */}
         <Box>
           <Typography variant="h4" fontWeight={900}>
             Button Manager
           </Typography>
 
           <Typography variant="body2" color="text.secondary">
-            Manage action buttons, permissions, and visibility rules.
+            Manage backend-driven action buttons, permissions, feature flags,
+            module ownership, and visibility.
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: 700,
-          }}
-        >
-          Add Button
-        </Button>
-      </Box>
+        {/* KPI Cards */}
+        <ButtonKPICards statistics={manager.statistics} />
 
-      {/* Button Action List */}
-      <Stack spacing={2}>
-        {actionButtons.map((item) => (
-          <Card
-            key={item.permission}
-            sx={{
-              borderRadius: 4,
-              border: "1px solid #e5e7eb",
-              boxShadow: "0 14px 35px rgba(15, 23, 42, 0.06)",
-            }}
-          >
-            <CardContent
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-              }}
+        {/* Toolbar */}
+        <AppToolbar
+          left={
+            <>
+              <TextField
+                size="small"
+                label="Search Buttons"
+                placeholder="Search by name, key, module..."
+                value={manager.filters.search}
+                onChange={(event) =>
+                  manager.updateFilter("search", event.target.value)
+                }
+                disabled={manager.saving || manager.deleting}
+                sx={{ minWidth: { xs: "100%", sm: 280 } }}
+              />
+
+              <TextField
+                select
+                size="small"
+                label="Module"
+                value={manager.filters.moduleId}
+                onChange={(event) =>
+                  manager.updateFilter("moduleId", event.target.value)
+                }
+                disabled={manager.saving || manager.deleting}
+                sx={{ minWidth: { xs: "100%", sm: 220 } }}
+              >
+                <MenuItem value="">All Modules</MenuItem>
+
+                {manager.lookups.modules.map((module) => {
+                  const value = getLookupId(module, "moduleId", "ModuleId");
+                  const label = getLookupName(
+                    module,
+                    "moduleName",
+                    "ModuleName"
+                  );
+
+                  return (
+                    <MenuItem key={value} value={value}>
+                      {label}
+                    </MenuItem>
+                  );
+                })}
+              </TextField>
+
+              <TextField
+                select
+                size="small"
+                label="Visibility"
+                value={manager.filters.visibilityStatusId}
+                onChange={(event) =>
+                  manager.updateFilter(
+                    "visibilityStatusId",
+                    event.target.value
+                  )
+                }
+                disabled={manager.saving || manager.deleting}
+                sx={{ minWidth: { xs: "100%", sm: 180 } }}
+              >
+                <MenuItem value="">All Visibility</MenuItem>
+
+                {manager.lookups.visibilityStatuses.map((status) => {
+                  const value = getLookupId(
+                    status,
+                    "visibilityStatusId",
+                    "VisibilityStatusId"
+                  );
+
+                  const label = getLookupName(
+                    status,
+                    "statusName",
+                    "StatusName"
+                  );
+
+                  return (
+                    <MenuItem key={value} value={value}>
+                      {label}
+                    </MenuItem>
+                  );
+                })}
+              </TextField>
+            </>
+          }
+          right={
+            <AppButton
+              variant="contained"
+              startIcon={<Add />}
+              onClick={manager.openCreateDialog}
+              disabled={manager.saving || manager.deleting}
             >
-              {/* Left Section */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 3,
-                    bgcolor: "#ecfdf5",
-                    color: "#047857",
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <TouchAppOutlinedIcon />
-                </Box>
+              Add Button
+            </AppButton>
+          }
+        />
 
-                <Box>
-                  <Typography fontWeight={900}>{item.name}</Typography>
-
-                  <Typography variant="body2" color="text.secondary">
-                    {item.permission}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Right Section */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Chip
-                  size="small"
-                  label={item.module}
-                  color="success"
-                  variant="outlined"
-                />
-
-                <Chip
-                  size="small"
-                  label={item.status}
-                  color={item.status === "Active" ? "success" : "default"}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
+        {/* Data Table */}
+        {manager.error ? (
+          <AppEmptyState
+            title="Failed to load buttons"
+            message="Something went wrong while loading the button list."
+            actionLabel="Retry"
+            onAction={manager.refresh}
+          />
+        ) : (
+          <AppDataTable
+            rows={manager.buttons || []}
+            columns={columns}
+            loading={manager.loading}
+            getRowId={(row) => getButtonId(row)}
+            page={(manager.pagination.page || 1) - 1}
+            rowsPerPage={manager.pagination.pageSize || 10}
+            totalRows={manager.pagination.totalCount || 0}
+            onPageChange={(event, newPage) => {
+              manager.changePage(Number(newPage) + 1);
+            }}
+            onRowsPerPageChange={(event) => {
+              manager.changePageSize(Number(event.target.value));
+            }}
+          />
+        )}
       </Stack>
+
+      {/* Create / Edit Dialog */}
+      <ButtonDialog
+        open={manager.dialogState.open}
+        mode={manager.dialogState.mode}
+        button={manager.dialogState.selectedButton}
+        lookups={manager.lookups}
+        loading={manager.saving}
+        onClose={manager.closeDialog}
+        onSave={manager.saveButton}
+      />
+
+      {/* Delete Dialog */}
+      <ButtonDeleteDialog
+        open={manager.deleteState.open}
+        button={manager.deleteState.selectedButton}
+        loading={manager.deleting}
+        onClose={manager.closeDeleteDialog}
+        onConfirm={manager.confirmDeleteButton}
+      />
     </Box>
   );
 }
