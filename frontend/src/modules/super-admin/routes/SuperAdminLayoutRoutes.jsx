@@ -7,14 +7,20 @@
 // Purpose:
 // Central route configuration for all Super Admin pages.
 //
-// Important:
-// App.jsx already protects the full /super-admin route
-// using ProtectedRoute, so this file should only handle
-// layout and nested page registration.
+// Flow:
+// App.jsx
+//   ↓
+// ProtectedRoute
+//   ↓
+// SuperAdminLayoutRoutes
+//   ↓
+// PlatformLayout
+//   ↓
+// Child Pages
 //
-// ModuleGuard is temporarily removed here to prevent
-// incorrect redirects while backend permission/module
-// resolver wiring is still being finalized.
+// Important:
+// App.jsx already protects /super-admin.
+// This file only registers layout + nested pages.
 // ============================================
 
 import { Navigate } from "react-router-dom";
@@ -26,10 +32,14 @@ import { Navigate } from "react-router-dom";
 import PlatformLayout from "@layouts/PlatformLayout";
 
 // ============================================
-// Feature Pages
+// Super Admin Dashboard
 // ============================================
 
 import SuperAdminDashboard from "../dashboard/pages/SuperAdminDashboard";
+
+// ============================================
+// Platform Administration Pages
+// ============================================
 
 import ModuleManager from "../modules/pages/ModuleManager";
 import MenuManager from "../menus/pages/MenuManager";
@@ -37,8 +47,16 @@ import ButtonManager from "../buttons/pages/ButtonManager";
 import WidgetManager from "../widgets/pages/WidgetManager";
 import FeatureFlags from "../feature-flags/pages/FeatureFlags";
 
+// ============================================
+// Security & Access Pages
+// ============================================
+
 import RolesManager from "../roles/pages/RolesManager";
 import PermissionsMatrix from "../permissions/pages/PermissionsMatrix";
+
+// ============================================
+// Monitoring & System Pages
+// ============================================
 
 import AuditLogs from "../audit-logs/pages/AuditLogs";
 import SystemSettings from "../settings/pages/SystemSettings";
@@ -55,37 +73,23 @@ import SuperAdminComingSoon from "../pages/SuperAdminComingSoon";
 
 const superAdminLayoutRoutes = [
   {
-    // Parent route:
-    // All child routes render inside PlatformLayout through <Outlet />.
     path: "/super-admin",
-
-    // ProtectedRoute is applied in App.jsx.
-    // Keep this layout clean and focused only on rendering.
     element: <PlatformLayout />,
 
     children: [
-      // ======================================
-      // Default Redirect
-      // ======================================
-
+      // Default redirect
       {
         index: true,
         element: <Navigate to="/super-admin/dashboard" replace />,
       },
 
-      // ======================================
       // Dashboard
-      // ======================================
-
       {
         path: "dashboard",
         element: <SuperAdminDashboard />,
       },
 
-      // ======================================
       // Platform Administration
-      // ======================================
-
       {
         path: "modules",
         element: <ModuleManager />,
@@ -107,10 +111,7 @@ const superAdminLayoutRoutes = [
         element: <FeatureFlags />,
       },
 
-      // ======================================
       // Security & Access
-      // ======================================
-
       {
         path: "users",
         element: <SuperAdminComingSoon title="User Management" />,
@@ -128,10 +129,7 @@ const superAdminLayoutRoutes = [
         element: <PermissionsMatrix />,
       },
 
-      // ======================================
       // Operations Modules
-      // ======================================
-
       {
         path: "printing",
         element: <SuperAdminComingSoon title="Printing Management" />,
@@ -169,10 +167,7 @@ const superAdminLayoutRoutes = [
         element: <SuperAdminComingSoon title="HR Management" />,
       },
 
-      // ======================================
       // Monitoring
-      // ======================================
-
       {
         path: "audit-logs",
         element: <AuditLogs />,
@@ -182,10 +177,7 @@ const superAdminLayoutRoutes = [
         element: <SuperAdminComingSoon title="Activity Logs" />,
       },
 
-      // ======================================
       // System Control
-      // ======================================
-
       {
         path: "settings",
         element: <SystemSettings />,
