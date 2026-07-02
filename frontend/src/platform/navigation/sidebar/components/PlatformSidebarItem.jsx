@@ -23,7 +23,6 @@ import {
 
 import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -77,17 +76,19 @@ export default function PlatformSidebarItem({
             },
           }}
         >
-          <ListItemIcon
-            sx={{
-              color: "inherit",
-              minWidth: level === 0 ? 44 : 32,
-              "& svg": {
-                fontSize: level === 0 ? 21 : 9,
-              },
-            }}
-          >
-            {item.icon || <FiberManualRecordIcon />}
-          </ListItemIcon>
+          {item.icon && (
+            <ListItemIcon
+              sx={{
+                color: "inherit",
+                minWidth: level === 0 ? 44 : 32,
+                "& svg": {
+                  fontSize: level === 0 ? 21 : 16,
+                },
+              }}
+            >
+              {item.icon}
+            </ListItemIcon>
+          )}
 
           <ListItemText
             primary={item.label}
@@ -166,17 +167,19 @@ export default function PlatformSidebarItem({
         },
       }}
     >
-      <ListItemIcon
-        sx={{
-          color: "inherit",
-          minWidth: level === 0 ? 44 : 32,
-          "& svg": {
-            fontSize: level === 0 ? 21 : 9,
-          },
-        }}
-      >
-        {item.icon || <FiberManualRecordIcon />}
-      </ListItemIcon>
+      {item.icon && (
+        <ListItemIcon
+          sx={{
+            color: "inherit",
+            minWidth: level === 0 ? 44 : 32,
+            "& svg": {
+              fontSize: level === 0 ? 21 : 16,
+            },
+          }}
+        >
+          {item.icon}
+        </ListItemIcon>
+      )}
 
       <ListItemText
         primary={item.label}
