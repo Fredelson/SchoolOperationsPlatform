@@ -1,8 +1,19 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Super Admin
-// Menu Manager
+// Super Admin - Menu Manager
+// ============================================
+//
+// Purpose:
+// Manage backend-driven sidebar menus, routes,
+// visibility, permissions, feature flags, and hierarchy.
+//
+// Architecture:
+// MenuManager.jsx -> useMenuManager -> menuApi
+//
+// Important:
+// Form state is now fully owned by useMenuManager.
+// Do not create separate local formOpen/formValues state here.
 // ============================================
 
 import { useState } from "react";
@@ -19,7 +30,11 @@ import { CrudDeleteDialog } from "@platform/crud";
 
 import MenuKpiCards from "../cards/MenuKpiCards";
 import MenuFormDialog from "../dialogs/MenuFormDialog";
-import { useMenuManager, getMenuId, getMenuVisibilityKey } from "../hooks/useMenuManager";
+import {
+  useMenuManager,
+  getMenuId,
+  getMenuVisibilityKey,
+} from "../hooks/useMenuManager";
 import { getMenuColumns } from "../columns/menuColumns";
 
 // ============================================
@@ -28,30 +43,10 @@ import { getMenuColumns } from "../columns/menuColumns";
 
 const VISIBILITY_OPTIONS = [
   { value: "all", label: "All Visibility" },
-  { value: "visible", label: "Visible" },
-  { value: "hidden", label: "Hidden" },
+  { value: "Enabled", label: "Enabled" },
+  { value: "Hidden", label: "Hidden" },
+  { value: "Disabled", label: "Disabled" },
 ];
-
-// ============================================
-// Default Form State
-// ============================================
-
-const DEFAULT_FORM = {
-  workspaceId: "",
-  moduleId: "",
-  parentMenuId: "",
-  menuName: "",
-  menuKey: "",
-  route: "",
-  icon: "",
-  permissionId: "",
-  featureFlagId: "",
-  badgeQueryKey: "",
-  visibilityStatusKey: "enabled",
-  isPinned: false,
-  isCollapsible: false,
-  sortOrder: 0,
-};
 
 // ============================================
 // Helpers
@@ -65,48 +60,6 @@ function getMenuName(menu) {
   return getValue(menu, "menuName", "MenuName", "this menu");
 }
 
-function mapMenuToForm(menu) {
-  return {
-    workspaceId: getValue(menu, "workspaceId", "WorkspaceId", ""),
-    moduleId: getValue(menu, "moduleId", "ModuleId", ""),
-    parentMenuId: getValue(menu, "parentMenuId", "ParentMenuId", ""),
-    menuName: getValue(menu, "menuName", "MenuName", ""),
-    menuKey: getValue(menu, "menuKey", "MenuKey", ""),
-    route: getValue(menu, "route", "Route", ""),
-    icon: getValue(menu, "icon", "Icon", ""),
-    permissionId: getValue(menu, "permissionId", "PermissionId", ""),
-    featureFlagId: getValue(menu, "featureFlagId", "FeatureFlagId", ""),
-    badgeQueryKey: getValue(menu, "badgeQueryKey", "BadgeQueryKey", ""),
-    visibilityStatusKey: getMenuVisibilityKey(menu),
-    isPinned: Boolean(getValue(menu, "isPinned", "IsPinned", false)),
-    isCollapsible: Boolean(getValue(menu, "isCollapsible", "IsCollapsible", false)),
-    sortOrder: getValue(menu, "sortOrder", "SortOrder", 0),
-  };
-}
-
-function emptyToNull(value) {
-  return value === "" || value === undefined ? null : value;
-}
-
-function mapFormToPayload(formValues) {
-  return {
-    workspaceId: emptyToNull(formValues.workspaceId),
-    moduleId: Number(formValues.moduleId),
-    parentMenuId: emptyToNull(formValues.parentMenuId),
-    menuName: formValues.menuName,
-    menuKey: formValues.menuKey,
-    route: formValues.route || null,
-    icon: formValues.icon || null,
-    permissionId: emptyToNull(formValues.permissionId),
-    featureFlagId: emptyToNull(formValues.featureFlagId),
-    badgeQueryKey: formValues.badgeQueryKey || null,
-    visibilityStatusKey: formValues.visibilityStatusKey || "enabled",
-    isPinned: Boolean(formValues.isPinned),
-    isCollapsible: Boolean(formValues.isCollapsible),
-    sortOrder: Number(formValues.sortOrder || 0),
-  };
-}
-
 // ============================================
 // Component
 // ============================================
@@ -114,12 +67,28 @@ function mapFormToPayload(formValues) {
 export default function MenuManager() {
   usePageTitle("AUS | Menu Manager");
 
+  // ==========================================
+  // Hook State
+  // ==========================================
+  //
+  // useMenuManager owns:
+  // - menu rows
+  // - loading/saving
+  // - filters
+  // - pagination
+  // - create/edit dialog state
+  // - delete actions
+  // ==========================================
+
   const manager = useMenuManager();
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState("create");
-  const [formValues, setFormValues] = useState(DEFAULT_FORM);
-  const [selectedMenu, setSelectedMenu] = useState(null);
+  // ==========================================
+  // Delete Dialog State
+  // ==========================================
+  //
+  // Delete dialog can stay local because it only
+  // tracks which row is being confirmed for delete.
+  // ==========================================
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState(null);
@@ -129,17 +98,11 @@ export default function MenuManager() {
   // ==========================================
 
   const handleSearchChange = (event) => {
-    manager.setFilters((previous) => ({
-      ...previous,
-      search: event.target.value,
-    }));
+    manager.handleFilterChange("search", event.target.value);
   };
 
   const handleVisibilityChange = (event) => {
-    manager.setFilters((previous) => ({
-      ...previous,
-      visibility: event.target.value,
-    }));
+    manager.handleFilterChange("visibility", event.target.value);
   };
 
   // ==========================================
@@ -147,45 +110,15 @@ export default function MenuManager() {
   // ==========================================
 
   const handleAddMenu = () => {
-    setSelectedMenu(null);
-    setFormMode("create");
-    setFormValues(DEFAULT_FORM);
-    setFormOpen(true);
+    manager.openCreateDialog();
   };
 
   const handleEditMenu = (menu) => {
-    setSelectedMenu(menu);
-    setFormMode("edit");
-    setFormValues(mapMenuToForm(menu));
-    setFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    if (manager.saving) return;
-
-    setFormOpen(false);
-    setSelectedMenu(null);
-    setFormValues(DEFAULT_FORM);
-  };
-
-  const handleFormChange = (field, value) => {
-    setFormValues((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    manager.openEditDialog(menu);
   };
 
   const handleSubmitForm = async () => {
-    const payload = mapFormToPayload(formValues);
-
-    const result =
-      formMode === "edit"
-        ? await manager.updateMenu(selectedMenu, payload)
-        : await manager.createMenu(payload);
-
-    if (result.success) {
-      handleCloseForm();
-    }
+    await manager.submitForm();
   };
 
   // ==========================================
@@ -207,7 +140,7 @@ export default function MenuManager() {
   const handleConfirmDelete = async () => {
     const result = await manager.deleteMenu(menuToDelete);
 
-    if (result.success) {
+    if (result?.success) {
       handleCloseDelete();
     }
   };
@@ -215,13 +148,21 @@ export default function MenuManager() {
   // ==========================================
   // Visibility Handlers
   // ==========================================
+  //
+  // These are placeholders until show/hide actions
+  // are fully added to useMenuManager.
+  // ==========================================
 
   const handleShowMenu = async (menu) => {
-    await manager.showMenu(menu);
+    if (manager.showMenu) {
+      await manager.showMenu(menu);
+    }
   };
 
   const handleHideMenu = async (menu) => {
-    await manager.hideMenu(menu);
+    if (manager.hideMenu) {
+      await manager.hideMenu(menu);
+    }
   };
 
   // ==========================================
@@ -234,6 +175,7 @@ export default function MenuManager() {
     onHide: handleHideMenu,
     onDelete: handleOpenDelete,
     disabled: manager.saving,
+    getVisibilityKey: getMenuVisibilityKey,
   });
 
   // ==========================================
@@ -243,18 +185,22 @@ export default function MenuManager() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* Page Header */}
         <Box>
           <Typography variant="h4" fontWeight={900}>
             Menu Manager
           </Typography>
 
           <Typography variant="body2" color="text.secondary">
-            Manage backend-driven sidebar menus, routes, visibility, and access links.
+            Manage backend-driven sidebar menus, routes, visibility, and access
+            links.
           </Typography>
         </Box>
 
+        {/* KPI Cards */}
         <MenuKpiCards kpis={manager.kpis} />
 
+        {/* Toolbar */}
         <AppToolbar
           left={
             <>
@@ -297,38 +243,46 @@ export default function MenuManager() {
           }
         />
 
+        {/* Data Table */}
         {manager.error ? (
           <AppEmptyState
             title="Failed to load menus"
             message="Something went wrong while loading the menu list."
             actionLabel="Retry"
-            onAction={manager.refreshMenus}
+            onAction={manager.fetchMenus}
           />
         ) : (
           <AppDataTable
-            rows={manager.filteredMenus || manager.menus || []}
+            rows={manager.menus || []}
             columns={columns}
             loading={manager.loading}
             getRowId={(row) => getMenuId(row)}
-            page={manager.pagination.page}
-            rowsPerPage={manager.pagination.rowsPerPage}
-            totalRows={manager.pagination.totalRows}
-            onPageChange={manager.handlePageChange}
-            onRowsPerPageChange={manager.handleRowsPerPageChange}
+            page={(manager.pagination?.page || 1) - 1}
+            rowsPerPage={manager.pagination?.pageSize || 10}
+            totalRows={manager.pagination?.totalRecords || 0}
+            onPageChange={(event, newPage) => {
+              manager.setPage(Number(newPage) + 1);
+            }}
+            onRowsPerPageChange={(event) => {
+              manager.setPageSize(Number(event.target.value));
+              manager.setPage(1);
+            }}
           />
         )}
       </Stack>
 
+      {/* Create/Edit Dialog */}
       <MenuFormDialog
-        open={formOpen}
-        mode={formMode}
-        values={formValues}
+        open={manager.formOpen}
+        mode={manager.formMode}
+        values={manager.formValues}
         loading={manager.saving}
-        onChange={handleFormChange}
-        onClose={handleCloseForm}
+        onChange={manager.handleFormChange}
+        onClose={manager.closeFormDialog}
         onSubmit={handleSubmitForm}
       />
 
+      {/* Delete Dialog */}
       <CrudDeleteDialog
         open={deleteOpen}
         title="Delete Menu"

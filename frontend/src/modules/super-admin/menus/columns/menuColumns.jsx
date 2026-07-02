@@ -5,29 +5,65 @@
 // ============================================
 //
 // Purpose:
-// Defines the AppDataTable columns for the
+// Defines reusable table columns for the
 // Super Admin Menu Manager.
+//
+// Architecture:
+// MenuManager
+//      ↓
+// AppDataTable
+//      ↓
+// menuColumns
+//
+// Notes:
+// - Supports PascalCase and camelCase fields
+// - Uses AppChip for visibility
+// - Uses AppActionMenu (same as Module Manager)
 // ============================================
 
 import AppChip from "@platform/ui/AppChip";
 import AppActionMenu from "@platform/ui/AppActionMenu";
 
-function getValue(row, camelKey, sqlKey, fallback = "—") {
+// ============================================
+// Helpers
+// ============================================
+
+function getValue(row, camelKey, sqlKey, fallback = "-") {
   return row?.[camelKey] ?? row?.[sqlKey] ?? fallback;
 }
 
-function isVisible(row) {
-  const statusKey = String(
-    row?.visibilityStatusKey ?? row?.VisibilityStatusKey ?? ""
-  ).toLowerCase();
+function normalize(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
 
-  const statusId = Number(row?.visibilityStatusId ?? row?.VisibilityStatusId);
+function isVisible(row) {
+  const statusId = Number(
+    row?.visibilityStatusId ??
+      row?.VisibilityStatusId
+  );
+
+  const statusKey = normalize(
+    row?.visibilityStatusKey ??
+      row?.VisibilityStatusKey ??
+      row?.visibilityKey ??
+      row?.VisibilityKey
+  );
+
+  if (statusId === 1) return true;
+  if (statusId === 2) return false;
 
   if (statusKey === "enabled") return true;
-  if (statusKey === "hidden") return false;
+  if (statusKey === "visible") return true;
 
-  return statusId === 1;
+  if (statusKey === "hidden") return false;
+  if (statusKey === "disabled") return false;
+
+  return false;
 }
+
+// ============================================
+// Columns Factory
+// ============================================
 
 export function getMenuColumns({
   onEdit,
@@ -37,89 +73,132 @@ export function getMenuColumns({
   disabled = false,
 } = {}) {
   return [
+    // ========================================
+    // Menu Name
+    // ========================================
+
     {
       field: "menuName",
       headerName: "Menu",
-      flex: 1.4,
-      minWidth: 220,
-      renderCell: (params) => getValue(params.row, "menuName", "MenuName"),
+      render: (row) =>
+        getValue(row, "menuName", "MenuName"),
     },
+
+    // ========================================
+    // Menu Key
+    // ========================================
+
     {
       field: "menuKey",
       headerName: "Key",
-      flex: 1,
-      minWidth: 180,
-      renderCell: (params) => getValue(params.row, "menuKey", "MenuKey"),
+      render: (row) =>
+        getValue(row, "menuKey", "MenuKey"),
     },
+
+    // ========================================
+    // Module
+    // ========================================
+
     {
       field: "moduleName",
       headerName: "Module",
-      flex: 1,
-      minWidth: 170,
-      renderCell: (params) => getValue(params.row, "moduleName", "ModuleName"),
+      render: (row) =>
+        getValue(row, "moduleName", "ModuleName"),
     },
+
+    // ========================================
+    // Route
+    // ========================================
+
     {
       field: "route",
       headerName: "Route",
-      flex: 1.2,
-      minWidth: 220,
-      renderCell: (params) => getValue(params.row, "route", "Route"),
+      render: (row) =>
+        getValue(row, "route", "Route"),
     },
+
+    // ========================================
+    // Parent
+    // ========================================
+
     {
       field: "parentMenuName",
       headerName: "Parent",
-      flex: 1,
-      minWidth: 160,
-      renderCell: (params) =>
-        getValue(params.row, "parentMenuName", "ParentMenuName"),
+      render: (row) =>
+        getValue(
+          row,
+          "parentMenuName",
+          "ParentMenuName",
+          "-"
+        ),
     },
+
+    // ========================================
+    // Visibility
+    // ========================================
+
     {
       field: "visibility",
       headerName: "Visibility",
-      width: 130,
-      renderCell: (params) =>
-        isVisible(params.row) ? (
-          <AppChip label="Visible" color="success" size="small" />
-        ) : (
-          <AppChip label="Hidden" color="default" size="small" />
-        ),
+      render: (row) => {
+        const visible = isVisible(row);
+
+        return (
+          <AppChip
+            label={visible ? "Visible" : "Hidden"}
+            color={visible ? "success" : "warning"}
+            size="small"
+          />
+        );
+      },
     },
+
+    // ========================================
+    // Sort Order
+    // ========================================
+
     {
       field: "sortOrder",
       headerName: "Sort",
-      width: 90,
-      renderCell: (params) => getValue(params.row, "sortOrder", "SortOrder", 0),
+      render: (row) =>
+        getValue(row, "sortOrder", "SortOrder", 0),
     },
+
+    // ========================================
+    // Actions
+    // ========================================
+
     {
       field: "actions",
       headerName: "Actions",
-      width: 110,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        const visible = isVisible(params.row);
+      align: "right",
+
+      render: (row) => {
+        const visible = isVisible(row);
 
         return (
           <AppActionMenu
-            disabled={disabled}
-            actions={[
+            items={[
               {
                 label: "Edit",
-                onClick: () => onEdit?.(params.row),
+                disabled,
+                onClick: () => onEdit?.(row),
               },
-              visible
-                ? {
-                    label: "Hide",
-                    onClick: () => onHide?.(params.row),
-                  }
-                : {
-                    label: "Show",
-                    onClick: () => onShow?.(params.row),
-                  },
+
+              {
+                label: visible ? "Hide" : "Show",
+                disabled,
+                onClick: () =>
+                  visible
+                    ? onHide?.(row)
+                    : onShow?.(row),
+              },
+
               {
                 label: "Delete",
                 color: "error",
-                onClick: () => onDelete?.(params.row),
+                disabled,
+                onClick: () => onDelete?.(row),
               },
             ]}
           />
@@ -128,3 +207,5 @@ export function getMenuColumns({
     },
   ];
 }
+
+export default getMenuColumns;

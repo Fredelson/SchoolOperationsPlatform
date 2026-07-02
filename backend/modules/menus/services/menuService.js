@@ -14,10 +14,23 @@
 
 const menuRepository = require("../repositories/menuRepository");
 const { mapMenu, mapMenus } = require("../helpers/menuMapper");
-const {
-  MENU_VISIBILITY,
-  PROTECTED_MENU_KEYS,
-} = require("../constants/menuDefaults");
+const { MENU_VISIBILITY } = require("../constants/menuDefaults");
+
+// ============================================
+// Protected Menu Keys
+// ============================================
+//
+// Safety:
+// If menuDefaults does not export PROTECTED_MENU_KEYS correctly,
+// this local fallback prevents .includes() from crashing.
+// ============================================
+
+const PROTECTED_MENU_KEYS = [
+  "dashboard",
+  "module_manager",
+  "menu_manager",
+  "system_settings",
+];
 
 // ============================================
 // Helpers
@@ -41,6 +54,11 @@ const toNullableNumber = (value) => {
 
 const hasPagination = (filters = {}) => {
   return filters.page !== undefined || filters.pageSize !== undefined;
+};
+
+const isProtectedMenu = (menu) => {
+  const key = normalizeMenuKey(menu?.menuKey ?? menu?.MenuKey);
+  return PROTECTED_MENU_KEYS.includes(key);
 };
 
 // ============================================
@@ -108,10 +126,9 @@ const createMenu = async (payload) => {
     throw error;
   }
 
-  const visibilityStatusId =
-    await menuRepository.getVisibilityStatusIdByKey(
-      payload.visibilityStatusKey || MENU_VISIBILITY.ENABLED
-    );
+  const visibilityStatusId = await menuRepository.getVisibilityStatusIdByKey(
+    payload.visibilityStatusKey || MENU_VISIBILITY.ENABLED
+  );
 
   if (!visibilityStatusId) {
     const error = new Error("Invalid visibility status.");
@@ -152,10 +169,9 @@ const updateMenu = async (menuId, payload) => {
     throw error;
   }
 
-  const visibilityStatusId =
-    await menuRepository.getVisibilityStatusIdByKey(
-      payload.visibilityStatusKey || existing.VisibilityStatusKey
-    );
+  const visibilityStatusId = await menuRepository.getVisibilityStatusIdByKey(
+    payload.visibilityStatusKey || existing.VisibilityStatusKey
+  );
 
   if (!visibilityStatusId) {
     const error = new Error("Invalid visibility status.");
@@ -176,9 +192,7 @@ const updateMenu = async (menuId, payload) => {
         : toNullableNumber(payload.workspaceId),
 
     moduleId:
-      payload.moduleId === undefined
-        ? existing.ModuleId
-        : Number(payload.moduleId),
+      payload.moduleId === undefined ? existing.ModuleId : Number(payload.moduleId),
 
     parentMenuId:
       payload.parentMenuId === undefined
@@ -188,6 +202,7 @@ const updateMenu = async (menuId, payload) => {
     menuName: payload.menuName.trim(),
     route: payload.route || null,
     icon: payload.icon || null,
+
     permissionId:
       payload.permissionId === undefined
         ? existing.PermissionId
@@ -200,18 +215,17 @@ const updateMenu = async (menuId, payload) => {
 
     badgeQueryKey: payload.badgeQueryKey || null,
     visibilityStatusId,
+
     isPinned:
-      payload.isPinned === undefined
-        ? existing.IsPinned
-        : Boolean(payload.isPinned),
+      payload.isPinned === undefined ? existing.IsPinned : Boolean(payload.isPinned),
+
     isCollapsible:
       payload.isCollapsible === undefined
         ? existing.IsCollapsible
         : Boolean(payload.isCollapsible),
+
     sortOrder:
-      payload.sortOrder === undefined
-        ? existing.SortOrder
-        : Number(payload.sortOrder),
+      payload.sortOrder === undefined ? existing.SortOrder : Number(payload.sortOrder),
   });
 
   return mapMenu(updated);
@@ -224,14 +238,15 @@ const updateMenu = async (menuId, payload) => {
 const hideMenu = async (menuId) => {
   const existing = await getMenuById(menuId);
 
-  if (PROTECTED_MENU_KEYS.includes(existing.menuKey)) {
+  if (isProtectedMenu(existing)) {
     const error = new Error("This protected menu cannot be hidden.");
     error.statusCode = 403;
     throw error;
   }
 
-  const visibilityStatusId =
-    await menuRepository.getVisibilityStatusIdByKey(MENU_VISIBILITY.HIDDEN);
+  const visibilityStatusId = await menuRepository.getVisibilityStatusIdByKey(
+    MENU_VISIBILITY.HIDDEN
+  );
 
   if (!visibilityStatusId) {
     const error = new Error("Hidden visibility status does not exist.");
@@ -254,8 +269,9 @@ const hideMenu = async (menuId) => {
 const showMenu = async (menuId) => {
   await getMenuById(menuId);
 
-  const visibilityStatusId =
-    await menuRepository.getVisibilityStatusIdByKey(MENU_VISIBILITY.ENABLED);
+  const visibilityStatusId = await menuRepository.getVisibilityStatusIdByKey(
+    MENU_VISIBILITY.ENABLED
+  );
 
   if (!visibilityStatusId) {
     const error = new Error("Enabled visibility status does not exist.");
@@ -278,7 +294,7 @@ const showMenu = async (menuId) => {
 const deleteMenu = async (menuId) => {
   const existing = await getMenuById(menuId);
 
-  if (PROTECTED_MENU_KEYS.includes(existing.menuKey)) {
+  if (isProtectedMenu(existing)) {
     const error = new Error("This protected menu cannot be deleted.");
     error.statusCode = 403;
     throw error;

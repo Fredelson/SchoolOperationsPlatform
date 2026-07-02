@@ -48,6 +48,30 @@ async function getHods(departmentId) {
   return lookupRepository.getHodsByDepartment(parsedDepartmentId);
 }
 
+async function getWorkspaces() {
+  return lookupRepository.getWorkspaces();
+}
+
+async function getModules() {
+  return lookupRepository.getModules();
+}
+
+async function getMenus() {
+  return lookupRepository.getMenus();
+}
+
+async function getPermissions() {
+  return lookupRepository.getPermissions();
+}
+
+async function getFeatureFlags() {
+  return lookupRepository.getFeatureFlags();
+}
+
+async function getVisibilityStatuses() {
+  return lookupRepository.getVisibilityStatuses();
+}
+
 module.exports = {
   getDepartments,
   getSections,
@@ -56,4 +80,10 @@ module.exports = {
   getRoles,
   getAccessLevels,
   getHods,
+  getWorkspaces,
+  getModules,
+  getMenus,
+  getPermissions,
+  getFeatureFlags,
+  getVisibilityStatuses,
 };

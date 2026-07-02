@@ -31,8 +31,19 @@ const {
   getSections,
   getSubjects,
   getPurposes,
+
+  // Platform
+  getWorkspaces,
+  getModules,
+  getMenus,
+
+  // Security
   getRoles,
+  getPermissions,
   getAccessLevels,
+  getFeatureFlags,
+  getVisibilityStatuses,
+
   getHods,
 } = require("../controllers/lookupController");
 
@@ -46,6 +57,40 @@ router.get("/departments", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getDepar
 router.get("/sections", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getSections);
 router.get("/subjects", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getSubjects);
 router.get("/purposes", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getPurposes);
+// ============================================
+// PLATFORM FOUNDATION
+// ============================================
+
+router.get(
+  "/workspaces",
+  requirePermission(PERMISSIONS.LOOKUPS.VIEW),
+  getWorkspaces
+);
+
+router.get(
+  "/modules",
+  requirePermission(PERMISSIONS.LOOKUPS.VIEW),
+  getModules
+);
+
+router.get(
+  "/menus",
+  requirePermission(PERMISSIONS.LOOKUPS.VIEW),
+  getMenus
+);
+
+// ============================================
+// SECURITY
+// ============================================
+
+router.get(
+  "/permissions",
+  requirePermission(PERMISSIONS.LOOKUPS.VIEW),
+  getPermissions
+);
+
+router.get("/feature-flags", getFeatureFlags);
+router.get("/visibility-statuses", getVisibilityStatuses);
 router.get("/roles", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getRoles);
 router.get("/access-levels", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getAccessLevels);
 router.get("/hods", requirePermission(PERMISSIONS.LOOKUPS.VIEW), getHods);

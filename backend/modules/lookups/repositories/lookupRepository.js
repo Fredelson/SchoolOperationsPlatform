@@ -22,6 +22,11 @@ const {
   rows,
 } = require("../../../shared/database");
 
+const {
+  getActiveLookup,
+  getLookup,
+} = require("./lookupHelpers");
+
 /**
  * Get active departments.
  */
@@ -181,7 +186,156 @@ async function getHodsByDepartment(departmentId) {
     ]
   );
 
+  /**
+ * Get platform workspaces.
+ */
+async function getWorkspaces() {
+  return getActiveLookup({
+    table: "Workspaces",
+    idColumn: "WorkspaceId",
+    keyColumn: "WorkspaceKey",
+    nameColumn: "WorkspaceName",
+    descriptionColumn: "Description",
+    sortColumn: "SortOrder",
+  });
+}
+
+/**
+ * Get platform modules.
+ */
+async function getModules() {
+  return getActiveLookup({
+    table: "Modules",
+    idColumn: "ModuleId",
+    keyColumn: "ModuleKey",
+    nameColumn: "ModuleName",
+    descriptionColumn: "Description",
+    sortColumn: "SortOrder",
+  });
+}
+
+/**
+ * Get platform menus.
+ */
+async function getMenus() {
+  return getLookup({
+    table: "Menus",
+    idColumn: "MenuId",
+    keyColumn: "MenuKey",
+    nameColumn: "MenuName",
+    sortColumn: "SortOrder",
+  });
+}
+
+/**
+ * Get active permissions.
+ */
+async function getPermissions() {
+  return getActiveLookup({
+    table: "Permissions",
+    idColumn: "PermissionId",
+    keyColumn: "PermissionKey",
+    nameColumn: "PermissionName",
+    descriptionColumn: "Description",
+    sortColumn: "PermissionName",
+  });
+}
+
+/**
+ * Get platform feature flags.
+ */
+async function getFeatureFlags() {
+  return getActiveLookup({
+    table: "FeatureFlags",
+    idColumn: "FeatureFlagId",
+    keyColumn: "FeatureKey",
+    nameColumn: "FeatureName",
+    descriptionColumn: "Description",
+    sortColumn: "FeatureName",
+    activeColumn: "IsEnabled",
+  });
+}
+
+  /**
+   * Get visibility statuses.
+   */
+  async function getVisibilityStatuses() {
+    return getLookup({
+      table: "FeatureVisibilityStatuses",
+      idColumn: "VisibilityStatusId",
+      keyColumn: "StatusKey",
+      nameColumn: "StatusName",
+      descriptionColumn: "Description",
+      sortColumn: "SortOrder",
+    });
+  }
+
   return rows(result);
+}
+async function getWorkspaces() {
+  return getActiveLookup({
+    table: "Workspaces",
+    idColumn: "WorkspaceId",
+    keyColumn: "WorkspaceKey",
+    nameColumn: "WorkspaceName",
+    descriptionColumn: "Description",
+    sortColumn: "SortOrder",
+  });
+}
+
+async function getModules() {
+  return getActiveLookup({
+    table: "Modules",
+    idColumn: "ModuleId",
+    keyColumn: "ModuleKey",
+    nameColumn: "ModuleName",
+    descriptionColumn: "Description",
+    sortColumn: "SortOrder",
+  });
+}
+
+async function getMenus() {
+  return getLookup({
+    table: "Menus",
+    idColumn: "MenuId",
+    keyColumn: "MenuKey",
+    nameColumn: "MenuName",
+    sortColumn: "SortOrder",
+  });
+}
+
+async function getPermissions() {
+  return getActiveLookup({
+    table: "Permissions",
+    idColumn: "PermissionId",
+    keyColumn: "PermissionKey",
+    nameColumn: "PermissionName",
+    descriptionColumn: "Description",
+    sortColumn: "PermissionName",
+  });
+}
+
+async function getFeatureFlags() {
+  return getActiveLookup({
+    table: "FeatureFlags",
+    idColumn: "FeatureFlagId",
+    keyColumn: "FeatureKey",
+    nameColumn: "FeatureName",
+    descriptionColumn: "Description",
+    sortColumn: "FeatureName",
+    activeColumn: "IsEnabled",
+  });
+}
+
+async function getVisibilityStatuses() {
+  return getLookup({
+    table: "FeatureVisibilityStatuses",
+    idColumn: "VisibilityStatusId",
+    keyColumn: "StatusKey",
+    nameColumn: "StatusName",
+    descriptionColumn: "Description",
+    sortColumn: "SortOrder",
+  });
 }
 
 module.exports = {
@@ -192,4 +346,10 @@ module.exports = {
   getRoles,
   getAccessLevels,
   getHodsByDepartment,
+  getWorkspaces,
+  getModules,
+  getMenus,
+  getPermissions,
+  getFeatureFlags,
+  getVisibilityStatuses,
 };
