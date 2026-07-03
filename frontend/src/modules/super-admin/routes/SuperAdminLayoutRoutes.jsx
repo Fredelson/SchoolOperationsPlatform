@@ -45,7 +45,8 @@ import ModuleManager from "../modules/pages/ModuleManager";
 import MenuManager from "../menus/pages/MenuManager";
 import ButtonManager from "../buttons/pages/ButtonManager";
 import WidgetManager from "../widgets/pages/WidgetManager";
-import FeatureFlags from "../feature-flags/pages/FeatureFlags";
+import FeatureFlagManager from "../features/featureFlags/pages/FeatureFlagManager";
+
 
 // ============================================
 // Security & Access Pages
@@ -108,7 +109,7 @@ const superAdminLayoutRoutes = [
       },
       {
         path: "feature-flags",
-        element: <FeatureFlags />,
+        element: <FeatureFlagManager />,
       },
 
       // Security & Access

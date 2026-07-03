@@ -20,6 +20,7 @@
 const express = require("express");
 
 const router = express.Router();
+const featureFlagRoutes = require("../modules/featureFlags/routes/featureFlagRoutes");
 
 // ============================================================
 // MODERN FEATURE MODULES
@@ -41,6 +42,7 @@ router.use("/modules", require("../modules/modules"));
 router.use("/menus", require("../modules/menus"));
 router.use("/buttons", require("../modules/buttons"));
 router.use("/widgets", require("../modules/widgets"));
+router.use("/feature-flags", featureFlagRoutes);
 
 router.use(
   "/user-permission-overrides",
