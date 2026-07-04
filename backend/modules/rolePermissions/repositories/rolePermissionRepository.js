@@ -28,45 +28,227 @@ const {
 } = require("../../../shared/database");
 
 // ============================================================
-// Get All Role Permissions
+// Get Role Permissions
+// ============================================================
+//
+// Supports:
+// - Search
+// - Pagination
+// - Role filter
+// - Module filter
+// - Permission group filter
+// - IsAllowed filter
+//
 // ============================================================
 
-async function getRolePermissions() {
-  const result = await executeQuery(`
+async function getRolePermissions({
+  search = "",
+  page = 1,
+  limit = 10,
+  roleId = null,
+  moduleId = null,
+  permissionGroupId = null,
+  isAllowed = null,
+} = {}) {
+  const parsedPage = Number(page) || 1;
+  const parsedLimit = Number(limit) || 10;
+  const offset = (parsedPage - 1) * parsedLimit;
+
+  const result = await executeQuery(
+    `
     SELECT
       rp.RolePermissionId,
       rp.RoleId,
       r.RoleKey,
       r.RoleName,
       r.DisplayName AS RoleDisplayName,
+
       rp.PermissionId,
       p.PermissionKey,
       p.PermissionName,
+
       p.ModuleId,
       m.ModuleKey,
       m.ModuleName,
+
       p.PermissionGroupId,
       pg.GroupKey,
       pg.GroupName,
+
       rp.IsAllowed,
-      rp.CreatedAt
+      rp.CreatedAt,
+      rp.UpdatedAt
+
     FROM dbo.RolePermissions rp
+
     INNER JOIN dbo.Roles r
       ON rp.RoleId = r.RoleId
+
     INNER JOIN dbo.Permissions p
       ON rp.PermissionId = p.PermissionId
+
     INNER JOIN dbo.Modules m
       ON p.ModuleId = m.ModuleId
+
     LEFT JOIN dbo.PermissionGroups pg
       ON p.PermissionGroupId = pg.PermissionGroupId
+
+    WHERE
+      r.IsActive = 1
+      AND p.IsActive = 1
+
+      AND (
+        @Search = ''
+        OR r.RoleKey LIKE '%' + @Search + '%'
+        OR r.RoleName LIKE '%' + @Search + '%'
+        OR r.DisplayName LIKE '%' + @Search + '%'
+        OR p.PermissionKey LIKE '%' + @Search + '%'
+        OR p.PermissionName LIKE '%' + @Search + '%'
+        OR m.ModuleKey LIKE '%' + @Search + '%'
+        OR m.ModuleName LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupKey, '') LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupName, '') LIKE '%' + @Search + '%'
+      )
+
+      AND (
+        @RoleId IS NULL
+        OR rp.RoleId = @RoleId
+      )
+
+      AND (
+        @ModuleId IS NULL
+        OR p.ModuleId = @ModuleId
+      )
+
+      AND (
+        @PermissionGroupId IS NULL
+        OR p.PermissionGroupId = @PermissionGroupId
+      )
+
+      AND (
+        @IsAllowed IS NULL
+        OR rp.IsAllowed = @IsAllowed
+      )
+
     ORDER BY
       r.DisplayName,
       m.SortOrder,
-      pg.SortOrder,
-      p.PermissionName;
-  `);
+      ISNULL(pg.SortOrder, 0),
+      p.PermissionName
 
-  return rows(result);
+    OFFSET @Offset ROWS
+    FETCH NEXT @Limit ROWS ONLY;
+
+    SELECT
+      COUNT(*) AS Total
+
+    FROM dbo.RolePermissions rp
+
+    INNER JOIN dbo.Roles r
+      ON rp.RoleId = r.RoleId
+
+    INNER JOIN dbo.Permissions p
+      ON rp.PermissionId = p.PermissionId
+
+    INNER JOIN dbo.Modules m
+      ON p.ModuleId = m.ModuleId
+
+    LEFT JOIN dbo.PermissionGroups pg
+      ON p.PermissionGroupId = pg.PermissionGroupId
+
+    WHERE
+      r.IsActive = 1
+      AND p.IsActive = 1
+
+      AND (
+        @Search = ''
+        OR r.RoleKey LIKE '%' + @Search + '%'
+        OR r.RoleName LIKE '%' + @Search + '%'
+        OR r.DisplayName LIKE '%' + @Search + '%'
+        OR p.PermissionKey LIKE '%' + @Search + '%'
+        OR p.PermissionName LIKE '%' + @Search + '%'
+        OR m.ModuleKey LIKE '%' + @Search + '%'
+        OR m.ModuleName LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupKey, '') LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupName, '') LIKE '%' + @Search + '%'
+      )
+
+      AND (
+        @RoleId IS NULL
+        OR rp.RoleId = @RoleId
+      )
+
+      AND (
+        @ModuleId IS NULL
+        OR p.ModuleId = @ModuleId
+      )
+
+      AND (
+        @PermissionGroupId IS NULL
+        OR p.PermissionGroupId = @PermissionGroupId
+      )
+
+      AND (
+        @IsAllowed IS NULL
+        OR rp.IsAllowed = @IsAllowed
+      );
+    `,
+    [
+      {
+        name: "Search",
+        type: sql.NVarChar(150),
+        value: search || "",
+      },
+      {
+        name: "RoleId",
+        type: sql.Int,
+        value: roleId ? Number(roleId) : null,
+      },
+      {
+        name: "ModuleId",
+        type: sql.Int,
+        value: moduleId ? Number(moduleId) : null,
+      },
+      {
+        name: "PermissionGroupId",
+        type: sql.Int,
+        value: permissionGroupId ? Number(permissionGroupId) : null,
+      },
+      {
+        name: "IsAllowed",
+        type: sql.Bit,
+        value:
+          isAllowed === null || isAllowed === undefined || isAllowed === ""
+            ? null
+            : isAllowed === true ||
+              isAllowed === "true" ||
+              isAllowed === 1 ||
+              isAllowed === "1",
+      },
+      {
+        name: "Offset",
+        type: sql.Int,
+        value: offset,
+      },
+      {
+        name: "Limit",
+        type: sql.Int,
+        value: parsedLimit,
+      },
+    ]
+  );
+
+  return {
+    data: result.recordsets?.[0] || [],
+    pagination: {
+      page: parsedPage,
+      limit: parsedLimit,
+      totalRecords: result.recordsets?.[1]?.[0]?.Total || 0,
+      totalPages: Math.ceil(
+        (result.recordsets?.[1]?.[0]?.Total || 0) / parsedLimit
+      ),
+    },
+  };
 }
 
 // ============================================================
@@ -82,26 +264,37 @@ async function getRolePermissionById(rolePermissionId) {
       r.RoleKey,
       r.RoleName,
       r.DisplayName AS RoleDisplayName,
+
       rp.PermissionId,
       p.PermissionKey,
       p.PermissionName,
+
       p.ModuleId,
       m.ModuleKey,
       m.ModuleName,
+
       p.PermissionGroupId,
       pg.GroupKey,
       pg.GroupName,
+
       rp.IsAllowed,
-      rp.CreatedAt
+      rp.CreatedAt,
+      rp.UpdatedAt
+
     FROM dbo.RolePermissions rp
+
     INNER JOIN dbo.Roles r
       ON rp.RoleId = r.RoleId
+
     INNER JOIN dbo.Permissions p
       ON rp.PermissionId = p.PermissionId
+
     INNER JOIN dbo.Modules m
       ON p.ModuleId = m.ModuleId
+
     LEFT JOIN dbo.PermissionGroups pg
       ON p.PermissionGroupId = pg.PermissionGroupId
+
     WHERE
       rp.RolePermissionId = @RolePermissionId;
     `,
@@ -118,6 +311,72 @@ async function getRolePermissionById(rolePermissionId) {
 }
 
 // ============================================================
+// Role Permission Lookups
+// ============================================================
+
+async function getRolePermissionLookups() {
+  const result = await executeQuery(`
+    SELECT
+      RoleId,
+      RoleKey,
+      RoleName,
+      DisplayName,
+      AccessLevelId
+    FROM dbo.Roles
+    WHERE IsActive = 1
+    ORDER BY DisplayName;
+
+    SELECT
+      ModuleId,
+      ModuleKey,
+      ModuleName,
+      SortOrder
+    FROM dbo.Modules
+    WHERE IsActive = 1
+    ORDER BY SortOrder, ModuleName;
+
+    SELECT
+      PermissionGroupId,
+      GroupKey,
+      GroupName,
+      SortOrder
+    FROM dbo.PermissionGroups
+    WHERE IsActive = 1
+    ORDER BY SortOrder, GroupName;
+
+    SELECT
+      p.PermissionId,
+      p.PermissionKey,
+      p.PermissionName,
+      p.ModuleId,
+      m.ModuleKey,
+      m.ModuleName,
+      p.PermissionGroupId,
+      pg.GroupKey,
+      pg.GroupName
+    FROM dbo.Permissions p
+    INNER JOIN dbo.Modules m
+      ON p.ModuleId = m.ModuleId
+    LEFT JOIN dbo.PermissionGroups pg
+      ON p.PermissionGroupId = pg.PermissionGroupId
+    WHERE
+      p.IsActive = 1
+      AND m.IsActive = 1
+    ORDER BY
+      m.SortOrder,
+      ISNULL(pg.SortOrder, 0),
+      p.PermissionName;
+  `);
+
+  return {
+    roles: result.recordsets?.[0] || [],
+    modules: result.recordsets?.[1] || [],
+    permissionGroups: result.recordsets?.[2] || [],
+    permissions: result.recordsets?.[3] || [],
+  };
+}
+
+// ============================================================
 // Find Role Permission By Id
 // ============================================================
 
@@ -129,7 +388,8 @@ async function findRolePermissionById(rolePermissionId) {
       RoleId,
       PermissionId,
       IsAllowed,
-      CreatedAt
+      CreatedAt,
+      UpdatedAt
     FROM dbo.RolePermissions
     WHERE
       RolePermissionId = @RolePermissionId;
@@ -150,7 +410,11 @@ async function findRolePermissionById(rolePermissionId) {
 // Find Role Permission Pair
 // ============================================================
 
-async function findRolePermissionPair(roleId, permissionId, excludeRolePermissionId = null) {
+async function findRolePermissionPair(
+  roleId,
+  permissionId,
+  excludeRolePermissionId = null
+) {
   const result = await executeQuery(
     `
     SELECT
@@ -260,7 +524,8 @@ async function createRolePermission(data) {
       RoleId,
       PermissionId,
       IsAllowed,
-      CreatedAt
+      CreatedAt,
+      UpdatedAt
     )
     OUTPUT INSERTED.RolePermissionId
     VALUES
@@ -268,6 +533,7 @@ async function createRolePermission(data) {
       @RoleId,
       @PermissionId,
       @IsAllowed,
+      GETDATE(),
       GETDATE()
     );
     `,
@@ -304,7 +570,8 @@ async function updateRolePermission(rolePermissionId, data) {
     SET
       RoleId = @RoleId,
       PermissionId = @PermissionId,
-      IsAllowed = @IsAllowed
+      IsAllowed = @IsAllowed,
+      UpdatedAt = GETDATE()
     WHERE
       RolePermissionId = @RolePermissionId;
     `,
@@ -336,6 +603,12 @@ async function updateRolePermission(rolePermissionId, data) {
 // ============================================================
 // Delete Role Permission
 // ============================================================
+//
+// RolePermissions is a mapping table.
+// Hard delete is acceptable here because removing the mapping
+// means the role no longer has that permission assignment.
+//
+// ============================================================
 
 async function deleteRolePermission(rolePermissionId) {
   await executeQuery(
@@ -361,6 +634,7 @@ async function deleteRolePermission(rolePermissionId) {
 module.exports = {
   getRolePermissions,
   getRolePermissionById,
+  getRolePermissionLookups,
 
   findRolePermissionById,
   findRolePermissionPair,

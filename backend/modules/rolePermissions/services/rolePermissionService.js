@@ -10,17 +10,50 @@
 // - No SQL
 // - No HTTP handling
 // - Repository only for database access
+// - Validator normalizes payloads
 //
 // ============================================================
 
 const rolePermissionRepository = require("../repositories/rolePermissionRepository");
 
+const {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+} = require("../../../shared/errors");
+
+const {
+  validateRolePermissionPayload,
+} = require("../validators/rolePermissionValidator");
+
+// ============================================================
+// Validate Route ID
+// ============================================================
+
+function validateRolePermissionId(rolePermissionId) {
+  const parsed = Number(rolePermissionId);
+
+  if (!parsed || Number.isNaN(parsed)) {
+    throw new BadRequestError("Valid Role Permission ID is required.");
+  }
+
+  return parsed;
+}
+
 // ============================================================
 // Get All Role Permissions
 // ============================================================
 
-const getRolePermissions = async () => {
-    return await rolePermissionRepository.getRolePermissions();
+const getRolePermissions = async (query = {}) => {
+  return await rolePermissionRepository.getRolePermissions(query);
+};
+
+// ============================================================
+// Get Role Permission Lookups
+// ============================================================
+
+const getRolePermissionLookups = async () => {
+  return await rolePermissionRepository.getRolePermissionLookups();
 };
 
 // ============================================================
@@ -28,160 +61,134 @@ const getRolePermissions = async () => {
 // ============================================================
 
 const getRolePermissionById = async (rolePermissionId) => {
-    const rolePermission =
-        await rolePermissionRepository.getRolePermissionById(rolePermissionId);
+  const parsedRolePermissionId = validateRolePermissionId(rolePermissionId);
 
-    if (!rolePermission) {
-        const error = new Error("Role Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  const rolePermission =
+    await rolePermissionRepository.getRolePermissionById(parsedRolePermissionId);
 
-    return rolePermission;
+  if (!rolePermission) {
+    throw new NotFoundError("Role Permission not found.");
+  }
+
+  return rolePermission;
 };
 
 // ============================================================
 // Create Role Permission
 // ============================================================
 
-const createRolePermission = async (rolePermissionData) => {
-    const role =
-        await rolePermissionRepository.findActiveRoleById(
-            rolePermissionData.roleId
-        );
+const createRolePermission = async (payload) => {
+  const data = validateRolePermissionPayload(payload);
 
-    if (!role) {
-        const error = new Error("Invalid Role.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const role = await rolePermissionRepository.findActiveRoleById(data.roleId);
 
-    const permission =
-        await rolePermissionRepository.findActivePermissionById(
-            rolePermissionData.permissionId
-        );
+  if (!role) {
+    throw new BadRequestError("Invalid Role.");
+  }
 
-    if (!permission) {
-        const error = new Error("Invalid Permission.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const permission = await rolePermissionRepository.findActivePermissionById(
+    data.permissionId
+  );
 
-    const duplicate =
-        await rolePermissionRepository.findRolePermissionPair(
-            rolePermissionData.roleId,
-            rolePermissionData.permissionId
-        );
+  if (!permission) {
+    throw new BadRequestError("Invalid Permission.");
+  }
 
-    if (duplicate) {
-        const error = new Error("Role Permission already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const duplicate = await rolePermissionRepository.findRolePermissionPair(
+    data.roleId,
+    data.permissionId
+  );
 
-    const rolePermissionId =
-        await rolePermissionRepository.createRolePermission(
-            rolePermissionData
-        );
+  if (duplicate) {
+    throw new ConflictError("Role Permission already exists.");
+  }
 
-    return await rolePermissionRepository.getRolePermissionById(
-        rolePermissionId
-    );
+  const rolePermissionId =
+    await rolePermissionRepository.createRolePermission(data);
+
+  return await rolePermissionRepository.getRolePermissionById(rolePermissionId);
 };
 
 // ============================================================
 // Update Role Permission
 // ============================================================
 
-const updateRolePermission = async (
-    rolePermissionId,
-    rolePermissionData
-) => {
-    const existingRolePermission =
-        await rolePermissionRepository.findRolePermissionById(
-            rolePermissionId
-        );
+const updateRolePermission = async (rolePermissionId, payload) => {
+  const parsedRolePermissionId = validateRolePermissionId(rolePermissionId);
 
-    if (!existingRolePermission) {
-        const error = new Error("Role Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  const data = validateRolePermissionPayload(payload);
 
-    const role =
-        await rolePermissionRepository.findActiveRoleById(
-            rolePermissionData.roleId
-        );
-
-    if (!role) {
-        const error = new Error("Invalid Role.");
-        error.statusCode = 400;
-        throw error;
-    }
-
-    const permission =
-        await rolePermissionRepository.findActivePermissionById(
-            rolePermissionData.permissionId
-        );
-
-    if (!permission) {
-        const error = new Error("Invalid Permission.");
-        error.statusCode = 400;
-        throw error;
-    }
-
-    const duplicate =
-        await rolePermissionRepository.findRolePermissionPair(
-            rolePermissionData.roleId,
-            rolePermissionData.permissionId,
-            rolePermissionId
-        );
-
-    if (duplicate) {
-        const error = new Error("Role Permission already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
-
-    await rolePermissionRepository.updateRolePermission(
-        rolePermissionId,
-        rolePermissionData
+  const existingRolePermission =
+    await rolePermissionRepository.findRolePermissionById(
+      parsedRolePermissionId
     );
 
-    return await rolePermissionRepository.getRolePermissionById(
-        rolePermissionId
-    );
+  if (!existingRolePermission) {
+    throw new NotFoundError("Role Permission not found.");
+  }
+
+  const role = await rolePermissionRepository.findActiveRoleById(data.roleId);
+
+  if (!role) {
+    throw new BadRequestError("Invalid Role.");
+  }
+
+  const permission = await rolePermissionRepository.findActivePermissionById(
+    data.permissionId
+  );
+
+  if (!permission) {
+    throw new BadRequestError("Invalid Permission.");
+  }
+
+  const duplicate = await rolePermissionRepository.findRolePermissionPair(
+    data.roleId,
+    data.permissionId,
+    parsedRolePermissionId
+  );
+
+  if (duplicate) {
+    throw new ConflictError("Role Permission already exists.");
+  }
+
+  await rolePermissionRepository.updateRolePermission(
+    parsedRolePermissionId,
+    data
+  );
+
+  return await rolePermissionRepository.getRolePermissionById(
+    parsedRolePermissionId
+  );
 };
 
 // ============================================================
 // Delete Role Permission
 // ============================================================
 //
-// Note:
-// RolePermissions does not contain IsActive in the verified schema.
-// Therefore this module performs a hard delete.
-// This matches the current database design.
+// RolePermissions is a mapping table.
+// Hard delete is acceptable here because deleting the row removes
+// the role-to-permission assignment.
 //
 // ============================================================
 
 const deleteRolePermission = async (rolePermissionId) => {
-    const rolePermission =
-        await rolePermissionRepository.findRolePermissionById(
-            rolePermissionId
-        );
+  const parsedRolePermissionId = validateRolePermissionId(rolePermissionId);
 
-    if (!rolePermission) {
-        const error = new Error("Role Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  const rolePermission =
+    await rolePermissionRepository.findRolePermissionById(
+      parsedRolePermissionId
+    );
 
-    await rolePermissionRepository.deleteRolePermission(rolePermissionId);
+  if (!rolePermission) {
+    throw new NotFoundError("Role Permission not found.");
+  }
 
-    return {
-        rolePermissionId: Number(rolePermissionId),
-        deleted: true,
-    };
+  await rolePermissionRepository.deleteRolePermission(parsedRolePermissionId);
+
+  return {
+    rolePermissionId: parsedRolePermissionId,
+    deleted: true,
+  };
 };
 
 // ============================================================
@@ -189,9 +196,10 @@ const deleteRolePermission = async (rolePermissionId) => {
 // ============================================================
 
 module.exports = {
-    getRolePermissions,
-    getRolePermissionById,
-    createRolePermission,
-    updateRolePermission,
-    deleteRolePermission,
+  getRolePermissions,
+  getRolePermissionLookups,
+  getRolePermissionById,
+  createRolePermission,
+  updateRolePermission,
+  deleteRolePermission,
 };

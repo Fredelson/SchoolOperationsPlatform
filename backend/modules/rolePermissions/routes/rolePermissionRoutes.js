@@ -54,6 +54,12 @@ router.get(
 );
 
 router.get(
+    "/lookups",
+    requirePermission(PERMISSIONS.ROLE_PERMISSIONS.VIEW),
+    rolePermissionController.getRolePermissionLookups
+);
+
+router.get(
     "/:rolePermissionId",
     requirePermission(PERMISSIONS.ROLE_PERMISSIONS.VIEW),
     rolePermissionController.getRolePermissionById
