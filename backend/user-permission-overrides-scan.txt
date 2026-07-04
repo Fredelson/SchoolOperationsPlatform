@@ -1,0 +1,704 @@
+
+============================================================
+FILE: modules\userPermissionOverrides\controllers\userPermissionOverrideController.js
+============================================================
+// ============================================================
+// Arab Unity School Operations Platform
+// User Permission Override Controller
+// ============================================================
+
+const service = require("../services/userPermissionOverrideService");
+const asyncHandler = require("../../../shared/helpers/asyncHandler");
+const {
+  sendSuccess,
+  sendCreated,
+  sendDeleted,
+} = require("../../../shared/helpers/apiResponse");
+
+// ============================================================
+// GET /api/user-permission-overrides
+// ============================================================
+
+const getAllOverrides = asyncHandler(async (req, res) => {
+  const data = await service.getAllOverrides();
+
+  return sendSuccess(res, "User permission overrides retrieved successfully.", data);
+});
+
+// ============================================================
+// GET /api/user-permission-overrides/user/:userId
+// ============================================================
+
+const getOverridesByUserId = asyncHandler(async (req, res) => {
+  const data = await service.getOverridesByUserId(req.params.userId);
+
+  return sendSuccess(res, "User permission overrides retrieved successfully.", data);
+});
+
+// ============================================================
+// GET /api/user-permission-overrides/:id
+// ============================================================
+
+const getOverrideById = asyncHandler(async (req, res) => {
+  const data = await service.getOverrideById(req.params.id);
+
+  return sendSuccess(res, "User permission override retrieved successfully.", data);
+});
+
+// ============================================================
+// POST /api/user-permission-overrides
+// ============================================================
+
+const createOverride = asyncHandler(async (req, res) => {
+  const currentUserId = req.user?.id || req.user?.UserId || null;
+
+  const data = await service.createOverride(req.body, currentUserId);
+
+  return sendSuccess(res, "User permission override created successfully.", data, 201);
+});
+
+// ============================================================
+// PUT /api/user-permission-overrides/:id
+// ============================================================
+
+const updateOverride = asyncHandler(async (req, res) => {
+  const data = await service.updateOverride(req.params.id, req.body);
+
+  return sendSuccess(res, "User permission override updated successfully.", data.after);
+});
+
+// ============================================================
+// DELETE /api/user-permission-overrides/:id
+// ============================================================
+//
+// Note:
+// SQL schema has no IsActive column for this table.
+// Delete is physical delete.
+// ============================================================
+
+const deleteOverride = asyncHandler(async (req, res) => {
+  const data = await service.deleteOverride(req.params.id);
+
+  return sendSuccess(res, "User permission override deleted successfully.", data);
+});
+
+module.exports = {
+  getAllOverrides,
+  getOverridesByUserId,
+  getOverrideById,
+  createOverride,
+  updateOverride,
+  deleteOverride,
+};
+
+============================================================
+FILE: modules\userPermissionOverrides\repositories\userPermissionOverrideRepository.js
+============================================================
+// ============================================================
+// Arab Unity School Operations Platform
+// User Permission Override Repository
+// ============================================================
+//
+// Purpose:
+// Handles all SQL operations for user-level permission overrides.
+//
+// Architecture:
+// Repository Layer
+//
+// Rules:
+// - SQL only
+// - No business logic
+// - No validation
+// - No HTTP handling
+//
+// Source of Truth:
+// OperationsPlatformDB
+// Table: dbo.UserPermissionOverrides
+// ============================================================
+
+const {
+  sql,
+  executeQuery,
+  rows,
+  firstOrNull,
+  insertedId,
+} = require("../../../shared/database");
+
+// ============================================================
+// Get All User Permission Overrides
+// ============================================================
+
+async function getAll() {
+  const result = await executeQuery(`
+    SELECT
+      upo.UserPermissionOverrideId,
+      upo.UserId,
+      u.FullName,
+      u.EmployeeId,
+      u.SchoolEmail,
+      upo.PermissionId,
+      p.PermissionKey,
+      p.PermissionName,
+      upo.IsAllowed,
+      upo.Reason,
+      upo.CreatedBy,
+      cb.FullName AS CreatedByName,
+      upo.CreatedAt
+    FROM dbo.UserPermissionOverrides upo
+    INNER JOIN dbo.Users u
+      ON upo.UserId = u.UserId
+    INNER JOIN dbo.Permissions p
+      ON upo.PermissionId = p.PermissionId
+    LEFT JOIN dbo.Users cb
+      ON upo.CreatedBy = cb.UserId
+    ORDER BY u.FullName ASC, p.PermissionKey ASC;
+  `);
+
+  return rows(result);
+}
+
+// ============================================================
+// Get User Permission Overrides By User
+// ============================================================
+
+async function getByUserId(userId) {
+  const result = await executeQuery(
+    `
+      SELECT
+        upo.UserPermissionOverrideId,
+        upo.UserId,
+        u.FullName,
+        u.EmployeeId,
+        u.SchoolEmail,
+        upo.PermissionId,
+        p.PermissionKey,
+        p.PermissionName,
+        upo.IsAllowed,
+        upo.Reason,
+        upo.CreatedBy,
+        cb.FullName AS CreatedByName,
+        upo.CreatedAt
+      FROM dbo.UserPermissionOverrides upo
+      INNER JOIN dbo.Users u
+        ON upo.UserId = u.UserId
+      INNER JOIN dbo.Permissions p
+        ON upo.PermissionId = p.PermissionId
+      LEFT JOIN dbo.Users cb
+        ON upo.CreatedBy = cb.UserId
+      WHERE upo.UserId = @UserId
+      ORDER BY p.PermissionKey ASC;
+    `,
+    [{ name: "UserId", type: sql.Int, value: userId }]
+  );
+
+  return rows(result);
+}
+
+// ============================================================
+// Get User Permission Override By ID
+// ============================================================
+
+async function getById(userPermissionOverrideId) {
+  const result = await executeQuery(
+    `
+      SELECT
+        upo.UserPermissionOverrideId,
+        upo.UserId,
+        u.FullName,
+        u.EmployeeId,
+        u.SchoolEmail,
+        upo.PermissionId,
+        p.PermissionKey,
+        p.PermissionName,
+        upo.IsAllowed,
+        upo.Reason,
+        upo.CreatedBy,
+        cb.FullName AS CreatedByName,
+        upo.CreatedAt
+      FROM dbo.UserPermissionOverrides upo
+      INNER JOIN dbo.Users u
+        ON upo.UserId = u.UserId
+      INNER JOIN dbo.Permissions p
+        ON upo.PermissionId = p.PermissionId
+      LEFT JOIN dbo.Users cb
+        ON upo.CreatedBy = cb.UserId
+      WHERE upo.UserPermissionOverrideId = @UserPermissionOverrideId;
+    `,
+    [
+      {
+        name: "UserPermissionOverrideId",
+        type: sql.Int,
+        value: userPermissionOverrideId,
+      },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+// ============================================================
+// Find Duplicate User Permission Override
+// ============================================================
+
+async function findDuplicate(userId, permissionId, excludeId = null) {
+  const result = await executeQuery(
+    `
+      SELECT
+        UserPermissionOverrideId,
+        UserId,
+        PermissionId
+      FROM dbo.UserPermissionOverrides
+      WHERE UserId = @UserId
+        AND PermissionId = @PermissionId
+        AND (
+          @ExcludeId IS NULL
+          OR UserPermissionOverrideId <> @ExcludeId
+        );
+    `,
+    [
+      { name: "UserId", type: sql.Int, value: userId },
+      { name: "PermissionId", type: sql.Int, value: permissionId },
+      { name: "ExcludeId", type: sql.Int, value: excludeId },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+// ============================================================
+// Create User Permission Override
+// ============================================================
+
+async function create({ userId, permissionId, isAllowed, reason, createdBy }) {
+  const result = await executeQuery(
+    `
+      INSERT INTO dbo.UserPermissionOverrides (
+        UserId,
+        PermissionId,
+        IsAllowed,
+        Reason,
+        CreatedBy
+      )
+      VALUES (
+        @UserId,
+        @PermissionId,
+        @IsAllowed,
+        @Reason,
+        @CreatedBy
+      );
+
+      SELECT SCOPE_IDENTITY() AS InsertedId;
+    `,
+    [
+      { name: "UserId", type: sql.Int, value: userId },
+      { name: "PermissionId", type: sql.Int, value: permissionId },
+      { name: "IsAllowed", type: sql.Bit, value: isAllowed },
+      { name: "Reason", type: sql.NVarChar(255), value: reason || null },
+      { name: "CreatedBy", type: sql.Int, value: createdBy || null },
+    ]
+  );
+
+  return insertedId(result);
+}
+
+// ============================================================
+// Update User Permission Override
+// ============================================================
+
+async function update(userPermissionOverrideId, { userId, permissionId, isAllowed, reason }) {
+  await executeQuery(
+    `
+      UPDATE dbo.UserPermissionOverrides
+      SET
+        UserId = @UserId,
+        PermissionId = @PermissionId,
+        IsAllowed = @IsAllowed,
+        Reason = @Reason
+      WHERE UserPermissionOverrideId = @UserPermissionOverrideId;
+    `,
+    [
+      {
+        name: "UserPermissionOverrideId",
+        type: sql.Int,
+        value: userPermissionOverrideId,
+      },
+      { name: "UserId", type: sql.Int, value: userId },
+      { name: "PermissionId", type: sql.Int, value: permissionId },
+      { name: "IsAllowed", type: sql.Bit, value: isAllowed },
+      { name: "Reason", type: sql.NVarChar(255), value: reason || null },
+    ]
+  );
+}
+
+// ============================================================
+// Delete User Permission Override
+// ============================================================
+//
+// Note:
+// This table does not contain IsActive in the SQL schema.
+// Therefore delete is a physical delete, not soft delete.
+// ============================================================
+
+async function remove(userPermissionOverrideId) {
+  await executeQuery(
+    `
+      DELETE FROM dbo.UserPermissionOverrides
+      WHERE UserPermissionOverrideId = @UserPermissionOverrideId;
+    `,
+    [
+      {
+        name: "UserPermissionOverrideId",
+        type: sql.Int,
+        value: userPermissionOverrideId,
+      },
+    ]
+  );
+}
+
+// ============================================================
+// Entity Validation Helpers
+// ============================================================
+
+async function findUserById(userId) {
+  const result = await executeQuery(
+    `
+      SELECT
+        UserId,
+        FullName,
+        EmployeeId,
+        SchoolEmail,
+        IsActive
+      FROM dbo.Users
+      WHERE UserId = @UserId;
+    `,
+    [{ name: "UserId", type: sql.Int, value: userId }]
+  );
+
+  return firstOrNull(result);
+}
+
+async function findPermissionById(permissionId) {
+  const result = await executeQuery(
+    `
+      SELECT
+        PermissionId,
+        PermissionKey,
+        PermissionName,
+        IsActive
+      FROM dbo.Permissions
+      WHERE PermissionId = @PermissionId;
+    `,
+    [{ name: "PermissionId", type: sql.Int, value: permissionId }]
+  );
+
+  return firstOrNull(result);
+}
+
+module.exports = {
+  getAll,
+  getByUserId,
+  getById,
+  findDuplicate,
+  create,
+  update,
+  remove,
+  findUserById,
+  findPermissionById,
+};
+
+============================================================
+FILE: modules\userPermissionOverrides\services\userPermissionOverrideService.js
+============================================================
+// ============================================================
+// Arab Unity School Operations Platform
+// User Permission Override Service
+// ============================================================
+//
+// Purpose:
+// Handles business rules for user-level permission overrides.
+//
+// Architecture:
+// Service Layer
+//
+// Rules:
+// - Business logic only
+// - No raw SQL
+// - No Express req/res handling
+//
+// Source of Truth:
+// dbo.UserPermissionOverrides
+// ============================================================
+
+const repository = require("../repositories/userPermissionOverrideRepository");
+const validator = require("../validators/userPermissionOverrideValidator");
+
+const serviceError = require("../../../shared/helpers/serviceError");
+const { ensureExists, ensureActive } = require("../../../shared/helpers/entityValidator");
+const { preventDuplicate } = require("../../../shared/helpers/duplicateHelper");
+
+// ============================================================
+// Normalize Boolean Input
+// ============================================================
+
+function normalizeBoolean(value) {
+  return value === true || value === 1;
+}
+
+// ============================================================
+// Get All Overrides
+// ============================================================
+
+async function getAllOverrides() {
+  return repository.getAll();
+}
+
+// ============================================================
+// Get Overrides By User
+// ============================================================
+
+async function getOverridesByUserId(userId) {
+  if (!userId || Number.isNaN(Number(userId))) {
+    throw serviceError.badRequest("Valid User ID is required.");
+  }
+
+  await ensureExists(
+    repository.findUserById,
+    Number(userId),
+    "User"
+  );
+
+  return repository.getByUserId(Number(userId));
+}
+
+// ============================================================
+// Get Override By ID
+// ============================================================
+
+async function getOverrideById(userPermissionOverrideId) {
+  if (!userPermissionOverrideId || Number.isNaN(Number(userPermissionOverrideId))) {
+    throw serviceError.badRequest("Valid User Permission Override ID is required.");
+  }
+
+  return ensureExists(
+    repository.getById,
+    Number(userPermissionOverrideId),
+    "User permission override"
+  );
+}
+
+// ============================================================
+// Create Override
+// ============================================================
+
+async function createOverride(payload, currentUserId = null) {
+  const errors = validator.validatePayload(payload);
+
+  if (errors.length > 0) {
+    throw serviceError.badRequest("Validation failed.", errors);
+  }
+
+  const userId = Number(payload.userId);
+  const permissionId = Number(payload.permissionId);
+  const isAllowed = normalizeBoolean(payload.isAllowed);
+
+  await ensureActive(repository.findUserById, userId, "User");
+  await ensureActive(repository.findPermissionById, permissionId, "Permission");
+
+  await preventDuplicate(
+    () => repository.findDuplicate(userId, permissionId),
+    "This user already has an override for the selected permission."
+  );
+
+  const insertedOverrideId = await repository.create({
+    userId,
+    permissionId,
+    isAllowed,
+    reason: payload.reason,
+    createdBy: currentUserId,
+  });
+
+  return getOverrideById(insertedOverrideId);
+}
+
+// ============================================================
+// Update Override
+// ============================================================
+
+async function updateOverride(userPermissionOverrideId, payload) {
+  const existingOverride = await getOverrideById(userPermissionOverrideId);
+
+  const errors = validator.validatePayload(payload);
+
+  if (errors.length > 0) {
+    throw serviceError.badRequest("Validation failed.", errors);
+  }
+
+  const userId = Number(payload.userId);
+  const permissionId = Number(payload.permissionId);
+  const isAllowed = normalizeBoolean(payload.isAllowed);
+
+  await ensureActive(repository.findUserById, userId, "User");
+  await ensureActive(repository.findPermissionById, permissionId, "Permission");
+
+  await preventDuplicate(
+    () =>
+      repository.findDuplicate(
+        userId,
+        permissionId,
+        Number(userPermissionOverrideId)
+      ),
+    "This user already has an override for the selected permission."
+  );
+
+  await repository.update(Number(userPermissionOverrideId), {
+    userId,
+    permissionId,
+    isAllowed,
+    reason: payload.reason,
+  });
+
+  return {
+    before: existingOverride,
+    after: await getOverrideById(userPermissionOverrideId),
+  };
+}
+
+// ============================================================
+// Delete Override
+// ============================================================
+//
+// Note:
+// dbo.UserPermissionOverrides does not have IsActive.
+// SQL schema uses hard delete for this table.
+// ============================================================
+
+async function deleteOverride(userPermissionOverrideId) {
+  const existingOverride = await getOverrideById(userPermissionOverrideId);
+
+  await repository.remove(Number(userPermissionOverrideId));
+
+  return existingOverride;
+}
+
+module.exports = {
+  getAllOverrides,
+  getOverridesByUserId,
+  getOverrideById,
+  createOverride,
+  updateOverride,
+  deleteOverride,
+};
+
+============================================================
+FILE: modules\userPermissionOverrides\routes\userPermissionOverrideRoutes.js
+============================================================
+// ============================================================
+// Arab Unity School Operations Platform
+// User Permission Override Routes
+// ============================================================
+
+const express = require("express");
+const controller = require("../controllers/userPermissionOverrideController");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../permissionResolver/middleware/requirePermission");
+const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
+
+const router = express.Router();
+
+router.use(protect);
+
+router.get(
+  "/",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
+  controller.getAllOverrides
+);
+
+router.get(
+  "/user/:userId",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
+  controller.getOverridesByUserId
+);
+
+router.get(
+  "/:id",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
+  controller.getOverrideById
+);
+
+router.post(
+  "/",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.CREATE),
+  controller.createOverride
+);
+
+router.put(
+  "/:id",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.UPDATE),
+  controller.updateOverride
+);
+
+router.delete(
+  "/:id",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.DELETE),
+  controller.deleteOverride
+);
+
+module.exports = router;
+
+============================================================
+FILE: modules\userPermissionOverrides\validators\userPermissionOverrideValidator.js
+============================================================
+// ============================================================
+// Arab Unity School Operations Platform
+// User Permission Override Validator
+// ============================================================
+//
+// Purpose:
+// Validates incoming request payloads for user permission
+// overrides before service-layer business rules run.
+//
+// Architecture:
+// Validator Layer
+//
+// Rules:
+// - No SQL
+// - No HTTP handling
+// - Returns validation error arrays
+// ============================================================
+
+const {
+  required,
+  isInteger,
+  maxLength,
+  collectErrors,
+} = require("../../../shared/helpers/validationHelper");
+
+// ============================================================
+// Validate Create / Update Payload
+// ============================================================
+
+function validatePayload(payload) {
+  const { userId, permissionId, isAllowed, reason } = payload;
+
+  return collectErrors([
+    required(userId, "User ID"),
+    isInteger(userId, "User ID"),
+
+    required(permissionId, "Permission ID"),
+    isInteger(permissionId, "Permission ID"),
+
+    isAllowed === undefined || isAllowed === null
+      ? "IsAllowed is required."
+      : null,
+
+    typeof isAllowed !== "boolean" && isAllowed !== 0 && isAllowed !== 1
+      ? "IsAllowed must be true, false, 1, or 0."
+      : null,
+
+    maxLength(reason, "Reason", 255),
+  ]);
+}
+
+module.exports = {
+  validatePayload,
+};

@@ -36,7 +36,7 @@ router.use("/permission-groups", require("../modules/permissionGroups"));
 router.use("/role-permissions", require("../modules/rolePermissions"));
 router.use(
   "/user-permission-overrides",
-  require("../modules/userPermissionOverrides/routes/userPermissionOverrideRoutes")
+  require("../modules/userPermissionOverrides")
 );
 router.use(
   "/permission-resolver",
