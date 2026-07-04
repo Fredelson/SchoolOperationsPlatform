@@ -43,6 +43,11 @@ router.use(
   require("../modules/permissionResolver")
 );
 
+router.use(
+  "/navigation-manager",
+  require("../modules/navigationManager")
+);
+
 router.use("/navigation", require("../modules/navigation"));
 router.use("/modules", require("../modules/modules"));
 router.use("/menus", require("../modules/menus"));
