@@ -40,7 +40,7 @@ router.use(
 );
 router.use(
   "/permission-resolver",
-  require("../modules/permissionResolver/routes/permissionResolverRoutes")
+  require("../modules/permissionResolver")
 );
 
 router.use("/navigation", require("../modules/navigation"));
