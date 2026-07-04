@@ -1,202 +1,206 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Permission Service
-// ============================================================
-//
-// Purpose:
-// Handles business rules for Permissions.
-//
-// Rules:
-// - No SQL
-// - No HTTP handling
-// - Repository only for database access
-//
-// ============================================================
+/* =========================================================
+   Permission Service
+   Purpose:
+   Handles business rules and validation for Permission Manager.
+
+   Architecture:
+   Repository → Service → Controller → Routes
+========================================================= */
 
 const permissionRepository = require("../repositories/permissionRepository");
+const {
+  validatePermissionPayload,
+} = require("../validators/permissionValidator");
 
-// ============================================================
-// Get All Permissions
-// ============================================================
+/* =========================================================
+   GET PERMISSIONS
+========================================================= */
+const getPermissions = async (query) => {
+  const page = Number(query.page) > 0 ? Number(query.page) : 1;
+  const limit = Number(query.limit) > 0 ? Number(query.limit) : 10;
 
-const getAllPermissions = async () => {
-    return await permissionRepository.getPermissions();
+  const filters = {
+    search: query.search || "",
+    moduleId: query.moduleId ? Number(query.moduleId) : null,
+    permissionGroupId: query.permissionGroupId
+      ? Number(query.permissionGroupId)
+      : null,
+    isActive:
+      query.isActive === "true"
+        ? true
+        : query.isActive === "false"
+        ? false
+        : null,
+    page,
+    limit,
+  };
+
+  const result = await permissionRepository.getPermissions(filters);
+
+  return {
+    data: result.rows,
+    pagination: {
+      page,
+      limit,
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit),
+    },
+  };
 };
 
-// ============================================================
-// Get Permission By Id
-// ============================================================
-
+/* =========================================================
+   GET PERMISSION BY ID
+========================================================= */
 const getPermissionById = async (permissionId) => {
-    const permission =
-        await permissionRepository.getPermissionById(permissionId);
+  const permission = await permissionRepository.getPermissionById(
+    Number(permissionId)
+  );
 
-    if (!permission) {
-        const error = new Error("Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  if (!permission) {
+    const error = new Error("Permission not found.");
+    error.statusCode = 404;
+    throw error;
+  }
 
-    return permission;
+  return permission;
 };
 
-// ============================================================
-// Create Permission
-// ============================================================
+/* =========================================================
+   CREATE PERMISSION
+========================================================= */
+const createPermission = async (body) => {
+  const validationErrors = validatePermissionPayload(body);
 
-const createPermission = async (permissionData) => {
-    const duplicateKey =
-        await permissionRepository.findPermissionByKey(
-            permissionData.permissionKey
-        );
+  if (validationErrors.length > 0) {
+    const error = new Error(validationErrors.join(" "));
+    error.statusCode = 400;
+    throw error;
+  }
 
-    if (duplicateKey) {
-        const error = new Error("Permission Key already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const permissionKey = body.permissionKey?.trim();
+  const permissionName = body.permissionName?.trim();
 
-    const duplicateName =
-        await permissionRepository.findPermissionByName(
-            permissionData.permissionName
-        );
+  const existingKey = await permissionRepository.getPermissionByKey(
+    permissionKey
+  );
 
-    if (duplicateName) {
-        const error = new Error("Permission Name already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
+  if (existingKey) {
+    const error = new Error("Permission key already exists.");
+    error.statusCode = 409;
+    throw error;
+  }
 
-    const module =
-        await permissionRepository.findActiveModuleById(
-            permissionData.moduleId
-        );
+  const existingName = await permissionRepository.getPermissionByName(
+    permissionName
+  );
 
-    if (!module) {
-        const error = new Error("Invalid Module.");
-        error.statusCode = 400;
-        throw error;
-    }
+  if (existingName) {
+    const error = new Error("Permission name already exists.");
+    error.statusCode = 409;
+    throw error;
+  }
 
-    if (permissionData.permissionGroupId) {
-        const group =
-            await permissionRepository.findPermissionGroupById(
-                permissionData.permissionGroupId
-            );
-
-        if (!group) {
-            const error = new Error("Invalid Permission Group.");
-            error.statusCode = 400;
-            throw error;
-        }
-    }
-
-    const permissionId =
-        await permissionRepository.createPermission(permissionData);
-
-    return await permissionRepository.getPermissionById(permissionId);
+  return await permissionRepository.createPermission({
+    permissionKey,
+    permissionName,
+    description: body.description?.trim() || null,
+    moduleId: Number(body.moduleId),
+    permissionGroupId: body.permissionGroupId
+      ? Number(body.permissionGroupId)
+      : null,
+    isActive: body.isActive === undefined ? true : Boolean(body.isActive),
+  });
 };
 
-// ============================================================
-// Update Permission
-// ============================================================
+/* =========================================================
+   UPDATE PERMISSION
+========================================================= */
+const updatePermission = async (permissionId, body) => {
+  const id = Number(permissionId);
 
-const updatePermission = async (permissionId, permissionData) => {
-    const existingPermission =
-        await permissionRepository.findPermissionById(permissionId);
+  const current = await permissionRepository.getPermissionById(id);
 
-    if (!existingPermission) {
-        const error = new Error("Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  if (!current) {
+    const error = new Error("Permission not found.");
+    error.statusCode = 404;
+    throw error;
+  }
 
-    const duplicateKey =
-        await permissionRepository.findPermissionByKey(
-            permissionData.permissionKey,
-            permissionId
-        );
+  const validationErrors = validatePermissionPayload(body);
 
-    if (duplicateKey) {
-        const error = new Error("Permission Key already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
+  if (validationErrors.length > 0) {
+    const error = new Error(validationErrors.join(" "));
+    error.statusCode = 400;
+    throw error;
+  }
 
-    const duplicateName =
-        await permissionRepository.findPermissionByName(
-            permissionData.permissionName,
-            permissionId
-        );
+  const permissionKey = body.permissionKey?.trim();
+  const permissionName = body.permissionName?.trim();
 
-    if (duplicateName) {
-        const error = new Error("Permission Name already exists.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const duplicateKey = await permissionRepository.getPermissionByKey(
+    permissionKey
+  );
 
-    const module =
-        await permissionRepository.findActiveModuleById(
-            permissionData.moduleId
-        );
+  if (duplicateKey && duplicateKey.PermissionId !== id) {
+    const error = new Error("Permission key already exists.");
+    error.statusCode = 409;
+    throw error;
+  }
 
-    if (!module) {
-        const error = new Error("Invalid Module.");
-        error.statusCode = 400;
-        throw error;
-    }
+  const duplicateName = await permissionRepository.getPermissionByName(
+    permissionName
+  );
 
-    if (permissionData.permissionGroupId) {
-        const group =
-            await permissionRepository.findPermissionGroupById(
-                permissionData.permissionGroupId
-            );
+  if (duplicateName && duplicateName.PermissionId !== id) {
+    const error = new Error("Permission name already exists.");
+    error.statusCode = 409;
+    throw error;
+  }
 
-        if (!group) {
-            const error = new Error("Invalid Permission Group.");
-            error.statusCode = 400;
-            throw error;
-        }
-    }
-
-    await permissionRepository.updatePermission(
-        permissionId,
-        permissionData
-    );
-
-    return await permissionRepository.getPermissionById(permissionId);
+  return await permissionRepository.updatePermission(id, {
+    permissionKey,
+    permissionName,
+    description: body.description?.trim() || null,
+    moduleId: Number(body.moduleId),
+    permissionGroupId: body.permissionGroupId
+      ? Number(body.permissionGroupId)
+      : null,
+    isActive: body.isActive === undefined ? true : Boolean(body.isActive),
+  });
 };
 
-// ============================================================
-// Delete Permission
-// ============================================================
-
+/* =========================================================
+   DELETE PERMISSION
+========================================================= */
 const deletePermission = async (permissionId) => {
-    const permission =
-        await permissionRepository.findPermissionById(permissionId);
+  const id = Number(permissionId);
 
-    if (!permission) {
-        const error = new Error("Permission not found.");
-        error.statusCode = 404;
-        throw error;
-    }
+  const current = await permissionRepository.getPermissionById(id);
 
-    await permissionRepository.deactivatePermission(permissionId);
+  if (!current) {
+    const error = new Error("Permission not found.");
+    error.statusCode = 404;
+    throw error;
+  }
 
-    return {
-        permissionId: Number(permissionId),
-        isActive: false,
-    };
+  return await permissionRepository.deletePermission(id);
 };
 
-// ============================================================
-// Exports
-// ============================================================
+/* =========================================================
+   GET LOOKUPS
+========================================================= */
+const getPermissionLookups = async () => {
+  return await permissionRepository.getPermissionLookups();
+};
 
+/* =========================================================
+   EXPORT SERVICE
+========================================================= */
 module.exports = {
-    getAllPermissions,
-    getPermissionById,
-    createPermission,
-    updatePermission,
-    deletePermission,
+  getPermissions,
+  getPermissionById,
+  createPermission,
+  updatePermission,
+  deletePermission,
+  getPermissionLookups,
 };

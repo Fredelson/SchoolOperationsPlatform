@@ -1,163 +1,168 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Permission Controller
-// ============================================================
-//
-// Purpose:
-// Handles HTTP requests related to Permissions.
-//
-// Architecture:
-//
-// Request
-//      ↓
-// Controller
-//      ↓
-// Service
-//      ↓
-// Repository
-//
-// Rules:
-//
-// • No SQL
-// • No business logic
-// • No validation
-// • Returns standardized API responses
-//
-// ============================================================
+/* =========================================================
+   Permission Controller
+   Purpose:
+   Handles HTTP request/response for Permission Manager.
+
+   Architecture:
+   Repository → Service → Controller → Routes
+========================================================= */
 
 const permissionService = require("../services/permissionService");
 
-const asyncHandler = require("../../../shared/helpers/asyncHandler");
-const { sendSuccess } = require("../../../shared/helpers/apiResponse");
+/* =========================================================
+   GET PERMISSIONS
+   Route: GET /api/permissions
+========================================================= */
+const getPermissions = async (req, res) => {
+  try {
+    const result = await permissionService.getPermissions(req.query);
 
-// ============================================================
-// Get All Permissions
-// ============================================================
-//
-// GET /api/permissions
-//
-// ============================================================
+    return res.status(200).json({
+      success: true,
+      message: "Permissions loaded successfully.",
+      ...result,
+    });
+  } catch (error) {
+    console.error("Get Permissions Error:", error);
 
-const getPermissions = asyncHandler(async (req, res) => {
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to load permissions.",
+    });
+  }
+};
 
-    const permissions =
-        await permissionService.getAllPermissions();
-
-    return sendSuccess(
-        res,
-        "Permissions retrieved successfully.",
-        permissions
+/* =========================================================
+   GET PERMISSION BY ID
+   Route: GET /api/permissions/:id
+========================================================= */
+const getPermissionById = async (req, res) => {
+  try {
+    const permission = await permissionService.getPermissionById(
+      req.params.id
     );
 
-});
+    return res.status(200).json({
+      success: true,
+      message: "Permission loaded successfully.",
+      data: permission,
+    });
+  } catch (error) {
+    console.error("Get Permission By ID Error:", error);
 
-// ============================================================
-// Get Permission By ID
-// ============================================================
-//
-// GET /api/permissions/:permissionId
-//
-// ============================================================
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to load permission.",
+    });
+  }
+};
 
-const getPermissionById = asyncHandler(async (req, res) => {
+/* =========================================================
+   CREATE PERMISSION
+   Route: POST /api/permissions
+========================================================= */
+const createPermission = async (req, res) => {
+  try {
+    const permission = await permissionService.createPermission(req.body);
 
-    const permission =
-        await permissionService.getPermissionById(
-            req.params.permissionId
-        );
+    return res.status(201).json({
+      success: true,
+      message: "Permission created successfully.",
+      data: permission,
+    });
+  } catch (error) {
+    console.error("Create Permission Error:", error);
 
-    return sendSuccess(
-        res,
-        "Permission retrieved successfully.",
-        permission
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to create permission.",
+    });
+  }
+};
+
+/* =========================================================
+   UPDATE PERMISSION
+   Route: PUT /api/permissions/:id
+========================================================= */
+const updatePermission = async (req, res) => {
+  try {
+    const permission = await permissionService.updatePermission(
+      req.params.id,
+      req.body
     );
 
-});
+    return res.status(200).json({
+      success: true,
+      message: "Permission updated successfully.",
+      data: permission,
+    });
+  } catch (error) {
+    console.error("Update Permission Error:", error);
 
-// ============================================================
-// Create Permission
-// ============================================================
-//
-// POST /api/permissions
-//
-// ============================================================
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to update permission.",
+    });
+  }
+};
 
-const createPermission = asyncHandler(async (req, res) => {
-
-    const permission =
-        await permissionService.createPermission(
-            req.body
-        );
-
-    return sendSuccess(
-        res,
-        "Permission created successfully.",
-        permission,
-        201
+/* =========================================================
+   DELETE PERMISSION
+   Route: DELETE /api/permissions/:id
+========================================================= */
+const deletePermission = async (req, res) => {
+  try {
+    const permission = await permissionService.deletePermission(
+      req.params.id
     );
 
-});
+    return res.status(200).json({
+      success: true,
+      message: "Permission deleted successfully.",
+      data: permission,
+    });
+  } catch (error) {
+    console.error("Delete Permission Error:", error);
 
-// ============================================================
-// Update Permission
-// ============================================================
-//
-// PUT /api/permissions/:permissionId
-//
-// ============================================================
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to delete permission.",
+    });
+  }
+};
 
-const updatePermission = asyncHandler(async (req, res) => {
+/* =========================================================
+   GET PERMISSION LOOKUPS
+   Route: GET /api/permissions/lookups
+========================================================= */
+const getPermissionLookups = async (req, res) => {
+  try {
+    const lookups = await permissionService.getPermissionLookups();
 
-    const permission =
-        await permissionService.updatePermission(
-            req.params.permissionId,
-            req.body
-        );
+    return res.status(200).json({
+      success: true,
+      message: "Permission lookups loaded successfully.",
+      data: lookups,
+    });
+  } catch (error) {
+    console.error("Get Permission Lookups Error:", error);
 
-    return sendSuccess(
-        res,
-        "Permission updated successfully.",
-        permission
-    );
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to load permission lookups.",
+    });
+  }
+};
 
-});
-
-// ============================================================
-// Delete Permission
-// ============================================================
-//
-// DELETE /api/permissions/:permissionId
-//
-// Performs a soft delete.
-//
-// ============================================================
-
-const deletePermission = asyncHandler(async (req, res) => {
-
-    const result =
-        await permissionService.deletePermission(
-            req.params.permissionId
-        );
-
-    return sendSuccess(
-        res,
-        "Permission deleted successfully.",
-        result
-    );
-
-});
-
-// ============================================================
-// Exports
-// ============================================================
+/* =========================================================
+   EXPORT CONTROLLER FUNCTIONS
+========================================================= */
 
 module.exports = {
-
-    getPermissions,
-    getPermissionById,
-
-    createPermission,
-    updatePermission,
-    deletePermission,
-
+  getPermissions,
+  getPermissionById,
+  createPermission,
+  updatePermission,
+  deletePermission,
+  getPermissionLookups,
 };

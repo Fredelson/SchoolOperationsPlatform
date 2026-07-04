@@ -4,19 +4,12 @@
 // ============================================================
 //
 // Purpose:
-// Handles all SQL operations related to Permissions.
-//
-// Architecture:
-// Repository Layer
+// Handles all SQL Server operations for Permission Manager.
 //
 // Rules:
 // - SQL only
 // - No business logic
-// - No validation
 // - No HTTP handling
-//
-// Source of Truth:
-// OperationsPlatformDB
 // ============================================================
 
 const {
@@ -28,11 +21,23 @@ const {
 } = require("../../../shared/database");
 
 // ============================================================
-// Get All Active Permissions
+// Get Permissions with Search + Filters + Pagination
 // ============================================================
 
-async function getPermissions() {
-  const result = await executeQuery(`
+async function getPermissions(filters = {}) {
+  const {
+    search = "",
+    moduleId = null,
+    permissionGroupId = null,
+    isActive = null,
+    page = 1,
+    limit = 10,
+  } = filters;
+
+  const offset = (Number(page) - 1) * Number(limit);
+
+  const result = await executeQuery(
+    `
     SELECT
       p.PermissionId,
       p.PermissionKey,
@@ -53,14 +58,57 @@ async function getPermissions() {
     LEFT JOIN dbo.PermissionGroups pg
       ON p.PermissionGroupId = pg.PermissionGroupId
     WHERE
-      p.IsActive = 1
+      (
+        @Search = ''
+        OR p.PermissionKey LIKE '%' + @Search + '%'
+        OR p.PermissionName LIKE '%' + @Search + '%'
+        OR ISNULL(p.Description, '') LIKE '%' + @Search + '%'
+        OR ISNULL(m.ModuleName, '') LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupName, '') LIKE '%' + @Search + '%'
+      )
+      AND (@ModuleId IS NULL OR p.ModuleId = @ModuleId)
+      AND (@PermissionGroupId IS NULL OR p.PermissionGroupId = @PermissionGroupId)
+      AND (@IsActive IS NULL OR p.IsActive = @IsActive)
     ORDER BY
       m.SortOrder,
       pg.SortOrder,
-      p.PermissionName;
-  `);
+      p.PermissionName
+    OFFSET @Offset ROWS
+    FETCH NEXT @Limit ROWS ONLY;
 
-  return rows(result);
+    SELECT COUNT(*) AS Total
+    FROM dbo.Permissions p
+    INNER JOIN dbo.Modules m
+      ON p.ModuleId = m.ModuleId
+    LEFT JOIN dbo.PermissionGroups pg
+      ON p.PermissionGroupId = pg.PermissionGroupId
+    WHERE
+      (
+        @Search = ''
+        OR p.PermissionKey LIKE '%' + @Search + '%'
+        OR p.PermissionName LIKE '%' + @Search + '%'
+        OR ISNULL(p.Description, '') LIKE '%' + @Search + '%'
+        OR ISNULL(m.ModuleName, '') LIKE '%' + @Search + '%'
+        OR ISNULL(pg.GroupName, '') LIKE '%' + @Search + '%'
+      )
+      AND (@ModuleId IS NULL OR p.ModuleId = @ModuleId)
+      AND (@PermissionGroupId IS NULL OR p.PermissionGroupId = @PermissionGroupId)
+      AND (@IsActive IS NULL OR p.IsActive = @IsActive);
+    `,
+    [
+      { name: "Search", type: sql.NVarChar(150), value: search },
+      { name: "ModuleId", type: sql.Int, value: moduleId },
+      { name: "PermissionGroupId", type: sql.Int, value: permissionGroupId },
+      { name: "IsActive", type: sql.Bit, value: isActive },
+      { name: "Offset", type: sql.Int, value: offset },
+      { name: "Limit", type: sql.Int, value: Number(limit) },
+    ]
+  );
+
+  return {
+    rows: result.recordsets?.[0] || [],
+    total: result.recordsets?.[1]?.[0]?.Total || 0,
+  };
 }
 
 // ============================================================
@@ -89,178 +137,82 @@ async function getPermissionById(permissionId) {
       ON p.ModuleId = m.ModuleId
     LEFT JOIN dbo.PermissionGroups pg
       ON p.PermissionGroupId = pg.PermissionGroupId
-    WHERE
-      p.PermissionId = @PermissionId;
+    WHERE p.PermissionId = @PermissionId;
     `,
-    [
-      {
-        name: "PermissionId",
-        type: sql.Int,
-        value: permissionId,
-      },
-    ]
+    [{ name: "PermissionId", type: sql.Int, value: permissionId }]
   );
 
   return firstOrNull(result);
 }
 
 // ============================================================
-// Find Permission By Id
+// Get Permission By Key
 // ============================================================
 
-async function findPermissionById(permissionId) {
+async function getPermissionByKey(permissionKey) {
   const result = await executeQuery(
     `
-    SELECT
-      PermissionId,
-      PermissionKey,
-      PermissionName,
-      ModuleId,
-      PermissionGroupId,
-      Description,
-      IsActive,
-      CreatedAt,
-      UpdatedAt
-    FROM dbo.Permissions
-    WHERE
-      PermissionId = @PermissionId;
-    `,
-    [
-      {
-        name: "PermissionId",
-        type: sql.Int,
-        value: permissionId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-}
-
-// ============================================================
-// Find Permission By Key
-// ============================================================
-
-async function findPermissionByKey(permissionKey, excludePermissionId = null) {
-  const result = await executeQuery(
-    `
-    SELECT
+    SELECT TOP 1
       PermissionId,
       PermissionKey
     FROM dbo.Permissions
-    WHERE
-      PermissionKey = @PermissionKey
-      AND (
-        @ExcludePermissionId IS NULL
-        OR PermissionId <> @ExcludePermissionId
-      );
+    WHERE PermissionKey = @PermissionKey;
     `,
-    [
-      {
-        name: "PermissionKey",
-        type: sql.NVarChar(100),
-        value: permissionKey,
-      },
-      {
-        name: "ExcludePermissionId",
-        type: sql.Int,
-        value: excludePermissionId,
-      },
-    ]
+    [{ name: "PermissionKey", type: sql.NVarChar(100), value: permissionKey }]
   );
 
   return firstOrNull(result);
 }
 
 // ============================================================
-// Find Permission By Name
+// Get Permission By Name
 // ============================================================
 
-async function findPermissionByName(permissionName, excludePermissionId = null) {
+async function getPermissionByName(permissionName) {
   const result = await executeQuery(
     `
-    SELECT
+    SELECT TOP 1
       PermissionId,
       PermissionName
     FROM dbo.Permissions
-    WHERE
-      PermissionName = @PermissionName
-      AND (
-        @ExcludePermissionId IS NULL
-        OR PermissionId <> @ExcludePermissionId
-      );
+    WHERE PermissionName = @PermissionName;
     `,
-    [
-      {
-        name: "PermissionName",
-        type: sql.NVarChar(150),
-        value: permissionName,
-      },
-      {
-        name: "ExcludePermissionId",
-        type: sql.Int,
-        value: excludePermissionId,
-      },
-    ]
+    [{ name: "PermissionName", type: sql.NVarChar(150), value: permissionName }]
   );
 
   return firstOrNull(result);
 }
 
 // ============================================================
-// Find Active Module By Id
+// Get Permission Lookups
 // ============================================================
 
-async function findActiveModuleById(moduleId) {
-  const result = await executeQuery(
-    `
+async function getPermissionLookups() {
+  const result = await executeQuery(`
     SELECT
       ModuleId,
       ModuleKey,
-      ModuleName,
-      IsActive
+      ModuleName
     FROM dbo.Modules
-    WHERE
-      ModuleId = @ModuleId
-      AND IsActive = 1;
-    `,
-    [
-      {
-        name: "ModuleId",
-        type: sql.Int,
-        value: moduleId,
-      },
-    ]
-  );
+    WHERE IsActive = 1
+    ORDER BY SortOrder, ModuleName;
 
-  return firstOrNull(result);
-}
-
-// ============================================================
-// Find Permission Group By Id
-// ============================================================
-
-async function findPermissionGroupById(permissionGroupId) {
-  const result = await executeQuery(
-    `
     SELECT
       PermissionGroupId,
       GroupKey,
       GroupName
     FROM dbo.PermissionGroups
-    WHERE
-      PermissionGroupId = @PermissionGroupId;
-    `,
-    [
-      {
-        name: "PermissionGroupId",
-        type: sql.Int,
-        value: permissionGroupId,
-      },
-    ]
-  );
+    ORDER BY SortOrder, GroupName;
+  `);
 
-  return firstOrNull(result);
+  return {
+    modules: result.recordsets?.[0] || [],
+    permissionGroups: result.recordsets?.[1] || [],
+    statuses: [
+      { id: "true", name: "Active" },
+      { id: "false", name: "Inactive" },
+    ],
+  };
 }
 
 // ============================================================
@@ -289,41 +241,23 @@ async function createPermission(data) {
       @ModuleId,
       @PermissionGroupId,
       @Description,
-      1,
+      @IsActive,
       GETDATE(),
-      GETDATE()
+      NULL
     );
     `,
     [
-      {
-        name: "PermissionKey",
-        type: sql.NVarChar(100),
-        value: data.permissionKey,
-      },
-      {
-        name: "PermissionName",
-        type: sql.NVarChar(150),
-        value: data.permissionName,
-      },
-      {
-        name: "ModuleId",
-        type: sql.Int,
-        value: data.moduleId,
-      },
-      {
-        name: "PermissionGroupId",
-        type: sql.Int,
-        value: data.permissionGroupId || null,
-      },
-      {
-        name: "Description",
-        type: sql.NVarChar(255),
-        value: data.description || null,
-      },
+      { name: "PermissionKey", type: sql.NVarChar(100), value: data.permissionKey },
+      { name: "PermissionName", type: sql.NVarChar(150), value: data.permissionName },
+      { name: "ModuleId", type: sql.Int, value: data.moduleId },
+      { name: "PermissionGroupId", type: sql.Int, value: data.permissionGroupId || null },
+      { name: "Description", type: sql.NVarChar(255), value: data.description || null },
+      { name: "IsActive", type: sql.Bit, value: data.isActive },
     ]
   );
 
-  return insertedId(result, "PermissionId");
+  const permissionId = insertedId(result, "PermissionId");
+  return await getPermissionById(permissionId);
 }
 
 // ============================================================
@@ -340,84 +274,55 @@ async function updatePermission(permissionId, data) {
       ModuleId = @ModuleId,
       PermissionGroupId = @PermissionGroupId,
       Description = @Description,
+      IsActive = @IsActive,
       UpdatedAt = GETDATE()
-    WHERE
-      PermissionId = @PermissionId;
+    WHERE PermissionId = @PermissionId;
     `,
     [
-      {
-        name: "PermissionId",
-        type: sql.Int,
-        value: permissionId,
-      },
-      {
-        name: "PermissionKey",
-        type: sql.NVarChar(100),
-        value: data.permissionKey,
-      },
-      {
-        name: "PermissionName",
-        type: sql.NVarChar(150),
-        value: data.permissionName,
-      },
-      {
-        name: "ModuleId",
-        type: sql.Int,
-        value: data.moduleId,
-      },
-      {
-        name: "PermissionGroupId",
-        type: sql.Int,
-        value: data.permissionGroupId || null,
-      },
-      {
-        name: "Description",
-        type: sql.NVarChar(255),
-        value: data.description || null,
-      },
+      { name: "PermissionId", type: sql.Int, value: permissionId },
+      { name: "PermissionKey", type: sql.NVarChar(100), value: data.permissionKey },
+      { name: "PermissionName", type: sql.NVarChar(150), value: data.permissionName },
+      { name: "ModuleId", type: sql.Int, value: data.moduleId },
+      { name: "PermissionGroupId", type: sql.Int, value: data.permissionGroupId || null },
+      { name: "Description", type: sql.NVarChar(255), value: data.description || null },
+      { name: "IsActive", type: sql.Bit, value: data.isActive },
     ]
   );
+
+  return await getPermissionById(permissionId);
 }
 
 // ============================================================
-// Deactivate Permission
+// Delete Permission
+// Soft delete only
 // ============================================================
 
-async function deactivatePermission(permissionId) {
+async function deletePermission(permissionId) {
   await executeQuery(
     `
     UPDATE dbo.Permissions
     SET
       IsActive = 0,
       UpdatedAt = GETDATE()
-    WHERE
-      PermissionId = @PermissionId;
+    WHERE PermissionId = @PermissionId;
     `,
-    [
-      {
-        name: "PermissionId",
-        type: sql.Int,
-        value: permissionId,
-      },
-    ]
+    [{ name: "PermissionId", type: sql.Int, value: permissionId }]
   );
+
+  return await getPermissionById(permissionId);
 }
 
 // ============================================================
-// Repository Exports
+// Exports
 // ============================================================
 
 module.exports = {
   getPermissions,
   getPermissionById,
-
-  findPermissionById,
-  findPermissionByKey,
-  findPermissionByName,
-  findActiveModuleById,
-  findPermissionGroupById,
-
+  getPermissionByKey,
+  getPermissionByName,
+  getPermissionLookups,
   createPermission,
   updatePermission,
-  deactivatePermission,
+  deletePermission,
 };

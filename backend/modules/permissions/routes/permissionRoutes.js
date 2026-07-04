@@ -1,84 +1,26 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Permission Routes
-// ============================================================
-//
-// Purpose:
-// Defines API routes for the Permissions module.
-//
-// Base Route:
-// /api/permissions
-//
-// Architecture:
-// Route
-//      ↓
-// JWT Protection
-//      ↓
-// Permission Middleware
-//      ↓
-// Controller
-//
-// Security:
-// Uses database-driven permission keys instead of hard-coded
-// role-name checks.
-//
-// ============================================================
+/* =========================================================
+   Permission Routes
+   Purpose:
+   Defines all API endpoints for Permission Manager.
+========================================================= */
 
 const express = require("express");
-
-const permissionController = require("../controllers/permissionController");
-const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
-
-// ============================================================
-// Router Initialization
-// ============================================================
-
 const router = express.Router();
 
-// ============================================================
-// Apply JWT Protection
-// ============================================================
+const permissionController = require("../controllers/permissionController");
 
-router.use(protect);
+/* =========================================================
+   Permission Manager API Routes
 
-// ============================================================
-// Permission CRUD Routes
-// ============================================================
+   Base route:
+   /api/permissions
+========================================================= */
 
-router.get(
-    "/",
-    requirePermission(PERMISSIONS.PERMISSIONS.VIEW),
-    permissionController.getPermissions
-);
-
-router.get(
-    "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.VIEW),
-    permissionController.getPermissionById
-);
-
-router.post(
-    "/",
-    requirePermission(PERMISSIONS.PERMISSIONS.CREATE),
-    permissionController.createPermission
-);
-
-router.put(
-    "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.UPDATE),
-    permissionController.updatePermission
-);
-
-router.delete(
-    "/:permissionId",
-    requirePermission(PERMISSIONS.PERMISSIONS.DELETE),
-    permissionController.deletePermission
-);
-
-// ============================================================
-// Exports
-// ============================================================
+router.get("/lookups", permissionController.getPermissionLookups);
+router.get("/", permissionController.getPermissions);
+router.get("/:id", permissionController.getPermissionById);
+router.post("/", permissionController.createPermission);
+router.put("/:id", permissionController.updatePermission);
+router.delete("/:id", permissionController.deletePermission);
 
 module.exports = router;
