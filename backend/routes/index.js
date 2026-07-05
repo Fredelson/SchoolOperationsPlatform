@@ -30,6 +30,8 @@ router.use("/users", require("../modules/users"));
 router.use("/lookups", require("../modules/lookups"));
 router.use("/assignments", require("../modules/assignments"));
 
+router.use("/it-assets", require("../modules/itAssets"));
+
 router.use("/roles", require("../modules/roles"));
 router.use("/permissions", require("../modules/permissions"));
 router.use("/permission-groups", require("../modules/permissionGroups"));
