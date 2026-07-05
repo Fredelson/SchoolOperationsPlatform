@@ -20,6 +20,7 @@ const {
   firstOrNull,
   rows,
   insertedId,
+  existsById,
 } = require("./repositoryBase");
 
 module.exports = {
@@ -29,4 +30,5 @@ module.exports = {
   firstOrNull,
   rows,
   insertedId,
+  existsById,
 };

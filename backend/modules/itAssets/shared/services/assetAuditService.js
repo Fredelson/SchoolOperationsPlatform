@@ -64,9 +64,40 @@ const logAssetDeleted = async ({ asset, user, ipAddress = null }) => {
     ipAddress,
   });
 };
+const logAssetAssigned = async ({ asset, assignment, user, ipAddress = null }) => {
+  return activityLogger.log({
+    moduleKey: "IT_ASSETS",
+    actionType: ASSET_ACTIONS.ASSIGNED,
+    entityType: "ITAsset",
+    entityId: asset.AssetId,
+    title: "Asset Assigned",
+    description: `Asset ${asset.AssetTag} was assigned to ${assignment.AssignedToName || "user"}.`,
+    oldValue: null,
+    newValue: assignment,
+    user,
+    ipAddress,
+  });
+};
+
+const logAssetReturned = async ({ asset, assignment, user, ipAddress = null }) => {
+  return activityLogger.log({
+    moduleKey: "IT_ASSETS",
+    actionType: ASSET_ACTIONS.RETURNED,
+    entityType: "ITAsset",
+    entityId: asset.AssetId,
+    title: "Asset Returned",
+    description: `Asset ${asset.AssetTag} was returned.`,
+    oldValue: assignment,
+    newValue: asset,
+    user,
+    ipAddress,
+  });
+};
 
 module.exports = {
   logAssetCreated,
   logAssetUpdated,
   logAssetDeleted,
+  logAssetAssigned,
+  logAssetReturned,
 };
