@@ -48,6 +48,15 @@ router.use(
   require("../modules/navigationManager")
 );
 
+router.use(
+  "/workspace-manager",
+  require("../modules/workspaceManager")
+);
+router.use(
+  "/dashboard-manager",
+  require("../modules/dashboardManager")
+);
+
 router.use("/navigation", require("../modules/navigation"));
 router.use("/modules", require("../modules/modules"));
 router.use("/menus", require("../modules/menus"));

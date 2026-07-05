@@ -1,0 +1,407 @@
+/* =========================================================
+   Workspace Manager Repository
+   Purpose:
+   Handles all SQL Server operations for Workspaces.
+
+   Architecture:
+   Repository → Service → Controller → Routes
+========================================================= */
+
+const { poolPromise, sql } = require("../../../config/db");
+
+/* =========================================================
+   GET WORKSPACES
+========================================================= */
+
+const getWorkspaces = async ({
+  search = "",
+  visibilityStatusId = null,
+  isDefault = null,
+  isActive = null,
+  page = 1,
+  limit = 10,
+}) => {
+  const pool = await poolPromise;
+  const offset = (page - 1) * limit;
+
+  const request = pool.request();
+
+  request.input("Search", sql.NVarChar, `%${search}%`);
+  request.input("VisibilityStatusId", sql.Int, visibilityStatusId);
+  request.input("IsDefault", sql.Bit, isDefault);
+  request.input("IsActive", sql.Bit, isActive);
+  request.input("Offset", sql.Int, offset);
+  request.input("Limit", sql.Int, limit);
+
+  const result = await request.query(`
+    SELECT
+      w.WorkspaceId,
+      w.WorkspaceKey,
+      w.WorkspaceName,
+      w.Description,
+      w.Icon,
+      w.DefaultRoute,
+      w.VisibilityStatusId,
+      fvs.StatusKey AS VisibilityStatusKey,
+      fvs.StatusName AS VisibilityStatusName,
+      w.IsDefault,
+      w.SortOrder,
+      w.CreatedAt,
+      w.UpdatedAt,
+      w.IsActive
+    FROM dbo.Workspaces w
+    INNER JOIN dbo.FeatureVisibilityStatuses fvs
+      ON w.VisibilityStatusId = fvs.VisibilityStatusId
+    WHERE
+      (
+        w.WorkspaceKey LIKE @Search
+        OR w.WorkspaceName LIKE @Search
+        OR ISNULL(w.Description, '') LIKE @Search
+        OR ISNULL(w.Icon, '') LIKE @Search
+        OR ISNULL(w.DefaultRoute, '') LIKE @Search
+        OR ISNULL(fvs.StatusName, '') LIKE @Search
+      )
+      AND (@VisibilityStatusId IS NULL OR w.VisibilityStatusId = @VisibilityStatusId)
+      AND (@IsDefault IS NULL OR w.IsDefault = @IsDefault)
+      AND (@IsActive IS NULL OR w.IsActive = @IsActive)
+    ORDER BY
+      w.SortOrder ASC,
+      w.WorkspaceName ASC
+    OFFSET @Offset ROWS
+    FETCH NEXT @Limit ROWS ONLY;
+
+    SELECT COUNT(*) AS Total
+    FROM dbo.Workspaces w
+    INNER JOIN dbo.FeatureVisibilityStatuses fvs
+      ON w.VisibilityStatusId = fvs.VisibilityStatusId
+    WHERE
+      (
+        w.WorkspaceKey LIKE @Search
+        OR w.WorkspaceName LIKE @Search
+        OR ISNULL(w.Description, '') LIKE @Search
+        OR ISNULL(w.Icon, '') LIKE @Search
+        OR ISNULL(w.DefaultRoute, '') LIKE @Search
+        OR ISNULL(fvs.StatusName, '') LIKE @Search
+      )
+      AND (@VisibilityStatusId IS NULL OR w.VisibilityStatusId = @VisibilityStatusId)
+      AND (@IsDefault IS NULL OR w.IsDefault = @IsDefault)
+      AND (@IsActive IS NULL OR w.IsActive = @IsActive);
+  `);
+
+  return {
+    rows: result.recordsets[0],
+    total: result.recordsets[1][0].Total,
+  };
+};
+
+/* =========================================================
+   GET WORKSPACE BY ID
+========================================================= */
+
+const getWorkspaceById = async (workspaceId) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("WorkspaceId", sql.Int, workspaceId)
+    .query(`
+      SELECT
+        w.WorkspaceId,
+        w.WorkspaceKey,
+        w.WorkspaceName,
+        w.Description,
+        w.Icon,
+        w.DefaultRoute,
+        w.VisibilityStatusId,
+        fvs.StatusKey AS VisibilityStatusKey,
+        fvs.StatusName AS VisibilityStatusName,
+        w.IsDefault,
+        w.SortOrder,
+        w.CreatedAt,
+        w.UpdatedAt,
+        w.IsActive
+      FROM dbo.Workspaces w
+      INNER JOIN dbo.FeatureVisibilityStatuses fvs
+        ON w.VisibilityStatusId = fvs.VisibilityStatusId
+      WHERE w.WorkspaceId = @WorkspaceId;
+    `);
+
+  return result.recordset[0];
+};
+
+/* =========================================================
+   CHECK DUPLICATE WORKSPACE KEY
+========================================================= */
+
+const getWorkspaceByKey = async (workspaceKey) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("WorkspaceKey", sql.NVarChar, workspaceKey)
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.Workspaces
+      WHERE WorkspaceKey = @WorkspaceKey;
+    `);
+
+  return result.recordset[0];
+};
+
+/* =========================================================
+   LOOKUP VALIDATION
+========================================================= */
+
+const visibilityStatusExists = async (visibilityStatusId) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("VisibilityStatusId", sql.Int, visibilityStatusId)
+    .query(`
+      SELECT TOP 1 VisibilityStatusId
+      FROM dbo.FeatureVisibilityStatuses
+      WHERE VisibilityStatusId = @VisibilityStatusId;
+    `);
+
+  return Boolean(result.recordset[0]);
+};
+
+/* =========================================================
+   CREATE WORKSPACE
+========================================================= */
+
+const createWorkspace = async (data) => {
+  const pool = await poolPromise;
+  const transaction = pool.transaction();
+
+  try {
+    await transaction.begin();
+
+    if (data.isDefault) {
+      await transaction.request().query(`
+        UPDATE dbo.Workspaces
+        SET IsDefault = 0,
+            UpdatedAt = GETDATE()
+        WHERE IsDefault = 1;
+      `);
+    }
+
+    const result = await transaction
+      .request()
+      .input("WorkspaceKey", sql.NVarChar, data.workspaceKey)
+      .input("WorkspaceName", sql.NVarChar, data.workspaceName)
+      .input("Description", sql.NVarChar, data.description)
+      .input("Icon", sql.NVarChar, data.icon)
+      .input("DefaultRoute", sql.NVarChar, data.defaultRoute)
+      .input("VisibilityStatusId", sql.Int, data.visibilityStatusId)
+      .input("IsDefault", sql.Bit, data.isDefault)
+      .input("SortOrder", sql.Int, data.sortOrder)
+      .input("IsActive", sql.Bit, data.isActive)
+      .query(`
+        INSERT INTO dbo.Workspaces
+        (
+          WorkspaceKey,
+          WorkspaceName,
+          Description,
+          Icon,
+          DefaultRoute,
+          VisibilityStatusId,
+          IsDefault,
+          SortOrder,
+          CreatedAt,
+          UpdatedAt,
+          IsActive
+        )
+        OUTPUT INSERTED.*
+        VALUES
+        (
+          @WorkspaceKey,
+          @WorkspaceName,
+          @Description,
+          @Icon,
+          @DefaultRoute,
+          @VisibilityStatusId,
+          @IsDefault,
+          @SortOrder,
+          GETDATE(),
+          NULL,
+          @IsActive
+        );
+      `);
+
+    await transaction.commit();
+
+    return result.recordset[0];
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+/* =========================================================
+   UPDATE WORKSPACE
+========================================================= */
+
+const updateWorkspace = async (workspaceId, data) => {
+  const pool = await poolPromise;
+  const transaction = pool.transaction();
+
+  try {
+    await transaction.begin();
+
+    if (data.isDefault) {
+      await transaction
+        .request()
+        .input("WorkspaceId", sql.Int, workspaceId)
+        .query(`
+          UPDATE dbo.Workspaces
+          SET IsDefault = 0,
+              UpdatedAt = GETDATE()
+          WHERE IsDefault = 1
+            AND WorkspaceId <> @WorkspaceId;
+        `);
+    }
+
+    const result = await transaction
+      .request()
+      .input("WorkspaceId", sql.Int, workspaceId)
+      .input("WorkspaceKey", sql.NVarChar, data.workspaceKey)
+      .input("WorkspaceName", sql.NVarChar, data.workspaceName)
+      .input("Description", sql.NVarChar, data.description)
+      .input("Icon", sql.NVarChar, data.icon)
+      .input("DefaultRoute", sql.NVarChar, data.defaultRoute)
+      .input("VisibilityStatusId", sql.Int, data.visibilityStatusId)
+      .input("IsDefault", sql.Bit, data.isDefault)
+      .input("SortOrder", sql.Int, data.sortOrder)
+      .input("IsActive", sql.Bit, data.isActive)
+      .query(`
+        UPDATE dbo.Workspaces
+        SET
+          WorkspaceKey = @WorkspaceKey,
+          WorkspaceName = @WorkspaceName,
+          Description = @Description,
+          Icon = @Icon,
+          DefaultRoute = @DefaultRoute,
+          VisibilityStatusId = @VisibilityStatusId,
+          IsDefault = @IsDefault,
+          SortOrder = @SortOrder,
+          UpdatedAt = GETDATE(),
+          IsActive = @IsActive
+        OUTPUT INSERTED.*
+        WHERE WorkspaceId = @WorkspaceId;
+      `);
+
+    await transaction.commit();
+
+    return result.recordset[0];
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+/* =========================================================
+   DELETE WORKSPACE
+========================================================= */
+
+const deleteWorkspace = async (workspaceId) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("WorkspaceId", sql.Int, workspaceId)
+    .query(`
+      DELETE FROM dbo.Workspaces
+      OUTPUT DELETED.*
+      WHERE WorkspaceId = @WorkspaceId;
+    `);
+
+  return result.recordset[0];
+};
+
+/* =========================================================
+   USAGE CHECK
+========================================================= */
+
+const getWorkspaceUsageCounts = async (workspaceId) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("WorkspaceId", sql.Int, workspaceId)
+    .query(`
+      SELECT 'Dashboards' AS TableName, COUNT(*) AS Total
+      FROM dbo.Dashboards
+      WHERE WorkspaceId = @WorkspaceId
+
+      UNION ALL
+
+      SELECT 'MenuGroups', COUNT(*)
+      FROM dbo.MenuGroups
+      WHERE WorkspaceId = @WorkspaceId
+
+      UNION ALL
+
+      SELECT 'Menus', COUNT(*)
+      FROM dbo.Menus
+      WHERE WorkspaceId = @WorkspaceId
+
+      UNION ALL
+
+      SELECT 'UserMenuPreferences', COUNT(*)
+      FROM dbo.UserMenuPreferences
+      WHERE WorkspaceId = @WorkspaceId
+
+      UNION ALL
+
+      SELECT 'Users', COUNT(*)
+      FROM dbo.Users
+      WHERE DefaultWorkspaceId = @WorkspaceId
+
+      UNION ALL
+
+      SELECT 'WorkspaceRoles', COUNT(*)
+      FROM dbo.WorkspaceRoles
+      WHERE WorkspaceId = @WorkspaceId;
+    `);
+
+  return result.recordset;
+};
+
+/* =========================================================
+   LOOKUPS
+========================================================= */
+
+const getWorkspaceLookups = async () => {
+  const pool = await poolPromise;
+
+  const result = await pool.request().query(`
+    SELECT
+      VisibilityStatusId,
+      StatusKey,
+      StatusName
+    FROM dbo.FeatureVisibilityStatuses
+    ORDER BY SortOrder;
+  `);
+
+  return {
+    visibilityStatuses: result.recordsets[0],
+  };
+};
+
+/* =========================================================
+   EXPORT REPOSITORY
+========================================================= */
+
+module.exports = {
+  getWorkspaces,
+  getWorkspaceById,
+  getWorkspaceByKey,
+  visibilityStatusExists,
+  createWorkspace,
+  updateWorkspace,
+  deleteWorkspace,
+  getWorkspaceUsageCounts,
+  getWorkspaceLookups,
+};
