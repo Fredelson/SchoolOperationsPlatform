@@ -1,18 +1,39 @@
 /* =========================================================
+   ARAB UNITY SCHOOL OPERATIONS PLATFORM
    IT Asset Assignment Repository
-   Atomic Assignment / Return with Audit + Timeline
+
+   Atomic Assignment / Return with:
+   - ITAssets update
+   - ITAssetAssignments insert/update
+   - ITAssetStatusHistory insert
+   - ActivityTimeline insert
+   - AuditLogs insert
+
+   IMPORTANT:
+   This repository owns the SQL transaction.
+   Service layer should only orchestrate business logic.
 ========================================================= */
 
+
+// Shared enterprise database layer
 const sql = require("mssql");
 const { poolPromise } = require("../../../../config/db");
+
+/* =========================================================
+   Lookup Helpers
+========================================================= */
 
 const getStatusByKey = async (statusKey) => {
   const pool = await poolPromise;
 
-  const result = await pool.request()
+  const result = await pool
+    .request()
     .input("StatusKey", sql.NVarChar(200), statusKey)
     .query(`
-      SELECT TOP 1 ITAssetStatusId, StatusKey, StatusName
+      SELECT TOP 1
+        ITAssetStatusId,
+        StatusKey,
+        StatusName
       FROM dbo.ITAssetStatuses
       WHERE StatusKey = @StatusKey;
     `);
@@ -23,10 +44,15 @@ const getStatusByKey = async (statusKey) => {
 const getUserById = async (userId) => {
   const pool = await poolPromise;
 
-  const result = await pool.request()
+  const result = await pool
+    .request()
     .input("UserId", sql.Int, userId)
     .query(`
-      SELECT TOP 1 UserId, FullName, EmployeeId, SchoolEmail
+      SELECT TOP 1
+        UserId,
+        FullName,
+        EmployeeId,
+        SchoolEmail
       FROM dbo.Users
       WHERE UserId = @UserId
         AND IsActive = 1
@@ -39,7 +65,8 @@ const getUserById = async (userId) => {
 const getAssetById = async (assetId) => {
   const pool = await poolPromise;
 
-  const result = await pool.request()
+  const result = await pool
+    .request()
     .input("AssetId", sql.Int, assetId)
     .query(`
       SELECT TOP 1 *
@@ -54,7 +81,8 @@ const getAssetById = async (assetId) => {
 const getActiveAssignment = async (assetId) => {
   const pool = await poolPromise;
 
-  const result = await pool.request()
+  const result = await pool
+    .request()
     .input("AssetId", sql.Int, assetId)
     .query(`
       SELECT TOP 1 *
@@ -70,7 +98,8 @@ const getActiveAssignment = async (assetId) => {
 const getAssignmentHistory = async (assetId) => {
   const pool = await poolPromise;
 
-  const result = await pool.request()
+  const result = await pool
+    .request()
     .input("AssetId", sql.Int, assetId)
     .query(`
       SELECT
@@ -81,11 +110,16 @@ const getAssignmentHistory = async (assetId) => {
         l.LocationName,
         r.RoomName
       FROM dbo.ITAssetAssignments aa
-      LEFT JOIN dbo.Users u ON aa.AssignedToUserId = u.UserId
-      LEFT JOIN dbo.Users byUser ON aa.AssignedByUserId = byUser.UserId
-      LEFT JOIN dbo.Departments d ON aa.DepartmentId = d.DepartmentId
-      LEFT JOIN dbo.Locations l ON aa.LocationId = l.LocationId
-      LEFT JOIN dbo.Rooms r ON aa.RoomId = r.RoomId
+      LEFT JOIN dbo.Users u
+        ON aa.AssignedToUserId = u.UserId
+      LEFT JOIN dbo.Users byUser
+        ON aa.AssignedByUserId = byUser.UserId
+      LEFT JOIN dbo.Departments d
+        ON aa.DepartmentId = d.DepartmentId
+      LEFT JOIN dbo.Locations l
+        ON aa.LocationId = l.LocationId
+      LEFT JOIN dbo.Rooms r
+        ON aa.RoomId = r.RoomId
       WHERE aa.AssetId = @AssetId
       ORDER BY aa.AssignedAt DESC;
     `);
@@ -94,7 +128,7 @@ const getAssignmentHistory = async (assetId) => {
 };
 
 /* =========================================================
-   Internal Transaction Audit Helpers
+   Internal Transaction Audit Helper
 ========================================================= */
 
 const insertAuditLog = async ({
@@ -144,6 +178,10 @@ const insertAuditLog = async ({
       );
     `);
 };
+
+/* =========================================================
+   Internal Transaction Activity Timeline Helper
+========================================================= */
 
 const insertActivityTimeline = async ({
   transaction,
@@ -204,9 +242,9 @@ const assignAsset = async ({
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
-  await transaction.begin();
-
   try {
+    await transaction.begin();
+
     const assignmentResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
       .input("AssignmentTargetType", sql.NVarChar(100), payload.assignmentTargetType || "USER")
@@ -320,7 +358,10 @@ const assignAsset = async ({
       entityId: asset.AssetId,
       description: `Asset ${asset.AssetTag} was assigned to ${assignment.AssignedToName}.`,
       oldValue: asset,
-      newValue: { asset: updatedAsset, assignment },
+      newValue: {
+        asset: updatedAsset,
+        assignment,
+      },
       ipAddress,
     });
 
@@ -342,7 +383,10 @@ const assignAsset = async ({
       asset: updatedAsset,
     };
   } catch (error) {
-    await transaction.rollback();
+    if (transaction._aborted !== true) {
+      await transaction.rollback();
+    }
+
     throw error;
   }
 };
@@ -362,9 +406,9 @@ const returnAsset = async ({
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
-  await transaction.begin();
-
   try {
+    await transaction.begin();
+
     const assignmentResult = await new sql.Request(transaction)
       .input("AssetAssignmentId", sql.Int, activeAssignment.AssetAssignmentId)
       .query(`
@@ -385,6 +429,9 @@ const returnAsset = async ({
           CurrentAssignedName = NULL,
           CurrentAssignedEmployeeCode = NULL,
           CurrentAssignedEmail = NULL,
+          CurrentRoomId = NULL,
+          CurrentDepartmentId = NULL,
+          CurrentLocationId = NULL,
           UpdatedAt = GETDATE()
         OUTPUT INSERTED.*
         WHERE AssetId = @AssetId
@@ -428,8 +475,14 @@ const returnAsset = async ({
       entityType: "ITAsset",
       entityId: asset.AssetId,
       description: `Asset ${asset.AssetTag} was returned.`,
-      oldValue: { asset, assignment: activeAssignment },
-      newValue: { asset: updatedAsset, assignment },
+      oldValue: {
+        asset,
+        assignment: activeAssignment,
+      },
+      newValue: {
+        asset: updatedAsset,
+        assignment,
+      },
       ipAddress,
     });
 
@@ -451,10 +504,17 @@ const returnAsset = async ({
       asset: updatedAsset,
     };
   } catch (error) {
-    await transaction.rollback();
+    if (transaction._aborted !== true) {
+      await transaction.rollback();
+    }
+
     throw error;
   }
 };
+
+/* =========================================================
+   Exports
+========================================================= */
 
 module.exports = {
   getStatusByKey,
