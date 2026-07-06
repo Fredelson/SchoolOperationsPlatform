@@ -1,0 +1,20 @@
+CREATE TABLE dbo.ITAssetBorrows (
+    AssetBorrowId INT IDENTITY(1,1) PRIMARY KEY,
+    AssetId INT NOT NULL,
+    BorrowedByUserId INT NULL,
+    BorrowedByName NVARCHAR(255) NULL,
+    BorrowedByEmail NVARCHAR(255) NULL,
+    BorrowedByEmployeeCode NVARCHAR(50) NULL,
+    BorrowedFromRoomId INT NULL,
+    BorrowedFromDepartmentId INT NULL,
+    BorrowedFromLocationId INT NULL,
+    BorrowedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    ExpectedReturnAt DATETIME NULL,
+    ReturnedAt DATETIME NULL,
+    ApprovedByUserId INT NULL,
+    ReturnedByUserId INT NULL,
+    Notes NVARCHAR(MAX) NULL,
+    ReturnNotes NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL
+);

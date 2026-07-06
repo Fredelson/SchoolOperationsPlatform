@@ -1,25 +1,10 @@
 /* =========================================================
    ARAB UNITY SCHOOL OPERATIONS PLATFORM
    IT Asset Assignment History Repository
-
-   Purpose:
-   Provides read-only lifecycle visibility for:
-   - Assignment history
-   - Current active assignments
-   - Asset status history
-
-   Notes:
-   - No writes here.
-   - No transaction needed.
-   - Uses shared enterprise executeQuery helper.
 ========================================================= */
 
 const { sql, executeQuery } = require("../../../../shared/database/executeQuery");
-const { rows } = require("../../../../shared/database/repositoryBase");
-
-/* =========================================================
-   Assignment History
-========================================================= */
+const { rows, firstOrNull } = require("../../../../shared/database/repositoryBase");
 
 const getAssignmentHistory = async ({ assetId = null, page = 1, limit = 20 }) => {
   const offset = (Number(page) - 1) * Number(limit);
@@ -48,18 +33,12 @@ const getAssignmentHistory = async ({ assetId = null, page = 1, limit = 20 }) =>
         aa.ReturnedAt,
         aa.Notes
       FROM dbo.ITAssetAssignments aa
-      INNER JOIN dbo.ITAssets a
-        ON aa.AssetId = a.AssetId
-      LEFT JOIN dbo.Users assignedBy
-        ON aa.AssignedByUserId = assignedBy.UserId
-      LEFT JOIN dbo.Rooms r
-        ON aa.RoomId = r.RoomId
-      LEFT JOIN dbo.Departments d
-        ON aa.DepartmentId = d.DepartmentId
-      LEFT JOIN dbo.Locations l
-        ON aa.LocationId = l.LocationId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON aa.AssetId = a.AssetId
+      LEFT JOIN dbo.Users assignedBy ON aa.AssignedByUserId = assignedBy.UserId
+      LEFT JOIN dbo.Rooms r ON aa.RoomId = r.RoomId
+      LEFT JOIN dbo.Departments d ON aa.DepartmentId = d.DepartmentId
+      LEFT JOIN dbo.Locations l ON aa.LocationId = l.LocationId
+      WHERE a.IsDeleted = 0
         AND (@AssetId IS NULL OR aa.AssetId = @AssetId)
       ORDER BY aa.AssignedAt DESC
       OFFSET @Offset ROWS
@@ -80,21 +59,15 @@ const countAssignmentHistory = async ({ assetId = null }) => {
     `
       SELECT COUNT(1) AS Total
       FROM dbo.ITAssetAssignments aa
-      INNER JOIN dbo.ITAssets a
-        ON aa.AssetId = a.AssetId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON aa.AssetId = a.AssetId
+      WHERE a.IsDeleted = 0
         AND (@AssetId IS NULL OR aa.AssetId = @AssetId);
     `,
     [{ name: "AssetId", type: sql.Int, value: assetId ? Number(assetId) : null }]
   );
 
-  return result.recordset?.[0]?.Total || 0;
+  return firstOrNull(result)?.Total || 0;
 };
-
-/* =========================================================
-   Active Assignments
-========================================================= */
 
 const getActiveAssignments = async ({ page = 1, limit = 20 }) => {
   const offset = (Number(page) - 1) * Number(limit);
@@ -122,18 +95,12 @@ const getActiveAssignments = async ({ page = 1, limit = 20 }) => {
         aa.AssignedAt,
         aa.Notes
       FROM dbo.ITAssetAssignments aa
-      INNER JOIN dbo.ITAssets a
-        ON aa.AssetId = a.AssetId
-      LEFT JOIN dbo.Users assignedBy
-        ON aa.AssignedByUserId = assignedBy.UserId
-      LEFT JOIN dbo.Rooms r
-        ON aa.RoomId = r.RoomId
-      LEFT JOIN dbo.Departments d
-        ON aa.DepartmentId = d.DepartmentId
-      LEFT JOIN dbo.Locations l
-        ON aa.LocationId = l.LocationId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON aa.AssetId = a.AssetId
+      LEFT JOIN dbo.Users assignedBy ON aa.AssignedByUserId = assignedBy.UserId
+      LEFT JOIN dbo.Rooms r ON aa.RoomId = r.RoomId
+      LEFT JOIN dbo.Departments d ON aa.DepartmentId = d.DepartmentId
+      LEFT JOIN dbo.Locations l ON aa.LocationId = l.LocationId
+      WHERE a.IsDeleted = 0
         AND aa.ReturnedAt IS NULL
       ORDER BY aa.AssignedAt DESC
       OFFSET @Offset ROWS
@@ -153,20 +120,14 @@ const countActiveAssignments = async () => {
     `
       SELECT COUNT(1) AS Total
       FROM dbo.ITAssetAssignments aa
-      INNER JOIN dbo.ITAssets a
-        ON aa.AssetId = a.AssetId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON aa.AssetId = a.AssetId
+      WHERE a.IsDeleted = 0
         AND aa.ReturnedAt IS NULL;
     `
   );
 
-  return result.recordset?.[0]?.Total || 0;
+  return firstOrNull(result)?.Total || 0;
 };
-
-/* =========================================================
-   Status History
-========================================================= */
 
 const getStatusHistory = async ({ assetId = null, page = 1, limit = 20 }) => {
   const offset = (Number(page) - 1) * Number(limit);
@@ -189,16 +150,11 @@ const getStatusHistory = async ({ assetId = null, page = 1, limit = 20 }) => {
         sh.ChangedAt,
         sh.Notes
       FROM dbo.ITAssetStatusHistory sh
-      INNER JOIN dbo.ITAssets a
-        ON sh.AssetId = a.AssetId
-      LEFT JOIN dbo.ITAssetStatuses oldStatus
-        ON sh.OldStatusId = oldStatus.ITAssetStatusId
-      LEFT JOIN dbo.ITAssetStatuses newStatus
-        ON sh.NewStatusId = newStatus.ITAssetStatusId
-      LEFT JOIN dbo.Users changedBy
-        ON sh.ChangedBy = changedBy.UserId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON sh.AssetId = a.AssetId
+      LEFT JOIN dbo.ITAssetStatuses oldStatus ON sh.OldStatusId = oldStatus.ITAssetStatusId
+      LEFT JOIN dbo.ITAssetStatuses newStatus ON sh.NewStatusId = newStatus.ITAssetStatusId
+      LEFT JOIN dbo.Users changedBy ON sh.ChangedBy = changedBy.UserId
+      WHERE a.IsDeleted = 0
         AND (@AssetId IS NULL OR sh.AssetId = @AssetId)
       ORDER BY sh.ChangedAt DESC
       OFFSET @Offset ROWS
@@ -219,16 +175,14 @@ const countStatusHistory = async ({ assetId = null }) => {
     `
       SELECT COUNT(1) AS Total
       FROM dbo.ITAssetStatusHistory sh
-      INNER JOIN dbo.ITAssets a
-        ON sh.AssetId = a.AssetId
-      WHERE
-        a.IsDeleted = 0
+      INNER JOIN dbo.ITAssets a ON sh.AssetId = a.AssetId
+      WHERE a.IsDeleted = 0
         AND (@AssetId IS NULL OR sh.AssetId = @AssetId);
     `,
     [{ name: "AssetId", type: sql.Int, value: assetId ? Number(assetId) : null }]
   );
 
-  return result.recordset?.[0]?.Total || 0;
+  return firstOrNull(result)?.Total || 0;
 };
 
 module.exports = {
