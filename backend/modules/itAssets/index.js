@@ -16,6 +16,12 @@ const assetIssueRoutes = require("./issues/routes/assetIssueRoutes");
 const assetNoteRoutes = require("./notes/routes/assetNoteRoutes");
 const assetDisposalRoutes = require("./disposal/routes/assetDisposalRoutes");
 const assetTimelineRoutes = require("./timeline/routes/assetTimelineRoutes");
+const assetDashboardRoutes = require("./dashboard/routes/assetDashboardRoutes");
+
+/* Dashboard */
+router.use("/dashboard", assetDashboardRoutes);
+
+/* Lifecycle Routes */
 router.use("/timeline", assetTimelineRoutes);
 router.use("/disposals", assetDisposalRoutes);
 router.use("/notes", assetNoteRoutes);
@@ -23,6 +29,8 @@ router.use("/issues", assetIssueRoutes);
 router.use("/maintenance", assetMaintenanceRoutes);
 router.use("/transfer", assetTransferRoutes);
 router.use("/borrow", assetBorrowRoutes);
+
+/* Core Routes */
 router.use("/lookups", itAssetLookupRoutes);
 router.use("/assignments", assetAssignmentRoutes);
 router.use("/assignments", assetAssignmentHistoryRoutes);
