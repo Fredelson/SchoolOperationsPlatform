@@ -7,7 +7,7 @@
  * ============================================================
  *
  * Purpose:
- * Validates uploaded staff import files and Excel row structure.
+ * Validates uploaded staff/user import files and CSV/Excel row structure.
  *
  * Rules:
  * - No database logic here.
@@ -19,13 +19,7 @@
 const path = require("path");
 
 /**
- * Required Excel columns.
- *
- * Keep this simple because your current StaffImportStaging table supports:
- * - EmployeeId
- * - FullName
- * - SchoolEmail
- * - DerivedRoleKey
+ * Required import columns.
  */
 const REQUIRED_COLUMNS = [
   "EmployeeId",
@@ -62,7 +56,7 @@ function validateImportFile(file) {
 }
 
 /**
- * Validate workbook columns.
+ * Validate workbook/CSV columns.
  */
 function validateColumns(row) {
   const missingColumns = [];
@@ -92,14 +86,38 @@ function validateRowCount(rows) {
 }
 
 /**
- * Normalize one Excel row.
+ * Normalize role values from import file to platform RoleKey values.
+ */
+function normalizeRoleKey(role) {
+  const value = String(role || "")
+    .trim()
+    .toLowerCase()
+    .replaceAll(" ", "")
+    .replaceAll("-", "")
+    .replaceAll("_", "");
+
+  if (value === "admin") return "Admin";
+  if (value === "teacher") return "Teacher";
+  if (value === "printingadmin") return "PrintingAdmin";
+  if (value === "platformadmin") return "PlatformAdmin";
+  if (value === "superadmin") return "SuperAdmin";
+  if (value === "hod") return "HOD";
+  if (value === "hos") return "HOS";
+  if (value === "secretary") return "Secretary";
+  if (value === "teachingassistant") return "TeachingAssistant";
+
+  return String(role || "").trim();
+}
+
+/**
+ * Normalize one import row.
  */
 function normalizeRow(row) {
   return {
     employeeId: String(row.EmployeeId || "").trim(),
     fullName: String(row.FullName || "").trim(),
     schoolEmail: String(row.SchoolEmail || "").trim().toLowerCase(),
-    role: String(row.Role || "").trim(),
+    role: normalizeRoleKey(row.Role),
   };
 }
 
@@ -151,6 +169,7 @@ module.exports = {
   validateImportFile,
   validateColumns,
   validateRowCount,
+  normalizeRoleKey,
   normalizeRow,
   validateRequiredFields,
   validateEmail,

@@ -13,26 +13,28 @@
 // Rules:
 // - No SQL
 // - No Express req/res
+// - No route logic
 // - Business logic only
-//
-// Resolution Order:
-// 1. Load user security profile
-// 2. Load role permissions
-// 3. Load user permission overrides
-// 4. Apply overrides on top of role permissions
-// 5. Return final permission list
 // ============================================================
 
 const repository = require("../repositories/permissionResolverRepository");
 const serviceError = require("../../../shared/helpers/serviceError");
 
 // ============================================================
-// Convert Permission Rows To Map
+// Normalize Role Key
 // ============================================================
-//
-// Purpose:
-// Creates a permission map using PermissionKey as the unique key.
-// This makes override merging simple and predictable.
+
+function normalizeRoleKey(roleKey = "") {
+  return String(roleKey)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/-/g, "")
+    .replace(/_/g, "");
+}
+
+// ============================================================
+// Convert Permission Rows To Map
 // ============================================================
 
 function buildPermissionMap(rolePermissions = []) {
@@ -55,11 +57,6 @@ function buildPermissionMap(rolePermissions = []) {
 
 // ============================================================
 // Apply User Overrides
-// ============================================================
-//
-// Purpose:
-// User-level overrides always win over role permissions.
-// If a user override exists, it replaces the role result.
 // ============================================================
 
 function applyUserOverrides(permissionMap, userOverrides = []) {
@@ -143,6 +140,19 @@ async function userHasPermission(userId, permissionKey) {
   }
 
   const resolved = await resolveUserPermissions(userId);
+
+  // ============================================================
+  // Super Admin Safety Bypass
+  // ============================================================
+  // Prevents Super Admin from being locked out during permission
+  // seeding and early deployment.
+  // ============================================================
+
+  const roleKey = normalizeRoleKey(resolved.user?.roleKey);
+
+  if (roleKey === "superadmin") {
+    return true;
+  }
 
   return resolved.allowedPermissionKeys.includes(permissionKey);
 }

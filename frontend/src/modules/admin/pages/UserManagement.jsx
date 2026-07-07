@@ -1,8 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // User Management Page
-// Printing Admin / Admin / SuperAdmin
-// Includes CSV User Import
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -37,10 +36,7 @@ import {
   UploadFile,
 } from "@mui/icons-material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
-import PageHeader from "../../../components/common/PageHeader";
+import { AppPageHeader } from "../../../platform/ui";
 
 import {
   getUsers,
@@ -48,10 +44,10 @@ import {
   updateUser,
   activateUser,
   deactivateUser,
-  importUsersFromCSV,
+  previewUserImport,
+  commitUserImport,
   downloadCSVUserTemplate,
   downloadExcelUserTemplate,
-  importUsersFromExcel,
 } from "../../../services/userService";
 
 import {
@@ -69,7 +65,6 @@ const initialForm = {
   subject: "",
 };
 
-
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -85,54 +80,43 @@ export default function UserManagement() {
 
   const [loading, setLoading] = useState(false);
 
-  // ============================================
-  // CSV Import State
-  // ============================================
   const [importFile, setImportFile] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
-  const [importResult, setImportResult] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [commitResult, setCommitResult] = useState(null);
 
-  // ============================================
-  // Load Users
-  // ============================================
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const data = await getUsers();
-      setUsers(data.users || []);
+
+      const response = await getUsers();
+
+      const usersList =
+        response?.data?.users ||
+        response?.data?.items ||
+        response?.data ||
+        response?.users ||
+        response?.items ||
+        [];
+
+      setUsers(Array.isArray(usersList) ? usersList : []);
     } catch (error) {
       console.error("Load users error:", error);
-      alert("Failed to load users");
+      alert(error.response?.data?.message || "Failed to load users");
     } finally {
       setLoading(false);
     }
   };
 
-  // ============================================
-  // Load Lookup Data
-  // ============================================
   const loadLookups = async () => {
     try {
       const deptData = await getDepartments();
       const subjectData = await getSubjects();
       const roleData = await getRoles();
 
-      setDepartments(
-        deptData.departments ||
-          deptData.data ||
-          deptData ||
-          []
-      );
-
-      setSubjects(
-        subjectData.subjects ||
-          subjectData.data ||
-          subjectData ||
-          []
-      );
-
-      setRoles(roleData || []);
-
+      setDepartments(deptData.departments || deptData.data || deptData || []);
+      setSubjects(subjectData.subjects || subjectData.data || subjectData || []);
+      setRoles(roleData.roles || roleData.data || roleData || []);
     } catch (error) {
       console.error("Load lookup error:", error);
     }
@@ -143,97 +127,78 @@ export default function UserManagement() {
     loadLookups();
   }, []);
 
-  // ============================================
-  // Filter Users
-  // ============================================
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const keyword = search.toLowerCase();
 
-      const matchesSearch =
-        user.FullName?.toLowerCase().includes(keyword) ||
-        user.EmployeeId?.toLowerCase().includes(keyword) ||
-        user.SchoolEmail?.toLowerCase().includes(keyword);
+      const fullName = user.FullName || user.fullName || "";
+      const employeeId = user.EmployeeId || user.employeeId || "";
+      const schoolEmail = user.SchoolEmail || user.schoolEmail || "";
+      const role = user.Role || user.role || user.RoleName || "";
 
-      const matchesRole =
-        roleFilter === "All" || user.Role === roleFilter;
+      const matchesSearch =
+        fullName.toLowerCase().includes(keyword) ||
+        employeeId.toLowerCase().includes(keyword) ||
+        schoolEmail.toLowerCase().includes(keyword);
+
+      const matchesRole = roleFilter === "All" || role === roleFilter;
 
       return matchesSearch && matchesRole;
     });
   }, [users, search, roleFilter]);
 
-  // ============================================
-  // Role-based Field Visibility
-  // ============================================
-    const showDepartment = [
-      "Teacher",
-      "TeachingAssistant",
-      "HOD",
-      "HOS",
-      "Secretary",
-    ].includes(form.role);
+  const showDepartment = [
+    "Teacher",
+    "TeachingAssistant",
+    "HOD",
+    "HOS",
+    "Secretary",
+  ].includes(form.role);
+
   const showSubject = ["HOD"].includes(form.role);
 
-  // ============================================
-  // Open Add Dialog
-  // ============================================
   const handleAdd = () => {
     setEditingUser(null);
     setForm(initialForm);
     setOpen(true);
   };
 
-  // ============================================
-  // Open Edit Dialog
-  // ============================================
   const handleEdit = (user) => {
     setEditingUser(user);
 
     setForm({
-      fullName: user.FullName || "",
-      employeeId: user.EmployeeId || "",
-      schoolEmail: user.SchoolEmail || "",
-      role: user.Role || "Teacher",
-      departmentId: user.DepartmentId || "",
-      subject: user.Subject || "",
+      fullName: user.FullName || user.fullName || "",
+      employeeId: user.EmployeeId || user.employeeId || "",
+      schoolEmail: user.SchoolEmail || user.schoolEmail || "",
+      role: user.Role || user.role || "Teacher",
+      departmentId: user.DepartmentId || user.departmentId || "",
+      subject: user.Subject || user.subject || "",
     });
 
     setOpen(true);
   };
 
-  // ============================================
-  // Handle Role Change
-  // Clears department/subject if not needed
-  // ============================================
   const handleRoleChange = (role) => {
     setForm({
       ...form,
       role,
-      departmentId: ["Teacher", "HOD", "HOS"].includes(role)
+      departmentId: [
+        "Teacher",
+        "TeachingAssistant",
+        "HOD",
+        "HOS",
+        "Secretary",
+      ].includes(role)
         ? form.departmentId
         : "",
       subject: role === "HOD" ? form.subject : "",
     });
   };
 
-  // ============================================
-  // Save User
-  // Add new user or update existing user
-  // ============================================
   const handleSave = async () => {
     try {
       if (!form.fullName || !form.employeeId || !form.schoolEmail || !form.role) {
         alert("Please complete all required fields");
-        return;
-      }
-
-      if (showDepartment && !form.departmentId) {
-        alert("Please select department");
-        return;
-      }
-
-      if (showSubject && !form.subject) {
-        alert("Please select subject");
         return;
       }
 
@@ -242,12 +207,12 @@ export default function UserManagement() {
         employeeId: form.employeeId,
         schoolEmail: form.schoolEmail,
         role: form.role,
-        departmentId: showDepartment ? form.departmentId : null,
-        subject: showSubject ? form.subject : null,
+        departmentId: showDepartment ? form.departmentId || null : null,
+        subject: showSubject ? form.subject || null : null,
       };
 
       if (editingUser) {
-        await updateUser(editingUser.UserId, payload);
+        await updateUser(editingUser.UserId || editingUser.userId, payload);
         alert("User updated successfully");
       } else {
         await createUser(payload);
@@ -262,15 +227,15 @@ export default function UserManagement() {
     }
   };
 
-  // ============================================
-  // Activate / Deactivate User
-  // ============================================
   const handleToggleStatus = async (user) => {
     try {
-      if (user.IsActive) {
-        await deactivateUser(user.UserId);
+      const userId = user.UserId || user.userId;
+      const isActive = user.IsActive ?? user.isActive;
+
+      if (isActive) {
+        await deactivateUser(userId);
       } else {
-        await activateUser(user.UserId);
+        await activateUser(userId);
       }
 
       loadUsers();
@@ -280,52 +245,60 @@ export default function UserManagement() {
     }
   };
 
-  // ============================================
-  // Import Users from CSV
-  // CSV columns:
-  // FullName, EmployeeId, SchoolEmail, Role, Department, Subject
-  //
-  // Backend will:
-  // - Convert Department name to DepartmentId
-  // - Set Password = EmployeeId
-  // - Set MustChangePassword = 1
-  // - Skip duplicate EmployeeId / SchoolEmail
-  // ============================================
-  const handleImportUsers = async () => {
+  const handlePreviewImport = async () => {
     if (!importFile) {
-      alert("Please select a CSV file first.");
+      alert("Please select a CSV or Excel file first.");
       return;
     }
 
     try {
       setImportLoading(true);
-      setImportResult(null);
+      setImportPreview(null);
+      setCommitResult(null);
 
-      const result = await importUsersFromCSV(importFile);
+      const response = await previewUserImport(importFile);
+      const data = response?.data || response;
 
-      setImportResult(result);
+      setImportPreview(data);
+    } catch (error) {
+      console.error("Preview user import error:", error);
+      alert(error.response?.data?.message || "Failed to preview user import.");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleCommitImport = async () => {
+    if (!importPreview?.batchId) {
+      alert("No import batch found.");
+      return;
+    }
+
+    try {
+      setImportLoading(true);
+
+      const response = await commitUserImport(importPreview.batchId);
+      const data = response?.data || response;
+
+      setCommitResult(data);
       setImportFile(null);
 
-      // Refresh user table after import
-      loadUsers();
+      await loadUsers();
     } catch (error) {
-      console.error("Import users error:", error);
-      alert(error.response?.data?.message || "Failed to import users.");
+      console.error("Commit user import error:", error);
+      alert(error.response?.data?.message || "Failed to commit user import.");
     } finally {
       setImportLoading(false);
     }
   };
 
   return (
-    <DashboardLayout sidebar={<Sidebar />} topbar={<Topbar />}>
-      <PageHeader
+    <Box>
+      <AppPageHeader
         title="User Management"
         subtitle="Manage teachers, HOD, HOS, admin, and printing users"
       />
 
-      {/* ============================================ */}
-      {/* CSV Import Section */}
-      {/* ============================================ */}
       <Paper
         sx={{
           p: 3,
@@ -335,61 +308,49 @@ export default function UserManagement() {
         }}
       >
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Import Users from CSV
+          Import Users
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          CSV columns: FullName, EmployeeId, SchoolEmail, Role, Department, Subject
+          Required columns: FullName, EmployeeId, SchoolEmail, Role
         </Typography>
 
         <Box
-          display="flex"
-          gap={2}
-          flexWrap="wrap"
-          sx={{ mb: 2 }}
+          sx={{
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap",
+            mb: 2,
+          }}
         >
-          <Button
-            variant="outlined"
-            onClick={downloadCSVUserTemplate}
-            sx={{
-              borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 700,
-            }}
-          >
+          <Button variant="outlined" onClick={downloadCSVUserTemplate}>
             Download CSV Template
           </Button>
 
-          <Button
-            variant="outlined"
-            onClick={downloadExcelUserTemplate}
-            sx={{
-              borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 700,
-            }}
-          >
+          <Button variant="outlined" onClick={downloadExcelUserTemplate}>
             Download Excel Template
           </Button>
         </Box>
 
-        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<UploadFile />}
-            sx={{
-              borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 700,
-            }}
-          >
-            Select CSV File
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <Button variant="outlined" component="label" startIcon={<UploadFile />}>
+            Select File
             <input
               type="file"
               hidden
-              accept=".csv"
-              onChange={(e) => setImportFile(e.target.files[0])}
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => {
+                setImportFile(e.target.files?.[0] || null);
+                setImportPreview(null);
+                setCommitResult(null);
+              }}
             />
           </Button>
 
@@ -400,37 +361,68 @@ export default function UserManagement() {
           <Button
             variant="contained"
             disabled={!importFile || importLoading}
-            onClick={handleImportUsers}
-            sx={{
-              bgcolor: "#2E8B3C",
-              borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 700,
-              "&:hover": { bgcolor: "#246f30" },
-            }}
+            onClick={handlePreviewImport}
           >
-            {importLoading ? "Importing..." : "Import Users"}
+            {importLoading ? "Processing..." : "Preview Import"}
+          </Button>
+
+          <Button
+            variant="contained"
+            color="success"
+            disabled={!importPreview?.batchId || importLoading}
+            onClick={handleCommitImport}
+          >
+            Commit Import
           </Button>
         </Box>
 
-        {importResult && (
-          <Alert severity="success" sx={{ mt: 2 }}>
-            Import completed. Total: {importResult.totalRows}, Inserted:{" "}
-            {importResult.inserted}, Skipped: {importResult.skipped}
+        {importPreview && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Preview ready. Total: {importPreview.summary?.totalRows || 0}, Valid:{" "}
+            {importPreview.summary?.validRows || 0}, Invalid:{" "}
+            {importPreview.summary?.invalidRows || 0}, Duplicates:{" "}
+            {importPreview.summary?.duplicateRows || 0}
           </Alert>
         )}
 
-        {importResult?.errors?.length > 0 && (
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            Some rows were skipped. Please check duplicate users, invalid roles,
-            missing fields, or department names.
+        {commitResult && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Import committed. Imported: {commitResult.importedRows || 0}, Skipped:{" "}
+            {commitResult.skippedRows || 0}
           </Alert>
+        )}
+
+        {importPreview?.preview?.length > 0 && (
+          <Box sx={{ mt: 2, maxHeight: 260, overflow: "auto" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Employee ID</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Message</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {importPreview.preview.slice(0, 20).map((row) => (
+                  <TableRow key={row.stagingId}>
+                    <TableCell>{row.employeeId}</TableCell>
+                    <TableCell>{row.fullName}</TableCell>
+                    <TableCell>{row.schoolEmail}</TableCell>
+                    <TableCell>{row.role}</TableCell>
+                    <TableCell>{row.validationStatus}</TableCell>
+                    <TableCell>{row.validationMessage}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         )}
       </Paper>
 
-      {/* ============================================ */}
-      {/* User Table Section */}
-      {/* ============================================ */}
       <Paper
         sx={{
           p: 3,
@@ -466,27 +458,16 @@ export default function UserManagement() {
               <MenuItem value="All">All Roles</MenuItem>
               {roles.map((role) => (
                 <MenuItem
-                  key={role.RoleId}
-                  value={role.RoleName}
+                  key={role.RoleId || role.roleId}
+                  value={role.RoleName || role.RoleKey || role.roleName}
                 >
-                  {role.DisplayName}
+                  {role.DisplayName || role.RoleName || role.RoleKey}
                 </MenuItem>
               ))}
             </TextField>
           </Box>
 
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAdd}
-            sx={{
-              bgcolor: "#2E8B3C",
-              borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 700,
-              "&:hover": { bgcolor: "#246f30" },
-            }}
-          >
+          <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
             Add User
           </Button>
         </Box>
@@ -511,49 +492,52 @@ export default function UserManagement() {
             </TableHead>
 
             <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.UserId} hover>
-                  <TableCell>
-                    <Typography fontWeight={700}>{user.FullName}</Typography>
-                  </TableCell>
+              {filteredUsers.map((user) => {
+                const userId = user.UserId || user.userId;
+                const fullName = user.FullName || user.fullName;
+                const employeeId = user.EmployeeId || user.employeeId;
+                const schoolEmail = user.SchoolEmail || user.schoolEmail;
+                const role = user.Role || user.role || user.RoleName || "-";
+                const department = user.DepartmentName || user.departmentName || "-";
+                const subject = user.Subject || user.subject || "-";
+                const isActive = user.IsActive ?? user.isActive;
 
-                  <TableCell>{user.EmployeeId}</TableCell>
-                  <TableCell>{user.SchoolEmail}</TableCell>
+                return (
+                  <TableRow key={userId} hover>
+                    <TableCell>
+                      <Typography fontWeight={700}>{fullName}</Typography>
+                    </TableCell>
 
-                  <TableCell>
-                    <Chip
-                      label={user.Role}
-                      size="small"
-                      sx={{
-                        bgcolor: "#EAF4EC",
-                        color: "#2E8B3C",
-                        fontWeight: 700,
-                      }}
-                    />
-                  </TableCell>
+                    <TableCell>{employeeId}</TableCell>
+                    <TableCell>{schoolEmail}</TableCell>
 
-                  <TableCell>{user.DepartmentName || "-"}</TableCell>
-                  <TableCell>{user.Subject || "-"}</TableCell>
+                    <TableCell>
+                      <Chip label={role} size="small" />
+                    </TableCell>
 
-                  <TableCell>
-                    <Chip
-                      label={user.IsActive ? "Active" : "Inactive"}
-                      size="small"
-                      color={user.IsActive ? "success" : "default"}
-                    />
-                  </TableCell>
+                    <TableCell>{department}</TableCell>
+                    <TableCell>{subject}</TableCell>
 
-                  <TableCell align="right">
-                    <IconButton onClick={() => handleEdit(user)}>
-                      <Edit />
-                    </IconButton>
+                    <TableCell>
+                      <Chip
+                        label={isActive ? "Active" : "Inactive"}
+                        size="small"
+                        color={isActive ? "success" : "default"}
+                      />
+                    </TableCell>
 
-                    <IconButton onClick={() => handleToggleStatus(user)}>
-                      {user.IsActive ? <ToggleOn /> : <ToggleOff />}
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell align="right">
+                      <IconButton onClick={() => handleEdit(user)}>
+                        <Edit />
+                      </IconButton>
+
+                      <IconButton onClick={() => handleToggleStatus(user)}>
+                        {isActive ? <ToggleOn /> : <ToggleOff />}
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
 
               {!loading && filteredUsers.length === 0 && (
                 <TableRow>
@@ -575,13 +559,8 @@ export default function UserManagement() {
         </TableContainer>
       </Paper>
 
-      {/* ============================================ */}
-      {/* Add / Edit User Dialog */}
-      {/* ============================================ */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          {editingUser ? "Edit User" : "Add New User"}
-        </DialogTitle>
+        <DialogTitle>{editingUser ? "Edit User" : "Add New User"}</DialogTitle>
 
         <DialogContent>
           <Box
@@ -599,9 +578,7 @@ export default function UserManagement() {
               fullWidth
               label="Full Name"
               value={form.fullName}
-              onChange={(e) =>
-                setForm({ ...form, fullName: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
             />
 
             <TextField
@@ -609,9 +586,7 @@ export default function UserManagement() {
               label="Employee ID"
               value={form.employeeId}
               disabled={!!editingUser}
-              onChange={(e) =>
-                setForm({ ...form, employeeId: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
             />
 
             <TextField
@@ -632,10 +607,10 @@ export default function UserManagement() {
             >
               {roles.map((role) => (
                 <MenuItem
-                  key={role.RoleId}
-                  value={role.RoleName}
+                  key={role.RoleId || role.roleId}
+                  value={role.RoleName || role.RoleKey || role.roleName}
                 >
-                  {role.DisplayName}
+                  {role.DisplayName || role.RoleName || role.RoleKey}
                 </MenuItem>
               ))}
             </TextField>
@@ -651,8 +626,11 @@ export default function UserManagement() {
                 }
               >
                 {departments.map((dept) => (
-                  <MenuItem key={dept.DepartmentId} value={dept.DepartmentId}>
-                    {dept.DepartmentName}
+                  <MenuItem
+                    key={dept.DepartmentId || dept.departmentId}
+                    value={dept.DepartmentId || dept.departmentId}
+                  >
+                    {dept.DepartmentName || dept.departmentName}
                   </MenuItem>
                 ))}
               </TextField>
@@ -664,13 +642,14 @@ export default function UserManagement() {
                 fullWidth
                 label="Subject"
                 value={form.subject}
-                onChange={(e) =>
-                  setForm({ ...form, subject: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, subject: e.target.value })}
               >
                 {subjects.map((subject) => (
-                  <MenuItem key={subject.SubjectId} value={subject.SubjectName}>
-                    {subject.SubjectName}
+                  <MenuItem
+                    key={subject.SubjectId || subject.subjectId}
+                    value={subject.SubjectName || subject.subjectName}
+                  >
+                    {subject.SubjectName || subject.subjectName}
                   </MenuItem>
                 ))}
               </TextField>
@@ -681,20 +660,11 @@ export default function UserManagement() {
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
 
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            sx={{
-              bgcolor: "#2E8B3C",
-              textTransform: "none",
-              fontWeight: 700,
-              "&:hover": { bgcolor: "#246f30" },
-            }}
-          >
+          <Button variant="contained" onClick={handleSave}>
             Save User
           </Button>
         </DialogActions>
       </Dialog>
-    </DashboardLayout>
+    </Box>
   );
 }

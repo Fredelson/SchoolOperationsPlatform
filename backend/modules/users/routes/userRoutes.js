@@ -64,17 +64,20 @@ router.use(protect);
  */
 router.post(
   "/import/preview",
+  requirePermission(PERMISSIONS.USERS.CREATE),
   upload.single("file"),
   previewUserImport
 );
 
 router.post(
   "/import/commit",
+  requirePermission(PERMISSIONS.USERS.CREATE),
   commitUserImport
 );
 
 router.get(
   "/import/history",
+  requirePermission(PERMISSIONS.USERS.VIEW),
   getUserImportHistory
 );
 

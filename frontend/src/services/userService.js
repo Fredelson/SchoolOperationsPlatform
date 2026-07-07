@@ -1,19 +1,59 @@
 // ============================================
 // ARAB UNITY SCHOOL
+// Operations Platform
 // User Management API Service
 // ============================================
 
 import api from "./api";
 
 // ============================================
-// Import Users from CSV
-// POST /api/admin/users/import-csv
+// Users CRUD
 // ============================================
-export const importUsersFromCSV = async (file) => {
+
+export const getUsers = async () => {
+  const response = await api.get("/users");
+  return response.data;
+};
+
+export const getUserById = async (userId) => {
+  const response = await api.get(`/users/${userId}`);
+  return response.data;
+};
+
+export const createUser = async (userData) => {
+  const response = await api.post("/users", userData);
+  return response.data;
+};
+
+export const updateUser = async (userId, userData) => {
+  const response = await api.put(`/users/${userId}`, userData);
+  return response.data;
+};
+
+export const deactivateUser = async (userId) => {
+  const response = await api.put(`/users/${userId}/deactivate`);
+  return response.data;
+};
+
+export const activateUser = async (userId) => {
+  const response = await api.put(`/users/${userId}/activate`);
+  return response.data;
+};
+
+// ============================================
+// User Import - New Enterprise Import Flow
+// ============================================
+// Backend routes:
+// POST /api/users/import/preview
+// POST /api/users/import/commit
+// GET  /api/users/import/history
+// ============================================
+
+export const previewUserImport = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await api.post("/admin/users/import-csv", formData, {
+  const response = await api.post("/users/import/preview", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -22,33 +62,36 @@ export const importUsersFromCSV = async (file) => {
   return response.data;
 };
 
-// ============================================
-// Import Users from Excel
-// POST /api/admin/users/import-excel
-// ============================================
-export const importUsersFromExcel = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
+export const commitUserImport = async (batchId) => {
+  const response = await api.post("/users/import/commit", { batchId });
+  return response.data;
+};
 
-  const response = await api.post("/admin/users/import-excel", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-
+export const getUserImportHistory = async () => {
+  const response = await api.get("/users/import/history");
   return response.data;
 };
 
 // ============================================
-// Download CSV User Import Template
-// GET /api/admin/users/download-csv-template
+// Local Template Downloads
 // ============================================
-export const downloadCSVUserTemplate = async () => {
-  const response = await api.get("/admin/users/download-csv-template", {
-    responseType: "blob",
+
+export const downloadCSVUserTemplate = () => {
+  const headers = ["FullName", "EmployeeId", "SchoolEmail", "Role"];
+  const sample = [
+    "Sample Teacher",
+    "T0001",
+    "sample.teacher@arabunityschool.ae",
+    "Teacher",
+  ];
+
+  const csv = `${headers.join(",")}\n${sample.join(",")}`;
+
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;",
   });
 
-  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = url;
@@ -61,78 +104,4 @@ export const downloadCSVUserTemplate = async () => {
   window.URL.revokeObjectURL(url);
 };
 
-// ============================================
-// Download Excel User Import Template
-// GET /api/admin/users/download-excel-template
-// ============================================
-export const downloadExcelUserTemplate = async () => {
-  const response = await api.get("/admin/users/download-excel-template", {
-    responseType: "blob",
-  });
-
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.setAttribute("download", "UserImportTemplate.xlsx");
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.URL.revokeObjectURL(url);
-};
-
-// ============================================
-// Get All Users
-// GET /api/users
-// ============================================
-export const getUsers = async () => {
-  const response = await api.get("/users");
-  return response.data;
-};
-
-// ============================================
-// Get Single User
-// GET /api/users/:id
-// ============================================
-export const getUserById = async (userId) => {
-  const response = await api.get(`/users/${userId}`);
-  return response.data;
-};
-
-// ============================================
-// Create User
-// POST /api/users
-// ============================================
-export const createUser = async (userData) => {
-  const response = await api.post("/users", userData);
-  return response.data;
-};
-
-// ============================================
-// Update User
-// PUT /api/users/:id
-// ============================================
-export const updateUser = async (userId, userData) => {
-  const response = await api.put(`/users/${userId}`, userData);
-  return response.data;
-};
-
-// ============================================
-// Deactivate User
-// PUT /api/users/:id/deactivate
-// ============================================
-export const deactivateUser = async (userId) => {
-  const response = await api.put(`/users/${userId}/deactivate`);
-  return response.data;
-};
-
-// ============================================
-// Activate User
-// PUT /api/users/:id/activate
-// ============================================
-export const activateUser = async (userId) => {
-  const response = await api.put(`/users/${userId}/activate`);
-  return response.data;
-};
+export const downloadExcelUserTemplate = downloadCSVUserTemplate;

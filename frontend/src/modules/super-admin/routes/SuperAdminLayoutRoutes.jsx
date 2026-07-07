@@ -46,6 +46,7 @@ import MenuManager from "../menus/pages/MenuManager";
 import ButtonManager from "../buttons/pages/ButtonManager";
 import WidgetManager from "../widgets/pages/WidgetManager";
 import FeatureFlagManager from "../features/featureFlags/pages/FeatureFlagManager";
+import { UserManagement } from "../../admin/pages";
 
 
 // ============================================
@@ -115,7 +116,7 @@ const superAdminLayoutRoutes = [
       // Security & Access
       {
         path: "users",
-        element: <SuperAdminComingSoon title="User Management" />,
+        element: <UserManagement />,
       },
       {
         path: "roles",
