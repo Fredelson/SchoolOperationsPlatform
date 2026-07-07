@@ -18,6 +18,8 @@ export { default as AppSearch } from "./AppSearch";
 export { default as AppSection } from "./AppSection";
 export { default as AppStatCard } from "./AppStatCard";
 export { default as AppToolbar } from "./AppToolbar";
+export { default as AppActionMenu } from "./AppActionMenu";
+export { default as AppStatCards } from "./AppStatCards";
 
 // Navigation
 export { default as AppBreadcrumbs } from "./AppBreadcrumbs";

@@ -1,0 +1,473 @@
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Shared UI Components
+// ============================================
+//
+// Purpose:
+// Central export file for reusable platform UI
+// components used across all platform modules.
+// ============================================
+
+// Core Components
+export { default as AppButton } from "./AppButton";
+export { default as AppCard } from "./AppCard";
+export { default as AppChip } from "./AppChip";
+export { default as AppPageHeader } from "./AppPageHeader";
+export { default as AppSearch } from "./AppSearch";
+export { default as AppSection } from "./AppSection";
+export { default as AppStatCard } from "./AppStatCard";
+export { default as AppToolbar } from "./AppToolbar";
+
+// Navigation
+export { default as AppBreadcrumbs } from "./AppBreadcrumbs";
+
+// Tables
+export { default as AppDataTable } from "./AppDataTable";
+
+// Dialogs
+export { default as AppConfirmDialog } from "./AppConfirmDialog";
+
+// States
+export { default as AppEmptyState } from "./AppEmptyState";
+export { default as AppLoadingState } from "./AppLoadingState";
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppDataTable
+// ============================================
+//
+// Purpose:
+// Reusable enterprise data table.
+//
+// Features
+// - Consistent styling
+// - Loading state
+// - Empty state
+// - Pagination
+// - Responsive
+// - Custom row ID support
+// - Reusable for every module
+//
+// ============================================
+
+import {
+  Box,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+} from "@mui/material";
+
+import AppCard from "./AppCard";
+import AppEmptyState from "./AppEmptyState";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppDataTable({
+  columns = [],
+  rows = [],
+  loading = false,
+
+  page = 0,
+  rowsPerPage = 10,
+  totalRows = rows.length,
+
+  onPageChange,
+  onRowsPerPageChange,
+
+  getRowId,
+
+  emptyTitle = "No records found",
+  emptyMessage = "There is currently no data available.",
+
+  stickyHeader = false,
+  maxHeight = 650,
+}) {
+  // ==========================================
+  // Loading State
+  // ==========================================
+
+  if (loading) {
+    return (
+      <AppCard>
+        <Box
+          sx={{
+            py: 8,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </AppCard>
+    );
+  }
+
+  // ==========================================
+  // Empty State
+  // ==========================================
+
+  if (!rows.length) {
+    return (
+      <AppCard>
+        <AppEmptyState
+          title={emptyTitle}
+          message={emptyMessage}
+        />
+      </AppCard>
+    );
+  }
+
+  // ==========================================
+  // Render
+  // ==========================================
+
+  return (
+    <AppCard noPadding>
+      <TableContainer
+        sx={{
+          maxHeight: stickyHeader ? maxHeight : "unset",
+        }}
+      >
+        <Table stickyHeader={stickyHeader}>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell
+                  key={column.field}
+                  sx={{
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                  }}
+                  width={column.width}
+                  align={column.align}
+                >
+                  {column.headerName}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {rows.map((row, rowIndex) => {
+              const rowId = getRowId
+                ? getRowId(row)
+                : row.id ?? row.Id ?? rowIndex;
+
+              return (
+                <TableRow hover key={rowId}>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.field}
+                      align={column.align}
+                    >
+                      {column.render
+                        ? column.render(row)
+                        : row[column.field]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {onPageChange && (
+        <TablePagination
+          component="div"
+          page={page}
+          rowsPerPage={rowsPerPage}
+          count={totalRows}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={onRowsPerPageChange}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+        />
+      )}
+    </AppCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppToolbar
+// ============================================
+//
+// Purpose:
+// Reusable toolbar for tables, filters,
+// search, exports, and page actions.
+// ============================================
+
+import { Box, Stack } from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppToolbar({
+  left = null,
+  right = null,
+  children = null,
+  card = false,
+  sx = {},
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        display: "flex",
+        alignItems: { xs: "stretch", md: "center" },
+        justifyContent: "space-between",
+        gap: 2,
+        flexDirection: { xs: "column", md: "row" },
+
+        ...(card && {
+          p: 2,
+          borderRadius: 3,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+        }),
+
+        ...sx,
+      }}
+    >
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        sx={{ flex: 1 }}
+      >
+        {left || children}
+      </Stack>
+
+      {right && (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent={{ xs: "flex-start", md: "flex-end" }}
+          flexWrap="wrap"
+        >
+          {right}
+        </Stack>
+      )}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppSearch
+// ============================================
+//
+// Purpose:
+// Reusable search input for tables, dashboards,
+// reports, and module pages.
+// ============================================
+
+import {
+  InputAdornment,
+  TextField,
+} from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppSearch({
+  value,
+  onChange,
+  placeholder = "Search...",
+  sx = {},
+  ...props
+}) {
+  return (
+    <TextField
+      fullWidth
+      size="small"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      sx={{
+        maxWidth: 420,
+        ...sx,
+      }}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon color="action" />
+            </InputAdornment>
+          ),
+        },
+      }}
+      {...props}
+    />
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// App Action Menu
+// ============================================
+//
+// Purpose:
+// Reusable row action menu for tables.
+//
+// Used by:
+// - Module Manager
+// - Menu Manager
+// - Button Manager
+// - Widget Manager
+// - Users
+// - Roles
+// - Assets
+// - Inventory
+// - Students
+// - Staff
+// ============================================
+
+import { useState } from "react";
+
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+} from "@mui/material";
+
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppActionMenu({
+  items = [],
+  iconSize = "small",
+  tooltip = "Actions",
+}) {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const open = Boolean(anchorEl);
+
+  const handleOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleClick = (item) => {
+    handleClose();
+
+    if (!item.disabled && item.onClick) {
+      item.onClick();
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title={tooltip}>
+        <IconButton
+          size={iconSize}
+          onClick={handleOpen}
+        >
+          <MoreVertIcon fontSize={iconSize} />
+        </IconButton>
+      </Tooltip>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        disableScrollLock
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            minWidth: 140,
+            borderRadius: 2,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+          },
+        }}
+      >
+        {items.map((item, index) => (
+          <MenuItem
+            key={index}
+            disabled={item.disabled}
+            onClick={() => handleClick(item)}
+            sx={{
+              color: item.color || "inherit",
+            }}
+          >
+            {item.icon && (
+              <ListItemIcon
+                sx={{
+                  color: item.color || "inherit",
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+            )}
+
+            <ListItemText>
+              {item.label}
+            </ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// App Stat Cards
+// ============================================
+
+import { Grid } from "@mui/material";
+
+import AppStatCard from "./AppStatCard";
+
+export default function AppStatCards({ items = [], spacing = 2 }) {
+  return (
+    <Grid container spacing={spacing}>
+      {items.map((item, index) => (
+        <Grid
+          key={item.key || item.title || index}
+          size={{
+            xs: 12,
+            sm: 6,
+            md: item.md || 3,
+          }}
+        >
+          <AppStatCard
+            title={item.title}
+            value={item.value}
+            helperText={item.helperText}
+            icon={item.icon}
+            color={item.color}
+          />
+        </Grid>
+      ))}
+    </Grid>
+  );
+}

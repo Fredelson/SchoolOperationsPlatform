@@ -72,6 +72,7 @@ import { UserManagement } from "./modules/admin/pages";
 // ============================================
 
 import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
+import itOperationsLayoutRoutes from "./modules/it-assets/routes/ItOperationsLayoutRoutes";
 
 // ============================================
 // Shared
@@ -150,6 +151,12 @@ export default function App() {
       {renderProtectedLayoutRoutes(
         printingAdminLayoutRoutes,
         printingRoles
+      )}
+
+      {/* IT Operations Layout Routes */}
+      {renderProtectedLayoutRoutes(
+          itOperationsLayoutRoutes,
+          printingRoles
       )}
 
       {/* Platform Foundation */}

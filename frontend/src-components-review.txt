@@ -1,0 +1,4509 @@
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Approval Timeline
+// Used by Teacher, HOD, HOS, and Admin request detail pages
+// ============================================
+
+import { Box, Typography, Divider } from "@mui/material";
+
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PendingIcon from "@mui/icons-material/Pending";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+
+const getStepIcon = (status) => {
+  if (status === "Completed" || status === "Approved") {
+    return <CheckCircleIcon sx={{ color: "#10B981" }} />;
+  }
+
+  if (status === "Pending") {
+    return <PendingIcon sx={{ color: "#F59E0B" }} />;
+  }
+
+  return <RadioButtonUncheckedIcon sx={{ color: "#94A3B8" }} />;
+};
+
+export default function ApprovalTimeline({ steps = [] }) {
+  return (
+    <Box>
+      {steps.map((item, index) => (
+        <Box key={item.step}>
+          {/* Timeline Item */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1.5,
+              mb: 2,
+            }}
+          >
+            {/* Status Icon */}
+            {getStepIcon(item.status)}
+
+            {/* Step Details */}
+            <Box>
+              <Typography fontWeight={700}>{item.step}</Typography>
+
+              <Typography
+                color="text.secondary"
+                fontSize={13}
+              >
+                {item.remarks}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Divider between steps */}
+          {index !== steps.length - 1 && (
+            <Divider sx={{ mb: 2 }} />
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Data Table Card
+// Used by Teacher, HOD, HOS, Admin pages
+// For all pages containing tables
+// ============================================
+
+import { Box } from "@mui/material";
+import DashboardCard from "../dashboard/DashboardCard";
+
+export default function DataTableCard({
+  title,
+  subtitle,
+  action,
+  children,
+  sx = {},
+}) {
+  return (
+    <DashboardCard
+      title={title}
+      subtitle={subtitle}
+      action={action}
+      sx={sx}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          overflowX: "auto",
+        }}
+      >
+        {children}
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Date Filter
+// Used by Teacher, HOD, HOS, Admin dashboards
+// ============================================
+
+import { Box } from "@mui/material";
+
+export default function DateFilter({
+  label = "May 1 - May 31, 2025",
+}) {
+  return (
+    <Box
+      sx={{
+        px: 2,
+        py: 1,
+        border: "1px solid #E5E7EB",
+        borderRadius: 2,
+        backgroundColor: "#fff",
+        fontWeight: 600,
+        fontSize: 14,
+        whiteSpace: "nowrap",
+      }}
+    >
+      📅 {label}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Department Filter Component
+// ============================================
+
+// MUI components
+import { Box, Button } from "@mui/material";
+
+// School department list
+const departments = [
+  "All",
+  "FS",
+  "Primary",
+  "Secondary",
+  "Inclusion",
+  "Sixth Form",
+];
+
+export default function DepartmentFilter({
+  selectedDepartment,
+  onChange,
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        gap: 1,
+        flexWrap: "wrap",
+        mb: 3,
+      }}
+    >
+      {/* Department buttons */}
+      {departments.map((department) => (
+        <Button
+          key={department}
+          variant={
+            selectedDepartment === department
+              ? "contained"
+              : "outlined"
+          }
+          size="small"
+          onClick={() => onChange(department)}
+        >
+          {department}
+        </Button>
+      ))}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable KPI Card
+// Used by Teacher, HOD, HOS, Admin dashboards
+// ============================================
+
+import { Card, CardContent, Box, Typography } from "@mui/material";
+
+export default function KPICard({
+  title,
+  value,
+  icon,
+  color = "#2563EB",
+}) {
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        height: "100%",
+      }}
+    >
+      <CardContent>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box>
+            <Typography
+              sx={{
+                color: "#64748B",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              {title}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: 28,
+                fontWeight: 800,
+                color: "#0F172A",
+                mt: 1,
+              }}
+            >
+              {value}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: 3,
+              bgcolor: `${color}20`,
+              color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              "& svg": {
+                fontSize: 28,
+              },
+            }}
+          >
+            {icon}
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable KPI Grid
+// Used by Teacher, HOD, HOS, and Printing dashboards
+// Supports stats + icons
+// ============================================
+
+import { Box } from "@mui/material";
+import StatCard from "../common/StatCard";
+
+export default function KPIGrid({ stats = [], icons = [] }) {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+
+        // Responsive layout
+        // On extra-large screens, 7 KPI cards stay on one row
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          md: "repeat(3, 1fr)",
+          lg: "repeat(4, 1fr)",
+          xl:
+            stats.length === 7
+              ? "repeat(7, 1fr)"
+              : stats.length === 6
+              ? "repeat(6, 1fr)"
+              : stats.length === 5
+              ? "repeat(5, 1fr)"
+              : "repeat(4, 1fr)",
+        },
+
+        gap: 3,
+      }}
+    >
+      {stats.map((stat, index) => (
+        <StatCard
+          key={stat.title}
+          title={stat.title}
+          value={stat.value}
+          icon={icons[index]}
+          color={stat.color}
+        />
+      ))}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Page Header
+//
+// Purpose:
+// Standard page title/header used across
+// all modules in the AUS Operations Platform.
+//
+// Reusable:
+// - Super Admin
+// - Printing Admin
+// - HOD
+// - HOS
+// - Admin
+// - Teacher
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function PageHeader({
+  title,
+  subtitle,
+  action,
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 3,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 2,
+        flexWrap: "wrap",
+      }}
+    >
+      {/* Left Side */}
+      <Box>
+        <Typography
+          sx={{
+            fontSize: 28,
+            fontWeight: 900,
+            color: dashboardColors.textPrimary,
+            lineHeight: 1.1,
+          }}
+        >
+          {title}
+        </Typography>
+
+        {subtitle && (
+          <Typography
+            sx={{
+              mt: 0.5,
+              fontSize: 14,
+              color: dashboardColors.textSecondary,
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Right Side Actions */}
+      {action && <Box>{action}</Box>}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable KPI Card
+//
+// Supports:
+// 1. Static frontend icon component
+//    icon: PrintOutlinedIcon
+//
+// 2. Backend icon key
+//    icon: "printing"
+// ============================================
+
+import { Card, CardContent, Box, Typography, Avatar } from "@mui/material";
+
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Backend Icon Key Map
+// ============================================
+
+const KPI_ICON_MAP = {
+  pending: AssignmentOutlinedIcon,
+  printing: PrintOutlinedIcon,
+  completed: CheckCircleOutlineOutlinedIcon,
+  calendar: CalendarMonthOutlinedIcon,
+  inventory: Inventory2OutlinedIcon,
+  warning: WarningAmberOutlinedIcon,
+};
+
+export default function StatCard({
+  title,
+  value,
+  change,
+  changeLabel,
+  status,
+  subtitle,
+  icon,
+  color = dashboardColors.success,
+}) {
+  const isNegative = String(change || status || "").startsWith("-");
+
+  // Supports icon component OR backend string key
+  const Icon =
+    typeof icon === "string"
+      ? KPI_ICON_MAP[icon] || PersonOutlinedIcon
+      : icon || PersonOutlinedIcon;
+
+  return (
+    <Card
+      sx={{
+        height: 112,
+        minWidth: 0,
+        borderRadius: 3,
+        border: `1px solid ${dashboardColors.border}`,
+        background: dashboardColors.cardBackground,
+        boxShadow: `0 10px 26px ${dashboardColors.shadow}`,
+        overflow: "hidden",
+      }}
+    >
+      <CardContent
+        sx={{
+          height: "100%",
+          p: 1.75,
+          "&:last-child": {
+            pb: 1.75,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            minWidth: 0,
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: color,
+              color: "#ffffff",
+              boxShadow: `0 8px 18px ${color}30`,
+              flexShrink: 0,
+            }}
+          >
+            <Icon sx={{ fontSize: 22 }} />
+          </Avatar>
+
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 800,
+                color: dashboardColors.textPrimary,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                fontSize: "0.82rem",
+              }}
+            >
+              {title}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontWeight: 900,
+                color: dashboardColors.textPrimary,
+                lineHeight: 1.05,
+                fontSize: {
+                  xs: "1.45rem",
+                  md: "1.55rem",
+                },
+              }}
+            >
+              {value}
+            </Typography>
+
+            {(change || status) && (
+              <Typography
+                sx={{
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  color: isNegative
+                    ? dashboardColors.danger
+                    : dashboardColors.success,
+                  lineHeight: 1.1,
+                  mt: 0.3,
+                }}
+              >
+                {isNegative ? "↓" : "↑"} {change || status}
+              </Typography>
+            )}
+
+            {(changeLabel || subtitle) && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: dashboardColors.textSecondary,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  lineHeight: 1.1,
+                  mt: 0.2,
+                }}
+              >
+                {changeLabel || subtitle}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Status Chip
+//
+// Purpose:
+// Displays status consistently across
+// all modules in the AUS Operations Platform.
+//
+// Reusable:
+// - Teacher
+// - HOD
+// - HOS
+// - Printing Admin
+// - Admin
+// - Super Admin
+// ============================================
+
+import Chip from "@mui/material/Chip";
+import { dashboardColors } from "../../theme/dashboardColors";
+// ============================================
+// Status Style Mapping
+// ============================================
+
+const getStatusStyles = (status = "") => {
+  const normalized = status.toLowerCase();
+
+  switch (normalized) {
+    case "approved":
+    case "completed":
+    case "active":
+      return {
+        color: dashboardColors.success,
+        backgroundColor: dashboardColors.successLight,
+      };
+
+    case "printing":
+    case "open":
+    case "in progress":
+      return {
+        color: dashboardColors.info,
+        backgroundColor: dashboardColors.infoLight,
+      };
+
+    case "pending":
+    case "pending hod":
+    case "pending hos":
+    case "pending approval":
+      return {
+        color: dashboardColors.warning,
+        backgroundColor: dashboardColors.warningLight,
+      };
+
+    case "rejected":
+    case "inactive":
+    case "failed":
+      return {
+        color: dashboardColors.danger,
+        backgroundColor: dashboardColors.dangerLight,
+      };
+
+    case "draft":
+      return {
+        color: dashboardColors.neutral,
+        backgroundColor: "#f1f5f9",
+      };
+
+    default:
+      return {
+        color: dashboardColors.textPrimary,
+        backgroundColor: dashboardColors.background,
+      };
+  }
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function StatusChip({
+  status,
+  size = "small",
+}) {
+  const styles = getStatusStyles(status);
+
+  return (
+    <Chip
+      label={status}
+      size={size}
+      sx={{
+        fontWeight: 700,
+        color: styles.color,
+        backgroundColor: styles.backgroundColor,
+        border: "none",
+      }}
+    />
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Reusable Topbar
+// ============================================
+//
+// Purpose:
+// Displays platform branding, search,
+// notifications, and user profile actions.
+// ============================================
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  Box,
+  TextField,
+  Avatar,
+  Badge,
+  IconButton,
+  Typography,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  Divider,
+  useTheme,
+  alpha,
+} from "@mui/material";
+
+import MenuIcon from "@mui/icons-material/Menu";
+import SearchIcon from "@mui/icons-material/Search";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+
+import { useAuth } from "../../context/AuthContext";
+import useBranding from "../../modules/system/hooks/useBranding";
+
+// ============================================
+// Layout Constants
+// ============================================
+
+const TOPBAR_HEIGHT = 86;
+
+// ============================================
+// Component
+// ============================================
+
+export default function Topbar({ onMenuClick }) {
+  const theme = useTheme();
+  const navigate = useNavigate();
+
+  const { user, logout } = useAuth();
+  const { branding } = useBranding();
+
+  const school = branding?.school || {};
+  const brand = branding?.branding || {};
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const userName = user?.fullName || user?.FullName || "Unknown User";
+  const role = user?.displayRole || user?.role || user?.Role || "Guest";
+
+  const platformTitle =
+    brand.loginTitle || school.schoolName || "Operations Platform";
+
+  const platformSubtitle =
+    brand.loginSubtitle || "Operations Platform";
+
+  const logoPath =
+    brand.logoPath || brand.smallLogoPath || brand.darkLogoPath || null;
+
+  const initials = userName
+    .split(" ")
+    .map((name) => name[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  // ============================================
+  // Navigation Helpers
+  // ============================================
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleMenuClose();
+    logout();
+    navigate("/login");
+  };
+
+  const goToDashboard = () => {
+    const roleValue = role.toLowerCase();
+
+    if (roleValue.includes("teacher")) navigate("/teacher/dashboard");
+    else if (roleValue.includes("hod")) navigate("/hod/dashboard");
+    else if (roleValue.includes("hos")) navigate("/hos/dashboard");
+    else if (roleValue.includes("printing")) navigate("/printing/dashboard");
+    else if (roleValue.includes("super")) navigate("/super-admin/dashboard");
+    else navigate("/login");
+  };
+
+  const goToProfile = () => {
+    handleMenuClose();
+
+    const roleValue = role.toLowerCase();
+
+    if (roleValue.includes("teacher")) navigate("/teacher/profile");
+    else if (roleValue.includes("hod")) navigate("/hod/profile");
+    else if (roleValue.includes("hos")) navigate("/hos/profile");
+    else if (roleValue.includes("printing")) navigate("/printing/profile");
+    else if (roleValue.includes("super")) navigate("/super-admin/profile");
+    else navigate("/login");
+  };
+
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const topbarBg = theme.palette.platform?.topbar || theme.palette.primary.dark;
+  const topbarText = theme.palette.primary.contrastText;
+  const accent = theme.palette.platform?.accent || theme.palette.success.main;
+
+  // ============================================
+  // UI
+  // ============================================
+
+  return (
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: TOPBAR_HEIGHT,
+        bgcolor: topbarBg,
+        color: topbarText,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        px: { xs: 2, md: 3 },
+        zIndex: 2000,
+        boxShadow: theme.shadows[4],
+      }}
+    >
+      {/* Left Section */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={onMenuClick}
+          sx={{
+            display: { xs: "flex", md: "none" },
+            color: topbarText,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
+            },
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+
+        {/* Logo and Title */}
+        <Box
+          onClick={goToDashboard}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            cursor: "pointer",
+            borderRadius: 3,
+            px: 1,
+            py: 0.7,
+            transition: theme.transitions.create(["background-color"], {
+              duration: theme.transitions.duration.short,
+            }),
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.06),
+            },
+          }}
+        >
+          <Box
+            sx={{
+              width: 76,
+              height: 76,
+              bgcolor: theme.palette.background.paper,
+              borderRadius: 3,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              p: 0.5,
+              flexShrink: 0,
+              border: `1px solid ${alpha(topbarText, 0.12)}`,
+            }}
+          >
+            {logoPath ? (
+              <Box
+                component="img"
+                src={logoPath}
+                alt={school.schoolName || "School Logo"}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: theme.palette.primary.main,
+                }}
+              >
+                {school.schoolCode || "AUS"}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ display: { xs: "none", sm: "block" } }}>
+            <Typography
+              sx={{
+                fontSize: { sm: 21, md: 23 },
+                fontWeight: 900,
+                color: accent,
+                lineHeight: 1.05,
+                letterSpacing: "0.4px",
+              }}
+            >
+              {platformTitle}
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: 0.4,
+                fontSize: { sm: 13, md: 15 },
+                color: topbarText,
+                fontWeight: 600,
+              }}
+            >
+              {platformSubtitle}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Search Bar */}
+        <TextField
+          size="small"
+          placeholder="Search..."
+          sx={{
+            width: 420,
+            ml: { md: 4 },
+            display: { xs: "none", md: "block" },
+
+            "& .MuiOutlinedInput-root": {
+              height: 46,
+              borderRadius: 3,
+              color: topbarText,
+              bgcolor: alpha(topbarText, 0.08),
+
+              "& fieldset": {
+                borderColor: alpha(topbarText, 0.14),
+              },
+
+              "&:hover fieldset": {
+                borderColor: accent,
+              },
+
+              "&.Mui-focused fieldset": {
+                borderColor: accent,
+                borderWidth: "1.5px",
+              },
+            },
+
+            "& input::placeholder": {
+              color: alpha(topbarText, 0.75),
+              opacity: 1,
+            },
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: topbarText }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      </Box>
+
+      {/* Right Section */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <IconButton
+          sx={{
+            color: topbarText,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
+            },
+          }}
+        >
+          <LightModeIcon />
+        </IconButton>
+
+        <IconButton
+          sx={{
+            color: topbarText,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.08),
+              color: accent,
+            },
+          }}
+        >
+          <Badge badgeContent={8} color="success">
+            <NotificationsNoneIcon />
+          </Badge>
+        </IconButton>
+
+        {/* Profile */}
+        <Box
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.2,
+            cursor: "pointer",
+            borderRadius: 3,
+            px: 1,
+            py: 0.8,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.08),
+            },
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 54,
+              height: 54,
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.primary.main,
+              fontWeight: 900,
+              fontSize: 20,
+              border: `2px solid ${accent}`,
+            }}
+          >
+            {initials}
+          </Avatar>
+
+          <Box sx={{ display: { xs: "none", md: "block" } }}>
+            <Typography
+              sx={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: accent,
+              }}
+            >
+              {userName}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: topbarText,
+                fontWeight: 600,
+              }}
+            >
+              {role}
+            </Typography>
+          </Box>
+
+          <KeyboardArrowDownIcon
+            sx={{ display: { xs: "none", md: "block" } }}
+          />
+        </Box>
+
+        {/* Profile Menu */}
+        <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography fontWeight={800}>{userName}</Typography>
+
+            <Typography
+              fontSize={13}
+              sx={{ color: theme.palette.primary.main }}
+            >
+              {role}
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          <MenuItem onClick={goToProfile}>
+            <PersonIcon
+              sx={{ mr: 1.5, color: theme.palette.primary.main }}
+            />
+            My Profile
+          </MenuItem>
+
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              navigate("/settings");
+            }}
+          >
+            <SettingsIcon
+              sx={{ mr: 1.5, color: theme.palette.primary.main }}
+            />
+            Settings
+          </MenuItem>
+
+          <Divider />
+
+          <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
+            <LogoutIcon sx={{ mr: 1.5 }} />
+            Logout
+          </MenuItem>
+        </Menu>
+      </Box>
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Super Admin Dashboard - All Modules Section
+//
+// Purpose:
+// Displays the full module overview section
+// using reusable ModuleCard components.
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+import ModuleCard from "../widgets/ModuleCard";
+// ============================================
+// Component
+// ============================================
+
+export default function AllModules({ modules = [] }) {
+  return (
+    <Box sx={{ mt: 2 }}>
+      {/* Section title */}
+      <Typography
+        sx={{
+          fontSize: 18,
+          fontWeight: 900,
+          color: "#0f172a",
+          mb: 1.5,
+        }}
+      >
+        All Modules
+      </Typography>
+
+      {/* Modules grid */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(3, minmax(0, 1fr))",
+            xl: "repeat(5, minmax(0, 1fr))",
+          },
+          gap: 1.5,
+        }}
+      >
+        {modules.map((module) => (
+          <ModuleCard key={module.title} {...module} />
+        ))}
+      </Box>
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Reusable Attachment Summary Component
+//
+// Purpose:
+// Displays attachment statistics.
+//
+// Reusable:
+// - Teacher Dashboard
+// - HOD Dashboard
+// - HOS Dashboard
+// - Printing Admin Dashboard
+// - Super Admin Dashboard
+//
+// Notes:
+// - Data is supplied by the parent page.
+// - No direct dashboard data imports.
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  LinearProgress,
+} from "@mui/material";
+
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import ImageIcon from "@mui/icons-material/Image";
+import DownloadIcon from "@mui/icons-material/Download";
+import StorageIcon from "@mui/icons-material/Storage";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Returns icon based on summary title
+// ============================================
+
+const getSummaryIcon = (title) => {
+  if (title.includes("Documents")) return <InsertDriveFileIcon />;
+  if (title.includes("Images")) return <ImageIcon />;
+  if (title.includes("Downloads")) return <DownloadIcon />;
+  if (title.includes("Storage")) return <StorageIcon />;
+
+  return <InsertDriveFileIcon />;
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function AttachmentSummary({
+  items = [],
+  storageUsage = 0,
+  title = "Attachment Summary",
+}) {
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(
+          180deg,
+          ${dashboardColors.cardBackground} 0%,
+          ${dashboardColors.background} 100%
+        )`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
+        height: "100%",
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        {/* ==========================================
+            Header
+        ========================================== */}
+
+        <Typography
+          sx={{
+            fontSize: 16,
+            fontWeight: 900,
+            color: dashboardColors.navy,
+            mb: 3,
+          }}
+        >
+          {title}
+        </Typography>
+
+        {/* ==========================================
+            Summary Items
+        ========================================== */}
+
+        {items.map((item) => (
+          <Box
+            key={item.title}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2.5,
+            }}
+          >
+            {/* Left Side */}
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 3,
+                  backgroundColor: `${item.color}15`,
+                  color: item.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {getSummaryIcon(item.title)}
+              </Box>
+
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: dashboardColors.textPrimary,
+                }}
+              >
+                {item.title}
+              </Typography>
+            </Box>
+
+            {/* Right Side */}
+
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: dashboardColors.textPrimary,
+              }}
+            >
+              {item.value}
+            </Typography>
+          </Box>
+        ))}
+
+        {/* ==========================================
+            Storage Usage
+        ========================================== */}
+
+        <Box sx={{ mt: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              mb: 1,
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: dashboardColors.textSecondary,
+              }}
+            >
+              Storage Usage
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: dashboardColors.textPrimary,
+              }}
+            >
+              {storageUsage}%
+            </Typography>
+          </Box>
+
+          <LinearProgress
+            variant="determinate"
+            value={storageUsage}
+            sx={{
+              height: 8,
+              borderRadius: 5,
+              backgroundColor: dashboardColors.border,
+
+              "& .MuiLinearProgress-bar": {
+                borderRadius: 5,
+                backgroundColor: dashboardColors.info,
+              },
+            }}
+          />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Dashboard Card
+//
+// Purpose:
+// Shared card wrapper for dashboard sections.
+//
+// Important:
+// Do not force height: 100% here.
+// Each dashboard row should control its own height.
+// ============================================
+
+import { Card, CardContent, Typography, Box } from "@mui/material";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function DashboardCard({ title, subtitle, action, children }) {
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(180deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        {/* Card Header */}
+        <Box
+          sx={{
+            mb: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 2,
+          }}
+        >
+          {/* Title and subtitle */}
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 900,
+                color: dashboardColors.navy,
+                lineHeight: 1.2,
+              }}
+            >
+              {title}
+            </Typography>
+
+            {subtitle && (
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: dashboardColors.textSecondary,
+                  mt: 0.3,
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Optional right action */}
+          {action}
+        </Box>
+
+        {/* Card Body */}
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Modules Overview Section
+//
+// Purpose:
+// Displays all platform modules
+// available in the system.
+//
+// Reusable:
+// Yes
+//
+// Future Backend:
+// GET /api/superadmin/modules
+// ============================================
+
+// ============================================
+// Imports
+// ============================================
+
+import { Grid } from "@mui/material";
+
+import DashboardCard from "./DashboardCard";
+import ModuleCard from "../widgets/ModuleCard";
+// ============================================
+// Component
+// ============================================
+
+export default function ModulesOverview({ modules }) {
+  return (
+    <DashboardCard
+      title="Platform Modules"
+      subtitle="Manage and monitor all active system modules"
+    >
+      <Grid container spacing={2.5}>
+        {modules.map((module) => (
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            md={4}
+            lg={3}
+            key={module.title}
+          >
+            <ModuleCard {...module} />
+          </Grid>
+        ))}
+      </Grid>
+    </DashboardCard>
+  );
+}
+
+// ============================================
+// End Component
+// ============================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Pending Approvals Section
+//
+// Purpose:
+// Displays items waiting for approval.
+//
+// Architecture:
+// DashboardCard
+//   └── ApprovalItem
+// ============================================
+
+import Box from "@mui/material/Box";
+
+import DashboardCard from "./DashboardCard";
+// NEW
+import ApprovalItem from "../widgets/ApprovalItem";
+
+export default function PendingApprovals({
+  title = "Pending Approvals",
+  subtitle = "Items awaiting review",
+  items = [],
+}) {
+  return (
+    <DashboardCard
+      title={title}
+      subtitle={subtitle}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+        }}
+      >
+        {items.map((item, index) => (
+          <ApprovalItem
+            key={`${item.title}-${index}`}
+            {...item}
+          />
+        ))}
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Compact Recent Activity Section
+// ============================================
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+
+import DashboardCard from "./DashboardCard";
+import ActivityItem from "../widgets/ActivityItem";
+
+export default function RecentActivity({ items = [] }) {
+  return (
+    <DashboardCard
+      title="Recent Activity"
+      subtitle="Latest actions recorded in the audit log"
+      action={
+        <Button
+          size="small"
+          sx={{
+            textTransform: "none",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+          }}
+        >
+          View All
+        </Button>
+      }
+    >
+      <Box>
+        {items.map((item, index) => (
+          <ActivityItem
+            key={`${item.title}-${index}`}
+            {...item}
+          />
+        ))}
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Reusable Recent Attachments Component
+//
+// Purpose:
+// Displays recently uploaded attachments.
+//
+// Reusable:
+// - Teacher Dashboard
+// - Printing Admin Dashboard
+// - Super Admin Dashboard
+// - Future modules
+//
+// Notes:
+// - Data is passed from the parent page.
+// - No hardcoded imports.
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Button,
+  Chip,
+  Divider,
+} from "@mui/material";
+
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ImageIcon from "@mui/icons-material/Image";
+import SlideshowIcon from "@mui/icons-material/Slideshow";
+import DownloadIcon from "@mui/icons-material/Download";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// File Icon Helper
+//
+// Returns the correct icon based on file type.
+// ============================================
+
+const getFileIcon = (type) => {
+  switch (type?.toUpperCase()) {
+    case "PDF":
+      return (
+        <PictureAsPdfIcon
+          sx={{ color: dashboardColors.danger }}
+        />
+      );
+
+    case "DOC":
+    case "DOCX":
+      return (
+        <DescriptionIcon
+          sx={{ color: dashboardColors.info }}
+        />
+      );
+
+    case "PNG":
+    case "JPG":
+    case "JPEG":
+      return (
+        <ImageIcon
+          sx={{ color: dashboardColors.success }}
+        />
+      );
+
+    case "PPT":
+    case "PPTX":
+      return (
+        <SlideshowIcon
+          sx={{ color: dashboardColors.warning }}
+        />
+      );
+
+    default:
+      return (
+        <DescriptionIcon
+          sx={{ color: dashboardColors.textSecondary }}
+        />
+      );
+  }
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function RecentAttachments({
+  items = [],
+  title = "Recent Attachments",
+  showViewAll = true,
+  onViewAll,
+}) {
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(
+          180deg,
+          ${dashboardColors.cardBackground} 0%,
+          ${dashboardColors.background} 100%
+        )`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
+        height: "100%",
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        {/* ==========================================
+            Header
+        ========================================== */}
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 900,
+              color: dashboardColors.navy,
+            }}
+          >
+            {title}
+          </Typography>
+
+          {showViewAll && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onViewAll}
+            >
+              View All
+            </Button>
+          )}
+        </Box>
+
+        {/* ==========================================
+            Empty State
+        ========================================== */}
+
+        {items.length === 0 && (
+          <Typography
+            sx={{
+              textAlign: "center",
+              color: dashboardColors.textSecondary,
+              py: 4,
+            }}
+          >
+            No attachments found.
+          </Typography>
+        )}
+
+        {/* ==========================================
+            Attachment List
+        ========================================== */}
+
+        {items.map((file, index) => (
+          <Box key={file.id ?? index}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: {
+                  xs: "flex-start",
+                  sm: "center",
+                },
+                flexDirection: {
+                  xs: "column",
+                  sm: "row",
+                },
+                gap: 2,
+                py: 1.5,
+              }}
+            >
+              {/* File Information */}
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  minWidth: 0,
+                }}
+              >
+                {getFileIcon(file.type)}
+
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontWeight: 700,
+                      color: dashboardColors.textPrimary,
+                    }}
+                  >
+                    {file.name}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      color: dashboardColors.textSecondary,
+                    }}
+                  >
+                    {file.size} • {file.uploadedDate}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* File Actions */}
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Chip
+                  label={file.type}
+                  size="small"
+                  variant="outlined"
+                />
+
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon />}
+                >
+                  Download
+                </Button>
+              </Box>
+            </Box>
+
+            {index !== items.length - 1 && <Divider />}
+          </Box>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Photocopy Management System
+// Teacher Dashboard
+// Request Progress Tracker Component
+// Connected to latest live request status
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Chip,
+} from "@mui/material";
+
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+
+// ============================================
+// Build Progress Steps Based on Request Status
+// ============================================
+
+const buildProgressSteps = (status) => {
+  const normalizedStatus = status || "";
+
+  return [
+    {
+      label: "Submitted",
+      description: "Request has been submitted by teacher",
+      completed: true,
+    },
+    {
+      label: "Pending HOD",
+      description: "Waiting for HOD review and approval",
+      completed:
+        normalizedStatus.includes("HOD") ||
+        normalizedStatus.includes("HOS") ||
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Pending HOS",
+      description: "Waiting for HOS review and approval",
+      completed:
+        normalizedStatus.includes("HOS") ||
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Approved",
+      description: "Request approved for printing",
+      completed:
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Completed",
+      description: "Request completed by printing team",
+      completed: normalizedStatus.includes("Completed"),
+    },
+  ];
+};
+
+// ============================================
+// Request Progress Tracker Component
+// ============================================
+
+export default function RequestProgressTracker({ request }) {
+  const steps = request
+    ? buildProgressSteps(request.Status)
+    : [];
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        height: "100%",
+      }}
+    >
+      <CardContent>
+        {/* Header */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
+          <Typography variant="h6" fontWeight={700}>
+            Request Progress Tracker
+          </Typography>
+
+          <Chip
+            label={request?.RequestNumber || "Latest"}
+            size="small"
+            color="primary"
+          />
+        </Box>
+
+        {/* Empty State */}
+        {!request ? (
+          <Typography color="text.secondary" fontSize={14}>
+            No recent request found.
+          </Typography>
+        ) : (
+          <Box>
+            {steps.map((step, index) => (
+              <Box
+                key={step.label}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  mb: index === steps.length - 1 ? 0 : 2,
+                }}
+              >
+                {/* Step Icon */}
+                <Box>
+                  {step.completed ? (
+                    <CheckCircleIcon
+                      sx={{
+                        color: "#10B981",
+                        fontSize: 22,
+                      }}
+                    />
+                  ) : (
+                    <RadioButtonUncheckedIcon
+                      sx={{
+                        color: "#94A3B8",
+                        fontSize: 22,
+                      }}
+                    />
+                  )}
+                </Box>
+
+                {/* Step Text */}
+                <Box>
+                  <Typography fontWeight={700} fontSize={14}>
+                    {step.label}
+                  </Typography>
+
+                  <Typography color="text.secondary" fontSize={12}>
+                    {step.description}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Teacher Dashboard
+// Modern Request Status Overview Component
+// Connected to live KPI data
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  LinearProgress,
+} from "@mui/material";
+
+import DonutLargeIcon from "@mui/icons-material/DonutLarge";
+
+// ============================================
+// Status Overview Component
+// ============================================
+
+export default function StatusOverview({ kpis }) {
+  // ============================================
+  // Total requests from backend KPI
+  // ============================================
+  const total = kpis?.totalRequests || 0;
+
+  // ============================================
+  // Status data
+  // Completed included because teacher needs workflow visibility
+  // ============================================
+  const requestStatusData = [
+    {
+      status: "Pending",
+      count: kpis?.pendingRequests || 0,
+      color: "#F59E0B",
+    },
+    {
+      status: "Approved",
+      count: kpis?.approvedRequests || 0,
+      color: "#22C55E",
+    },
+    {
+      status: "Completed",
+      count: kpis?.completedRequests || 0,
+      color: "#06B6D4",
+    },
+    {
+      status: "Rejected",
+      count: kpis?.rejectedRequests || 0,
+      color: "#EF4444",
+    },
+  ];
+
+  // ============================================
+  // Main UI
+  // ============================================
+
+  return (
+    <Card
+      sx={{
+        height: "100%",
+        minWidth: 0,
+        borderRadius: 5,
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+        background: "linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)",
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 3,
+              bgcolor: "#EAF7EE",
+              color: "#16A34A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <DonutLargeIcon />
+          </Box>
+
+          <Box>
+            <Typography variant="h6" fontWeight={900}>
+              Request Status Overview
+            </Typography>
+            <Typography color="text.secondary" fontSize={14}>
+              Current status of your requests.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Total Requests Center */}
+        <Box
+          sx={{
+            textAlign: "center",
+            py: 2,
+            mb: 3,
+            borderRadius: 4,
+            bgcolor: "#F1F5F9",
+          }}
+        >
+          <Typography variant="h3" fontWeight={900}>
+            {total}
+          </Typography>
+          <Typography color="text.secondary">Total Requests</Typography>
+        </Box>
+
+        {/* Status Rows */}
+        {requestStatusData.map((item) => {
+          const percentage =
+            total > 0 ? Math.round((item.count / total) * 100) : 0;
+
+          return (
+            <Box key={item.status} mb={2.3}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 0.8,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      bgcolor: item.color,
+                    }}
+                  />
+
+                  <Typography fontWeight={700}>
+                    {item.status}
+                  </Typography>
+                </Box>
+
+                <Typography fontWeight={900}>
+                  {item.count} ({percentage}%)
+                </Typography>
+              </Box>
+
+              <LinearProgress
+                variant="determinate"
+                value={percentage}
+                sx={{
+                  height: 9,
+                  borderRadius: 10,
+                  backgroundColor: "#E5E7EB",
+                  "& .MuiLinearProgress-bar": {
+                    backgroundColor: item.color,
+                    borderRadius: 10,
+                  },
+                }}
+              />
+            </Box>
+          );
+        })}
+
+        {/* Positive Status Message */}
+        {total > 0 && (
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              borderRadius: 3,
+              bgcolor: "#EAF7EE",
+              color: "#166534",
+            }}
+          >
+            <Typography fontSize={14} fontWeight={700}>
+              {Math.round(
+                ((kpis?.completedRequests || 0) / total) * 100
+              )}
+              % of your requests are completed.
+            </Typography>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Subject Analytics Cards
+// For HOD department/subject overview
+// ============================================
+
+// MUI components
+import { Box, Card, CardContent, Typography } from "@mui/material";
+
+// Temporary subject analytics data
+const subjectAnalytics = [
+  {
+    subject: "English",
+    teachers: 12,
+    pending: 6,
+    approved: 42,
+    rejected: 2,
+  },
+  {
+    subject: "Math",
+    teachers: 10,
+    pending: 4,
+    approved: 35,
+    rejected: 1,
+  },
+  {
+    subject: "Science",
+    teachers: 8,
+    pending: 3,
+    approved: 28,
+    rejected: 1,
+  },
+];
+
+export default function SubjectAnalyticsCards() {
+  return (
+    <Box
+      sx={{
+        mt: 4,
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          md: "repeat(3, 1fr)",
+        },
+        gap: 3,
+      }}
+    >
+      {subjectAnalytics.map((item) => (
+        <Card
+          key={item.subject}
+          sx={{
+            borderRadius: 4,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+          }}
+        >
+          <CardContent>
+            {/* Subject title */}
+            <Typography variant="h6" fontWeight={700}>
+              {item.subject}
+            </Typography>
+
+            {/* Teacher count */}
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Teachers: {item.teachers}
+            </Typography>
+
+            {/* Request statistics */}
+            <Box sx={{ mt: 2, display: "grid", gap: 1 }}>
+              <Typography variant="body2">
+                Pending Requests: <strong>{item.pending}</strong>
+              </Typography>
+
+              <Typography variant="body2">
+                Approved This Month: <strong>{item.approved}</strong>
+              </Typography>
+
+              <Typography variant="body2">
+                Rejected This Month: <strong>{item.rejected}</strong>
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      ))}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// System Alerts
+//
+// Purpose:
+// Displays current platform alerts.
+//
+// Reusable:
+// Yes
+// ============================================
+
+import { Box } from "@mui/material";
+
+import { DashboardSection } from "../layout";
+import { AlertItem } from "../widgets";
+
+export default function SystemAlerts({ items = [] }) {
+  return (
+    <DashboardSection title="System Alerts">
+      <Box>
+        {items.map((alert, index) => (
+          <AlertItem key={index} {...alert} />
+        ))}
+      </Box>
+    </DashboardSection>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Compact System Health Section
+// ============================================
+
+import Box from "@mui/material/Box";
+
+import DashboardCard from "./DashboardCard";
+import HealthItem from "../widgets/HealthItem";
+
+export default function SystemHealth({ items = [] }) {
+  return (
+    <DashboardCard
+      title="System Health"
+      subtitle="Current status of core platform services"
+    >
+      <Box>
+        {items.map((item) => (
+          <HealthItem
+            key={item.label}
+            label={item.label}
+            status={item.status}
+            value={item.value}
+          />
+        ))}
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Top Print Requests Section
+//
+// Purpose:
+// Displays the most common print request types
+// for the selected period.
+//
+// Architecture:
+// DashboardCard
+//   └── ProgressItem rows
+// ============================================
+
+import { Box, Typography, LinearProgress, Button } from "@mui/material";
+import DashboardCard from "./DashboardCard";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Component
+// ============================================
+
+export default function TopPrintRequests({
+  title = "Top Print Requests",
+  subtitle = "This Week",
+  items = [],
+}) {
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
+
+  return (
+    <DashboardCard
+      title={title}
+      subtitle={subtitle}
+      action={
+        <Button size="small" sx={{ fontWeight: 800, textTransform: "none" }}>
+          View All
+        </Button>
+      }
+    >
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.4 }}>
+        {items.map((item) => {
+          const percentage = (item.value / maxValue) * 100;
+
+          return (
+            <Box key={item.label}>
+              {/* Label row */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: dashboardColors.textPrimary,
+                  }}
+                >
+                  {item.label}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: dashboardColors.textPrimary,
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+
+              {/* Progress bar */}
+              <LinearProgress
+                variant="determinate"
+                value={percentage}
+                sx={{
+                  height: 8,
+                  borderRadius: 99,
+                  bgcolor: dashboardColors.border,
+
+                  "& .MuiLinearProgress-bar": {
+                    borderRadius: 99,
+                    bgcolor: item.color || dashboardColors.printing,
+                  },
+                }}
+              />
+            </Box>
+          );
+        })}
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Shared Dashboard Bottom Row
+//
+// Purpose:
+// Displays secondary analytics cards below
+// the All Modules section.
+//
+// Layout:
+// Top Print Requests | Tickets By Status | Pending Approvals
+//
+// Note:
+// AssetSummary was removed because it is not a
+// shared dashboard component.
+// ============================================
+
+import { Box } from "@mui/material";
+
+import TopPrintRequests from "../dashboard/TopPrintRequests";
+import TicketsByStatus from "../charts/TicketsByStatus";
+import PendingApprovals from "../dashboard/PendingApprovals";
+
+export default function DashboardBottomRow({
+  topPrintRequests = [],
+  ticketStatus = [],
+  pendingApprovals = [],
+}) {
+  return (
+    <Box
+      sx={{
+        mt: 2,
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "1fr",
+          md: "repeat(2, minmax(0, 1fr))",
+          xl: "repeat(3, minmax(0, 1fr))",
+        },
+        gap: 1.5,
+        alignItems: "stretch",
+        "& > *": {
+          height: "100%",
+        },
+      }}
+    >
+      <TopPrintRequests items={topPrintRequests} />
+      <TicketsByStatus data={ticketStatus} />
+      <PendingApprovals subtitle="Awaiting action" items={pendingApprovals} />
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Super Admin Dashboard Header
+//
+// Purpose:
+// Displays the dashboard page title,
+// subtitle, and refresh action.
+//
+// Reusable:
+// Yes. Can be reused by future admin dashboards.
+//
+// Future Backend:
+// Refresh button will later reload dashboard API data.
+// ============================================
+
+// ============================================
+// Imports
+// ============================================
+
+import { Box, Typography, Button } from "@mui/material";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+
+// ============================================
+// Component
+// ============================================
+
+export default function DashboardHeader() {
+  return (
+    <Box
+      sx={{
+        mb: 1.25,
+        display: "flex",
+        alignItems: { xs: "flex-start", md: "center" },
+        justifyContent: "space-between",
+        gap: 2,
+        flexDirection: { xs: "column", md: "row" },
+      }}
+    >
+      {/* Page Title Area */}
+      <Box>
+        <Typography
+          fontWeight={900}
+          color="#0f172a"
+          sx={{
+            fontSize: { xs: "1.7rem", md: "2.2rem" },
+            lineHeight: 1.15,
+          }}
+        >
+          Super Admin Dashboard
+        </Typography>
+
+        <Typography
+          color="text.secondary"
+          sx={{
+            mt: 0.2,
+            fontSize: { xs: "0.9rem", md: "1rem" },
+          }}
+        >
+          Manage users, permissions, modules, audit logs and platform operations.
+        </Typography>
+      </Box>
+
+      {/* Refresh Button */}
+      <Button
+        variant="contained"
+        startIcon={<RefreshOutlinedIcon />}
+        sx={{
+          px: 2.2,
+          py: 1,
+          borderRadius: 3,
+          textTransform: "none",
+          fontWeight: 800,
+          bgcolor: "#0f5132",
+          boxShadow: "0 8px 18px rgba(15, 81, 50, 0.25)",
+          "&:hover": {
+            bgcolor: "#0b3d26",
+            boxShadow: "0 10px 22px rgba(15, 81, 50, 0.32)",
+          },
+        }}
+      >
+        Refresh
+      </Button>
+    </Box>
+  );
+}
+
+// ============================================
+// End Component
+// ============================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Dashboard Layout
+// Supports desktop sidebar
+// Supports mobile drawer sidebar
+// Works with Topbar hamburger button
+// ============================================
+
+import { useState } from "react";
+
+import {
+  Box,
+  Drawer,
+  useMediaQuery,
+} from "@mui/material";
+
+import { useTheme } from "@mui/material/styles";
+
+// ============================================
+// Layout Sizes
+// ============================================
+
+const TOPBAR_HEIGHT = 86;
+const SIDEBAR_WIDTH = 240;
+
+export default function DashboardLayout({ sidebar, topbar, children }) {
+  const theme = useTheme();
+
+  // Detect small screens
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Mobile drawer state
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Open mobile sidebar
+  const handleMenuClick = () => {
+    setMobileOpen(true);
+  };
+
+  // Close mobile sidebar
+  const handleDrawerClose = () => {
+    setMobileOpen(false);
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "#f5f7fb",
+      }}
+    >
+      {/* ===================================== */}
+      {/* TOPBAR */}
+      {/* ===================================== */}
+      <Box
+        sx={{
+          height: TOPBAR_HEIGHT,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 2000,
+        }}
+      >
+        {typeof topbar === "function"
+          ? topbar(handleMenuClick)
+          : topbar}
+      </Box>
+
+      {/* ===================================== */}
+      {/* DESKTOP SIDEBAR */}
+      {/* ===================================== */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: SIDEBAR_WIDTH,
+            position: "fixed",
+            top: `${TOPBAR_HEIGHT}px`,
+            left: 0,
+            bottom: 0,
+            zIndex: 1200,
+          }}
+        >
+          {sidebar}
+        </Box>
+      )}
+
+      {/* ===================================== */}
+      {/* MOBILE SIDEBAR DRAWER */}
+      {/* ===================================== */}
+      <Drawer
+        open={mobileOpen}
+        onClose={handleDrawerClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: {
+            xs: "block",
+            md: "none",
+          },
+          "& .MuiDrawer-paper": {
+            width: SIDEBAR_WIDTH,
+            boxSizing: "border-box",
+          },
+        }}
+      >
+        {sidebar}
+      </Drawer>
+
+      {/* ===================================== */}
+      {/* MAIN CONTENT */}
+      {/* ===================================== */}
+      <Box
+        component="main"
+        sx={{
+          ml: {
+            xs: 0,
+            md: `${SIDEBAR_WIDTH}px`,
+          },
+          pt: `${TOPBAR_HEIGHT}px`,
+          minHeight: "100vh",
+        }}
+      >
+        <Box
+          sx={{
+            p: {
+              xs: 2,
+              md: 3,
+            },
+          }}
+        >
+          {children}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Super Admin Dashboard Middle Row
+//
+// Purpose:
+// Displays the main dashboard analytics row.
+//
+// Layout:
+// System Overview | Module Status | System Health | Recent Activities
+//
+// Responsive:
+// Mobile: 1 column
+// Tablet: 2 columns
+// Desktop: 4 columns with System Overview wider
+// ============================================
+
+import { Box } from "@mui/material";
+
+import PlatformActivityChart from "../charts/PlatformActivityChart";
+import ModuleStatusChart from "../charts/ModuleStatusChart";
+import SystemHealth from "../dashboard/SystemHealth";
+import RecentActivity from "../dashboard/RecentActivity";
+
+export default function DashboardMiddleRow({
+  platformActivityData = [],
+  moduleStatusData = [],
+  systemHealthData = [],
+  recentActivityData = [],
+}) {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "1fr",
+          md: "repeat(2, minmax(0, 1fr))",
+          lg: "2fr 1.15fr 1.15fr 1.35fr",
+        },
+        gap: 0.5,
+        alignItems: "stretch",
+        mb: 1,
+      }}
+    >
+      {/* System Overview / Platform Activity */}
+      <PlatformActivityChart data={platformActivityData} />
+
+      {/* Module Status */}
+      <ModuleStatusChart data={moduleStatusData} />
+
+      {/* System Health */}
+      <SystemHealth items={systemHealthData} />
+
+      {/* Recent Activities */}
+      <RecentActivity items={recentActivityData} />
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Dashboard Section
+//
+// Purpose:
+// Reusable wrapper for dashboard sections.
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function DashboardSection({
+  title,
+  subtitle,
+  action,
+  children,
+}) {
+  return (
+    <Box>
+      {(title || subtitle || action) && (
+        <Box
+          sx={{
+            mb: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
+          <Box>
+            {title && (
+              <Typography
+                sx={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: dashboardColors.textPrimary,
+                }}
+              >
+                {title}
+              </Typography>
+            )}
+
+            {subtitle && (
+              <Typography
+                sx={{
+                  mt: 0.3,
+                  fontSize: 13,
+                  color: dashboardColors.textSecondary,
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+
+          {action && <Box>{action}</Box>}
+        </Box>
+      )}
+
+      {children}
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Compact Activity Item
+// ============================================
+
+import { Avatar, Box, Typography } from "@mui/material";
+import HistoryIcon from "@mui/icons-material/History";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function ActivityItem({ title, description, time }) {
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "32px 1fr auto",
+        alignItems: "center",
+        gap: 1.2,
+        py: 1,
+        borderBottom: `1px solid ${dashboardColors.border}`,
+        "&:last-child": {
+          borderBottom: "none",
+        },
+      }}
+    >
+      <Avatar
+        sx={{
+          width: 30,
+          height: 30,
+          bgcolor: dashboardColors.successLight,
+          color: dashboardColors.success,
+        }}
+      >
+        <HistoryIcon sx={{ fontSize: 17 }} />
+      </Avatar>
+
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontSize: "0.8rem",
+            fontWeight: 800,
+            color: dashboardColors.textPrimary,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </Typography>
+
+        <Typography
+          sx={{
+            fontSize: "0.72rem",
+            color: dashboardColors.textSecondary,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {description}
+        </Typography>
+      </Box>
+
+      <Typography
+        sx={{
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          color: dashboardColors.textSecondary,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {time}
+      </Typography>
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Alert Item
+//
+// Purpose:
+// Reusable dashboard alert row.
+//
+// Reusable:
+// - Super Admin
+// - Platform Admin
+// - Printing Admin
+// - IT Dashboard
+// - Future Modules
+// ============================================
+
+import { Box, Chip, Typography } from "@mui/material";
+
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Alert Configuration
+// ============================================
+
+const ALERT_CONFIG = {
+  info: {
+    label: "Info",
+    color: dashboardColors.info,
+    background: dashboardColors.infoLight,
+    icon: <InfoOutlinedIcon fontSize="small" />,
+  },
+
+  success: {
+    label: "Success",
+    color: dashboardColors.success,
+    background: dashboardColors.successLight,
+    icon: <CheckCircleOutlineOutlinedIcon fontSize="small" />,
+  },
+
+  warning: {
+    label: "Warning",
+    color: dashboardColors.warning,
+    background: dashboardColors.warningLight,
+    icon: <WarningAmberOutlinedIcon fontSize="small" />,
+  },
+
+  error: {
+    label: "Error",
+    color: dashboardColors.danger,
+    background: dashboardColors.dangerLight,
+    icon: <ErrorOutlineOutlinedIcon fontSize="small" />,
+  },
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function AlertItem({
+  title,
+  message,
+  severity = "info",
+}) {
+  const config =
+    ALERT_CONFIG[severity] || ALERT_CONFIG.info;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 2,
+        p: 1.5,
+        mb: 1.5,
+        borderRadius: 3,
+        border: `1px solid ${dashboardColors.border}`,
+        backgroundColor: dashboardColors.cardBackground,
+      }}
+    >
+      {/* Left Side */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          flex: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: config.background,
+            color: config.color,
+          }}
+        >
+          {config.icon}
+        </Box>
+
+        <Box>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              color: dashboardColors.textPrimary,
+            }}
+          >
+            {title}
+          </Typography>
+
+          {message && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: dashboardColors.textSecondary,
+              }}
+            >
+              {message}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      {/* Right Side */}
+      <Chip
+        label={config.label}
+        size="small"
+        sx={{
+          fontWeight: 700,
+          color: config.color,
+          backgroundColor: config.background,
+        }}
+      />
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Approval Item Component
+//
+// Purpose:
+// Single pending approval row.
+//
+// Used By:
+// PendingApprovals.jsx
+// ============================================
+
+import { Box, Chip, Typography } from "@mui/material";
+
+import HourglassTopIcon from "@mui/icons-material/HourglassTop";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function ApprovalItem({
+  title,
+  module,
+  requestedBy,
+  time,
+  status = "Pending",
+}) {
+  return (
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 3,
+        border: `1px solid ${dashboardColors.border}`,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 2,
+      }}
+    >
+      <Box>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 700,
+            color: dashboardColors.textPrimary,
+          }}
+        >
+          {title}
+        </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: dashboardColors.textSecondary,
+            mt: 0.5,
+          }}
+        >
+          {module}
+        </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: dashboardColors.textSecondary,
+          }}
+        >
+          Requested by {requestedBy}
+        </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: dashboardColors.textSecondary,
+          }}
+        >
+          {time}
+        </Typography>
+      </Box>
+
+      <Chip
+        icon={<HourglassTopIcon />}
+        label={status}
+        size="small"
+        sx={{
+          fontWeight: 700,
+          color: dashboardColors.warning,
+          backgroundColor: dashboardColors.warningLight,
+        }}
+      />
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Compact Health Item
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+import CircleIcon from "@mui/icons-material/Circle";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function HealthItem({ label, status, value }) {
+  const isHealthy =
+    status === "Healthy" ||
+    status === "Connected" ||
+    status === "Active" ||
+    status === "Up to date";
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 1.5,
+        py: 0.75,
+        borderBottom: `1px solid ${dashboardColors.border}`,
+        "&:last-child": {
+          borderBottom: "none",
+        },
+      }}
+    >
+      {/* Left label */}
+      <Typography
+        sx={{
+          fontSize: "0.8rem",
+          fontWeight: 700,
+          color: dashboardColors.textPrimary,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </Typography>
+
+      {/* Right status */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.6,
+          minWidth: 0,
+        }}
+      >
+        <CircleIcon
+          sx={{
+            fontSize: 7,
+            color: isHealthy ? dashboardColors.success : dashboardColors.warning,
+          }}
+        />
+
+        <Typography
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 800,
+            color: isHealthy ? dashboardColors.success : dashboardColors.warning,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {status}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Dashboard Module Card
+//
+// Purpose:
+// Displays one module shortcut/card on the
+// Super Admin Dashboard.
+//
+// Reusable:
+// Yes. This card can later be reused in:
+// - Module Manager
+// - Super Admin Dashboard
+// - User Permission Dashboard
+// - Future system module overview pages
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
+
+// ============================================
+// Component
+// ============================================
+
+export default function ModuleCard({
+  title,
+  description,
+  icon: Icon,
+  color,
+  lightColor,
+}) {
+  return (
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 3,
+        bgcolor: "#ffffff",
+        border: "1px solid #e8edf3",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 1.5,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 10px 25px rgba(15, 23, 42, 0.08)",
+          borderColor: color,
+        },
+      }}
+    >
+      {/* Left side: icon + text */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          minWidth: 0,
+        }}
+      >
+        {/* Module icon box */}
+        <Box
+          sx={{
+            width: 46,
+            height: 46,
+            borderRadius: 2.5,
+            bgcolor: lightColor,
+            color,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {Icon && <Icon sx={{ fontSize: 25 }} />}
+        </Box>
+
+        {/* Module text */}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: "#0f172a",
+              lineHeight: 1.2,
+              mb: 0.5,
+            }}
+          >
+            {title}
+          </Typography>
+
+          <Typography
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "#64748b",
+              lineHeight: 1.3,
+            }}
+          >
+            {description}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right arrow */}
+      <ArrowForwardIosRoundedIcon
+        sx={{
+          fontSize: 15,
+          color: "#94a3b8",
+          flexShrink: 0,
+        }}
+      />
+    </Box>
+  );
+}
+// ============================================
+// Reusable Progress Item
+// Reserved for future dashboard sections
+// ============================================
+
+import { Box, Typography, LinearProgress } from "@mui/material";
+
+export default function ProgressItem({ label, value }) {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography fontWeight={700} color="#0f172a" sx={{ mb: 0.8 }}>
+        {label}
+      </Typography>
+
+      <LinearProgress
+        variant="determinate"
+        value={value}
+        sx={{
+          height: 8,
+          borderRadius: 10,
+          bgcolor: "#e5e7eb",
+          "& .MuiLinearProgress-bar": {
+            borderRadius: 10,
+            bgcolor: "#0f5132",
+          },
+        }}
+      />
+    </Box>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// System Health Card
+//
+// Purpose:
+// Displays health status of critical
+// platform services.
+//
+// Reusable:
+// - Super Admin
+// - IT Management
+// - Asset Management
+// - Future Modules
+// ============================================
+
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Typography,
+} from "@mui/material";
+
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Status Config
+//
+// Important:
+// Uses dashboardColors only.
+// No hardcoded colors.
+// ============================================
+
+const STATUS_CONFIG = {
+  healthy: {
+    label: "Healthy",
+    color: dashboardColors.success,
+    background: dashboardColors.successLight,
+    icon: <CheckCircleOutlineOutlinedIcon fontSize="small" />,
+  },
+
+  warning: {
+    label: "Warning",
+    color: dashboardColors.warning,
+    background: dashboardColors.warningLight,
+    icon: <WarningAmberOutlinedIcon fontSize="small" />,
+  },
+
+  critical: {
+    label: "Critical",
+    color: dashboardColors.danger,
+    background: dashboardColors.dangerLight,
+    icon: <ErrorOutlineOutlinedIcon fontSize="small" />,
+  },
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function SystemHealthCard({
+  title = "System Health",
+  subtitle = "Current platform status",
+  data = [],
+}) {
+  return (
+    <Card
+      sx={{
+        height: "100%",
+        borderRadius: 4,
+        border: `1px solid ${dashboardColors.border}`,
+        backgroundColor: dashboardColors.cardBackground,
+        boxShadow: `0 8px 24px ${dashboardColors.shadow}`,
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: dashboardColors.textPrimary,
+            }}
+          >
+            {title}
+          </Typography>
+
+          <Typography
+            variant="body2"
+            sx={{
+              color: dashboardColors.textSecondary,
+              mt: 0.5,
+            }}
+          >
+            {subtitle}
+          </Typography>
+        </Box>
+
+        {/* Health Items */}
+        <Stack spacing={2}>
+          {data.map((item) => {
+            const config =
+              STATUS_CONFIG[item.status] || STATUS_CONFIG.healthy;
+
+            return (
+              <Box
+                key={item.name}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  p: 1.5,
+                  borderRadius: 3,
+                  border: `1px solid ${dashboardColors.border}`,
+                  backgroundColor: dashboardColors.cardBackground,
+                }}
+              >
+                {/* Left Side */}
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: config.background,
+                      color: config.color,
+                    }}
+                  >
+                    {config.icon}
+                  </Box>
+
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: dashboardColors.textPrimary,
+                      }}
+                    >
+                      {item.name}
+                    </Typography>
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: dashboardColors.textSecondary,
+                      }}
+                    >
+                      Uptime: {item.uptime}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {/* Right Side Status */}
+                <Chip
+                  label={config.label}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    color: config.color,
+                    backgroundColor: config.background,
+                  }}
+                />
+              </Box>
+            );
+          })}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Department Distribution Chart
+// Live Backend Data Version
+// ============================================
+
+// React
+import { useMemo } from "react";
+
+// MUI components
+import { Card, CardContent, Typography } from "@mui/material";
+
+// Recharts components
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+// Chart colors
+const COLORS = ["#2563EB", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
+
+// ============================================
+// Component
+// Receives live requests from HodDashboard.jsx
+// ============================================
+export default function DepartmentDistributionChart({ requests = [] }) {
+  // ============================================
+  // Convert request list into department count data
+  // Example:
+  // [{ name: "Primary", value: 5 }]
+  // ============================================
+  const chartData = useMemo(() => {
+    const departmentMap = {};
+
+    // Count how many requests belong to each department
+    requests.forEach((request) => {
+      const department = request.department || "Unknown";
+
+      departmentMap[department] =
+        (departmentMap[department] || 0) + 1;
+    });
+
+    // Convert object into array for Recharts PieChart
+    return Object.keys(departmentMap).map((department) => ({
+      name: department,
+      value: departmentMap[department],
+    }));
+  }, [requests]);
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+        height: "100%",
+      }}
+    >
+      <CardContent>
+        {/* Chart title */}
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+          Department Distribution
+        </Typography>
+
+        {/* Show message if there is no request data */}
+        {chartData.length === 0 ? (
+          <Typography color="text.secondary">
+            No department data available.
+          </Typography>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={85}
+                label
+              >
+                {/* Apply chart colors to each department */}
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={entry.name}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+
+              {/* Hover tooltip */}
+              <Tooltip />
+
+              {/* Chart legend */}
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// HOD Approval Trend Chart
+// Live Backend Data Version
+// ============================================
+
+// React
+import { useMemo } from "react";
+
+// MUI Components
+import { Card, CardContent, Typography } from "@mui/material";
+
+// Recharts Components
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+// ============================================
+// Component
+// Receives requests from HodDashboard.jsx
+// ============================================
+export default function HodApprovalTrend({ requests = [] }) {
+  // ============================================
+  // Build chart data from live requests
+  // ============================================
+  const chartData = useMemo(() => {
+    // Month labels for the chart
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+
+    // Create default chart structure for all months
+    const monthlyData = months.map((month) => ({
+      month,
+      approved: 0,
+      rejected: 0,
+    }));
+
+    // Loop through all HOD requests
+    requests.forEach((request) => {
+      // Use raw backend date for accurate sorting/charting
+      const dateValue = request.rawSubmittedAt || request.submittedDate;
+
+      // Skip request if date is missing
+      if (!dateValue) return;
+
+      // Convert date value to JavaScript date
+      const date = new Date(dateValue);
+
+      // Skip invalid date
+      if (isNaN(date.getTime())) return;
+
+      // Get month index from date
+      const monthIndex = date.getMonth();
+
+      // Normalize backend status
+      const status = request.status?.toLowerCase();
+
+      // Count approved by HOD requests
+      if (status === "approved by hod") {
+        monthlyData[monthIndex].approved += 1;
+      }
+
+      // Count rejected by HOD requests
+      if (status === "rejected by hod") {
+        monthlyData[monthIndex].rejected += 1;
+      }
+    });
+
+    return monthlyData;
+  }, [requests]);
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+        height: "100%",
+      }}
+    >
+      <CardContent>
+        {/* Chart title */}
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+          Monthly Approval Trend
+        </Typography>
+
+        {/* Responsive bar chart */}
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={chartData}>
+            {/* Month labels */}
+            <XAxis dataKey="month" />
+
+            {/* Number of requests */}
+            <YAxis />
+
+            {/* Tooltip when hovering */}
+            <Tooltip />
+
+            {/* Chart legend */}
+            <Legend />
+
+            {/* Approved requests bar */}
+            <Bar
+              dataKey="approved"
+              fill="#10B981"
+              radius={[6, 6, 0, 0]}
+            />
+
+            {/* Rejected requests bar */}
+            <Bar
+              dataKey="rejected"
+              fill="#EF4444"
+              radius={[6, 6, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Module Status Chart
+//
+// Purpose:
+// Displays compact module status summary.
+//
+// Design:
+// Matches approved Super Admin dashboard row.
+// ============================================
+
+import { Box, Typography } from "@mui/material";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+
+import DashboardCard from "../dashboard/DashboardCard";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Status Colors
+// ============================================
+
+const STATUS_COLORS = {
+  // Platform module statuses
+  active: dashboardColors.success,
+  inProgress: dashboardColors.info,
+  comingSoon: dashboardColors.warning,
+  disabled: dashboardColors.neutral,
+  inactive: dashboardColors.neutral,
+  maintenance: dashboardColors.warning,
+
+  // Printing dashboard statuses
+  pending: dashboardColors.warning,
+  printing: dashboardColors.info,
+  completed: dashboardColors.success,
+  rejected: dashboardColors.danger,
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function ModuleStatusChart({
+  title = "Module Status",
+  subtitle = "Availability of platform modules",
+  data = [],
+}) {
+  const total = data.reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+  return (
+    <DashboardCard title={title} subtitle={subtitle}>
+      <Box
+        sx={{
+          height: 260,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Chart */}
+        <Box
+          sx={{
+            height: 135,
+            position: "relative",
+            mb: 1.5,
+          }}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="label"
+                innerRadius={42}
+                outerRadius={58}
+                paddingAngle={3}
+                stroke="none"
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`${entry.key}-${index}`}
+                    fill={
+                      STATUS_COLORS[entry.key] ||
+                      dashboardColors.neutral
+                    }
+                  />
+                ))}
+              </Pie>
+
+              <Tooltip
+                formatter={(value, name) => [`${value}`, name]}
+                contentStyle={{
+                  borderRadius: 10,
+                  border: `1px solid ${dashboardColors.border}`,
+                  boxShadow: `0 10px 24px ${dashboardColors.shadow}`,
+                  fontSize: 12,
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+
+          {/* Center Total */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              pointerEvents: "none",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "1.45rem",
+                fontWeight: 900,
+                color: dashboardColors.textPrimary,
+                lineHeight: 1,
+              }}
+            >
+              {total}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: dashboardColors.textSecondary,
+                mt: 0.2,
+              }}
+            >
+              Total
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Compact Legend */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.9,
+          }}
+        >
+          {data.map((item, index) => {
+            const value = Number(item.value || 0);
+            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            const color =
+              STATUS_COLORS[item.key] || dashboardColors.neutral;
+
+            return (
+              <Box
+                key={`${item.key}-${index}`}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.8,
+                    minWidth: 0,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: color,
+                      flexShrink: 0,
+                    }}
+                  />
+
+                  <Typography
+                    sx={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: dashboardColors.textPrimary,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
+                </Box>
+
+                <Typography
+                  sx={{
+                    fontSize: "0.78rem",
+                    fontWeight: 800,
+                    color: dashboardColors.textSecondary,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {value} ({percent}%)
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Teacher Dashboard
+// Modern Monthly Usage Chart
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Chip,
+} from "@mui/material";
+
+import InsertChartOutlinedIcon from "@mui/icons-material/InsertChartOutlined";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+
+export default function MonthlyUsageChart({ data = [] }) {
+  // ============================================
+  // Calculate totals
+  // ============================================
+
+  const totalPages = data.reduce(
+    (sum, item) => sum + (item.pages || 0),
+    0
+  );
+
+  const totalSheets = data.reduce(
+    (sum, item) => sum + (item.sheets || 0),
+    0
+  );
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 5,
+        border: "1px solid #E2E8F0",
+
+        background:
+          "linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)",
+
+        boxShadow:
+          "0 10px 30px rgba(15,23,42,0.06)",
+
+        height: "100%",
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+            }}
+          >
+            <Box
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: 3,
+                bgcolor: "#EEF4FF",
+                color: "#2563EB",
+
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <InsertChartOutlinedIcon />
+            </Box>
+
+            <Box>
+              <Typography
+                variant="h6"
+                fontWeight={900}
+              >
+                Monthly Usage
+              </Typography>
+
+              <Typography
+                color="text.secondary"
+                fontSize={14}
+              >
+                Pages and sheets used this year.
+              </Typography>
+            </Box>
+          </Box>
+
+          <Chip
+            label={`${totalSheets} Sheets`}
+            sx={{
+              bgcolor: "#EEF4FF",
+              color: "#2563EB",
+              fontWeight: 800,
+            }}
+          />
+        </Box>
+
+        {/* Summary Stats */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(2,1fr)",
+            gap: 2,
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              bgcolor: "#F8FAFC",
+            }}
+          >
+            <Typography
+              fontSize={13}
+              color="text.secondary"
+            >
+              Total Pages
+            </Typography>
+
+            <Typography
+              variant="h5"
+              fontWeight={900}
+            >
+              {totalPages}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              bgcolor: "#F8FAFC",
+            }}
+          >
+            <Typography
+              fontSize={13}
+              color="text.secondary"
+            >
+              Total Sheets
+            </Typography>
+
+            <Typography
+              variant="h5"
+              fontWeight={900}
+            >
+              {totalSheets}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Chart */}
+        <Box
+          sx={{
+            width: "100%",
+            height: 320,
+          }}
+        >
+          {data.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                color: "text.secondary",
+              }}
+            >
+              No monthly usage data available.
+            </Box>
+          ) : (
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart data={data}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                />
+
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                />
+
+                <Tooltip />
+
+                <Bar
+                  dataKey="pages"
+                  fill="#2563EB"
+                  radius={[10, 10, 0, 0]}
+                />
+
+                <Bar
+                  dataKey="sheets"
+                  fill="#8B5CF6"
+                  radius={[10, 10, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Platform Activity Chart
+//
+// Purpose:
+// Displays platform activity trends.
+//
+// Design:
+// Compact version matching approved dashboard.
+// ============================================
+
+import { Box } from "@mui/material";
+
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+
+import DashboardCard from "../dashboard/DashboardCard";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Component
+// ============================================
+
+export default function PlatformActivityChart({
+  data = [],
+}) {
+  return (
+    <DashboardCard
+      title="Platform Activity"
+      subtitle="Print requests and IT tickets activity"
+    >
+      <Box
+        sx={{
+          height: 250,
+        }}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={{
+              top: 10,
+              right: 10,
+              left: -15,
+              bottom: 0,
+            }}
+          >
+            {/* Grid */}
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+
+            {/* X Axis */}
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
+
+            {/* Y Axis */}
+            <YAxis
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
+
+            {/* Tooltip */}
+            <Tooltip
+              contentStyle={{
+                borderRadius: 12,
+                border: `1px solid ${dashboardColors.border}`,
+                boxShadow: `0 10px 24px ${dashboardColors.shadow}`,
+              }}
+            />
+
+            {/* Print Requests */}
+            <Line
+              type="monotone"
+              dataKey="printRequests"
+              name="Print Requests"
+              stroke={dashboardColors.success}
+              strokeWidth={3}
+              dot={{
+                r: 4,
+                strokeWidth: 3,
+              }}
+              activeDot={{
+                r: 6,
+              }}
+            />
+
+            {/* Tickets */}
+            <Line
+              type="monotone"
+              dataKey="tickets"
+              name="Tickets"
+              stroke={dashboardColors.info}
+              strokeWidth={3}
+              dot={{
+                r: 4,
+                strokeWidth: 3,
+              }}
+              activeDot={{
+                r: 6,
+              }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </Box>
+    </DashboardCard>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Teacher Dashboard
+// Purpose Breakdown Donut Chart
+// Connected to live backend dashboard data
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+} from "@mui/material";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+// Chart colors
+const COLORS = [
+  "#2563EB",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#06B6D4",
+];
+
+// ============================================
+// Purpose Breakdown Chart Component
+// ============================================
+
+export default function PurposeBreakdownChart({ data = [] }) {
+  return (
+    <Card
+      sx={{
+        height: "100%",
+        minWidth: 0,
+        borderRadius: 4,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+      }}
+    >
+      <CardContent>
+        <Typography variant="h6" fontWeight={700} mb={3}>
+          Purpose Breakdown
+        </Typography>
+
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            height: 350,
+          }}
+        >
+          {data.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "text.secondary",
+              }}
+            >
+              No purpose data available.
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={3}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Purpose Usage Trend Chart
+// Connected to live backend dashboard data
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+} from "@mui/material";
+
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+// ============================================
+// Convert backend flat rows into Recharts format
+// Example backend:
+// [
+//   { month: "Jun", purposeKey: "worksheet", requestCount: 2 },
+//   { month: "Jun", purposeKey: "exam", requestCount: 1 }
+// ]
+//
+// Recharts format:
+// [
+//   { month: "Jun", worksheet: 2, exam: 1 }
+// ]
+// ============================================
+
+const transformPurposeTrendData = (rows = []) => {
+  const grouped = {};
+
+  rows.forEach((item) => {
+    const month = item.month;
+    const purposeKey = item.purposeKey || "others";
+
+    if (!grouped[month]) {
+      grouped[month] = {
+        month,
+      };
+    }
+
+    grouped[month][purposeKey] = item.requestCount || 0;
+  });
+
+  return Object.values(grouped);
+};
+
+// ============================================
+// Get unique purpose keys for dynamic chart lines
+// ============================================
+
+const getPurposeKeys = (rows = []) => {
+  const keys = rows.map((item) => item.purposeKey || "others");
+  return [...new Set(keys)];
+};
+
+// ============================================
+// Purpose Usage Trend Component
+// ============================================
+
+export default function PurposeUsageTrend({ data = [] }) {
+  const chartData = transformPurposeTrendData(data);
+  const purposeKeys = getPurposeKeys(data);
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        height: "100%",
+        minWidth: 0,
+      }}
+    >
+      <CardContent>
+        <Typography variant="h6" fontWeight={700} mb={3}>
+          Purpose Usage Trend
+        </Typography>
+
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            height: 300,
+          }}
+        >
+          {chartData.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "text.secondary",
+              }}
+            >
+              No purpose trend data available.
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="month" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+
+                {purposeKeys.map((key) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    strokeWidth={3}
+                    dot
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+// ============================================
+// ARAB UNITY SCHOOL
+// Tickets By Status Section
+//
+// Purpose:
+// Displays ticket distribution using a donut chart.
+//
+// Reusable:
+// Can be reused by IT Service Desk dashboard later.
+// ============================================
+
+import ModuleStatusChart from "../charts/ModuleStatusChart";
+
+// ============================================
+// Component
+// ============================================
+
+export default function TicketsByStatus({ data = [] }) {
+  return (
+    <ModuleStatusChart
+      title="Tickets by Status"
+      subtitle="Current ticket queue"
+      data={data}
+    />
+  );
+}
