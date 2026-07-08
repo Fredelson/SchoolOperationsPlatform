@@ -4,6 +4,7 @@
 // IT Asset Management Page
 // ============================================
 
+import { useState } from "react";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -21,11 +22,13 @@ import {
 
 import { useAssetList } from "../hooks/useAssetList";
 import { buildAssetColumns } from "../columns/assetColumns.jsx";
+import ImportAssetDialog from "../dialogs/ImportAssetDialog";
 
 export default function AssetList() {
   usePageTitle("AUS | IT Asset Management");
 
   const navigate = useNavigate();
+  const [importOpen, setImportOpen] = useState(false);
 
   const {
     assets,
@@ -95,6 +98,10 @@ export default function AssetList() {
               Refresh
             </AppButton>
 
+            <AppButton variant="outlined" onClick={() => setImportOpen(true)}>
+              Import
+            </AppButton>
+
             <AppButton onClick={() => console.log("Create asset")}>
               Add Asset
             </AppButton>
@@ -115,6 +122,15 @@ export default function AssetList() {
         emptyTitle="No IT assets found"
         emptyMessage="Try adjusting your search or add a new IT asset."
         stickyHeader
+      />
+
+      <ImportAssetDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {
+          setImportOpen(false);
+          refetch();
+        }}
       />
     </Box>
   );
