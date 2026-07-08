@@ -7,6 +7,9 @@
 import { AppChip } from "../../../platform/ui";
 import AssetActionMenu from "../components/AssetActionMenu";
 
+/**
+ * Resolve status chip color from status name.
+ */
 const getStatusColor = (status = "") => {
   const value = String(status).toLowerCase();
 
@@ -21,57 +24,69 @@ const getStatusColor = (status = "") => {
   return "default";
 };
 
+/**
+ * Safe display helper.
+ */
 const safeText = (value) => value || "—";
 
 export const buildAssetColumns = (handlers = {}) => [
   {
-    field: "assetCode",
+    field: "AssetTag",
     headerName: "Asset Code",
     width: 140,
+    render: (row) => safeText(row.AssetTag),
   },
   {
-    field: "assetName",
+    field: "ModelDescription",
     headerName: "Asset Name",
     width: 220,
+    render: (row) => safeText(row.ModelDescription || row.ModelName),
   },
   {
-    field: "categoryName",
+    field: "CategoryName",
     headerName: "Category",
     width: 150,
-    render: (row) => safeText(row.categoryName),
+    render: (row) => safeText(row.CategoryName),
   },
   {
-    field: "brandName",
+    field: "BrandName",
     headerName: "Brand",
     width: 130,
-    render: (row) => safeText(row.brandName),
+    render: (row) => safeText(row.BrandName),
   },
   {
-    field: "modelName",
+    field: "ModelName",
     headerName: "Model",
     width: 150,
-    render: (row) => safeText(row.modelName),
+    render: (row) => safeText(row.ModelName),
   },
   {
-    field: "locationName",
+    field: "LocationName",
     headerName: "Location",
     width: 170,
-    render: (row) => safeText(row.locationName),
+    render: (row) => safeText(row.LocationName),
   },
   {
-    field: "assignedToName",
+    field: "RoomName",
+    headerName: "Room",
+    width: 120,
+    render: (row) => safeText(row.RoomName),
+  },
+  {
+    field: "CurrentAssignedUserName",
     headerName: "Assigned To",
     width: 180,
-    render: (row) => safeText(row.assignedToName),
+    render: (row) =>
+      safeText(row.CurrentAssignedUserName || row.CurrentAssignedName),
   },
   {
-    field: "statusName",
+    field: "StatusName",
     headerName: "Status",
     width: 150,
     render: (row) => (
       <AppChip
-        label={row.statusName || "Unknown"}
-        color={getStatusColor(row.statusName)}
+        label={row.StatusName || "Unknown"}
+        color={getStatusColor(row.StatusName)}
         size="small"
       />
     ),

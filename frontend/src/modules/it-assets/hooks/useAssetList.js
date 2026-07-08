@@ -7,11 +7,32 @@
 import { useCallback, useEffect, useState } from "react";
 import { getItAssetsService } from "../services/itAssetService";
 
+/**
+ * useAssetList
+ *
+ * Purpose:
+ * - Loads paginated IT assets from the backend.
+ * - Handles search, pagination, loading, and error state.
+ *
+ * Important:
+ * Backend returns:
+ * {
+ *   success: true,
+ *   message: "...",
+ *   data: [],
+ *   pagination: {
+ *     page,
+ *     limit,
+ *     total,
+ *     totalPages
+ *   }
+ * }
+ */
 export const useAssetList = () => {
   const [assets, setAssets] = useState([]);
 
   const [pagination, setPagination] = useState({
-    page: 0,
+    page: 0, // MUI table uses zero-based page index
     rowsPerPage: 10,
     totalRows: 0,
   });
@@ -21,6 +42,12 @@ export const useAssetList = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Fetch IT assets from backend.
+   *
+   * Frontend page is zero-based.
+   * Backend page is one-based.
+   */
   const fetchAssets = useCallback(
     async (options = {}) => {
       try {
@@ -33,17 +60,18 @@ export const useAssetList = () => {
 
         const result = await getItAssetsService({
           page: page + 1,
-          pageSize: rowsPerPage,
+          limit: rowsPerPage,
           search: searchValue,
         });
 
-        setAssets(result.assets || []);
+        // Backend returns rows in "data", not "assets".
+       setAssets(result.assets || []);
 
-        setPagination({
-          page,
-          rowsPerPage,
-          totalRows: result.pagination?.totalRecords || 0,
-        });
+setPagination({
+  page,
+  rowsPerPage,
+  totalRows: result.pagination?.totalRecords || 0,
+});
       } catch (err) {
         console.error("Failed to fetch IT assets:", err);
         setError("Unable to load IT assets.");
@@ -56,11 +84,13 @@ export const useAssetList = () => {
 
   useEffect(() => {
     fetchAssets();
+    // Intentionally run only once on initial page load.
+    // Manual refresh/search/pagination actions call fetchAssets directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setSearch(value);
+    setSearch(event.target.value);
   };
 
   const handleSearchSubmit = () => {

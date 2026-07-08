@@ -268,20 +268,44 @@ const completeDisposal = async ({
   }
 };
 
+/**
+ * Get asset disposal records.
+ *
+ * Enterprise rule:
+ * - Disposal module shows disposal workflow records.
+ * - Deleted assets are excluded.
+ * - Disposed assets remain in database for audit/history.
+ * - Asset Management will exclude disposed assets separately.
+ */
 const getDisposals = async ({ status = null, assetId = null }) => {
   const result = await executeQuery(
     `
       SELECT
         d.*,
+
+        a.AssetId,
         a.AssetTag,
+        a.AssetCode,
         a.ModelDescription,
+        a.ITAssetStatusId,
+        a.IsActive,
+
+        assetStatus.StatusKey,
+        assetStatus.StatusName,
+
         requestedBy.FullName AS RequestedByName,
         approvedBy.FullName AS ApprovedByName
       FROM dbo.ITAssetDisposals d
-      INNER JOIN dbo.ITAssets a ON d.AssetId = a.AssetId
-      LEFT JOIN dbo.Users requestedBy ON d.RequestedBy = requestedBy.UserId
-      LEFT JOIN dbo.Users approvedBy ON d.ApprovedBy = approvedBy.UserId
-      WHERE (@Status IS NULL OR d.DisposalStatus = @Status)
+      INNER JOIN dbo.ITAssets a
+        ON d.AssetId = a.AssetId
+      LEFT JOIN dbo.ITAssetStatuses assetStatus
+        ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+      LEFT JOIN dbo.Users requestedBy
+        ON d.RequestedBy = requestedBy.UserId
+      LEFT JOIN dbo.Users approvedBy
+        ON d.ApprovedBy = approvedBy.UserId
+      WHERE a.IsDeleted = 0
+        AND (@Status IS NULL OR d.DisposalStatus = @Status)
         AND (@AssetId IS NULL OR d.AssetId = @AssetId)
       ORDER BY d.RequestedAt DESC;
     `,

@@ -5,6 +5,12 @@
    Purpose:
    Handles SQL operations for the main ITAssets table.
 
+   Enterprise Rules:
+   - Asset Management must NOT show disposed assets.
+   - Disposed assets remain in the database for audit/history.
+   - Brand is loaded through Model:
+     ITAssets → ITAssetModels → ITAssetBrands
+
    Rules:
    - SQL only
    - No business logic
@@ -14,6 +20,14 @@
 
 const { poolPromise, sql } = require("../../../../config/db");
 
+/**
+ * Get paginated IT assets for Asset Management.
+ *
+ * Important:
+ * - Excludes soft-deleted assets.
+ * - Excludes DISPOSED assets from normal Asset Management.
+ * - Includes BrandName by joining ITAssetBrands through ITAssetModels.
+ */
 const getAssets = async ({
   search = "",
   categoryId = null,
@@ -43,31 +57,50 @@ const getAssets = async ({
   request.input("Limit", sql.Int, limit);
 
   const result = await request.query(`
+    /* =====================================================
+       Result Set 1:
+       Paginated Asset Management list.
+    ===================================================== */
     SELECT
       a.AssetId,
       a.AssetTag,
+
       a.ITAssetCategoryId,
       c.CategoryName,
+
       a.ITAssetModelId,
       m.ModelName,
+
+      /* Brand comes from the selected model */
+      b.ITAssetBrandId,
+      b.BrandName,
+
       a.ModelDescription,
       a.SerialIpMac,
+
       a.ITAssetStatusId,
       s.StatusName,
       s.StatusKey,
+
       a.ITAssetConditionId,
       con.ConditionName,
+
       a.CurrentAssignedUserId,
       u.FullName AS CurrentAssignedUserName,
+
       a.CurrentAssignedName,
       a.CurrentAssignedEmployeeCode,
       a.CurrentAssignedEmail,
+
       a.CurrentRoomId,
       r.RoomName,
+
       a.CurrentDepartmentId,
       d.DepartmentName,
+
       a.CurrentLocationId,
       l.LocationName,
+
       a.AcquiredChangedDate,
       a.PreviousOwner,
       a.IsActive,
@@ -78,6 +111,8 @@ const getAssets = async ({
       ON a.ITAssetCategoryId = c.ITAssetCategoryId
     LEFT JOIN dbo.ITAssetModels m
       ON a.ITAssetModelId = m.ITAssetModelId
+    LEFT JOIN dbo.ITAssetBrands b
+      ON m.ITAssetBrandId = b.ITAssetBrandId
     INNER JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
     LEFT JOIN dbo.ITAssetConditions con
@@ -92,6 +127,10 @@ const getAssets = async ({
       ON a.CurrentLocationId = l.LocationId
     WHERE
       a.IsDeleted = 0
+
+      /* Hide disposed assets from normal Asset Management */
+      AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+
       AND (
         a.AssetTag LIKE @Search
         OR ISNULL(a.ModelDescription, '') LIKE @Search
@@ -99,6 +138,9 @@ const getAssets = async ({
         OR ISNULL(a.CurrentAssignedName, '') LIKE @Search
         OR ISNULL(a.CurrentAssignedEmployeeCode, '') LIKE @Search
         OR ISNULL(a.CurrentAssignedEmail, '') LIKE @Search
+        OR ISNULL(b.BrandName, '') LIKE @Search
+        OR ISNULL(m.ModelName, '') LIKE @Search
+        OR ISNULL(c.CategoryName, '') LIKE @Search
       )
       AND (@CategoryId IS NULL OR a.ITAssetCategoryId = @CategoryId)
       AND (@StatusId IS NULL OR a.ITAssetStatusId = @StatusId)
@@ -111,10 +153,27 @@ const getAssets = async ({
     OFFSET @Offset ROWS
     FETCH NEXT @Limit ROWS ONLY;
 
+    /* =====================================================
+       Result Set 2:
+       Total count for pagination.
+       Must match the same filters above.
+    ===================================================== */
     SELECT COUNT(*) AS Total
     FROM dbo.ITAssets a
+    INNER JOIN dbo.ITAssetCategories c
+      ON a.ITAssetCategoryId = c.ITAssetCategoryId
+    LEFT JOIN dbo.ITAssetModels m
+      ON a.ITAssetModelId = m.ITAssetModelId
+    LEFT JOIN dbo.ITAssetBrands b
+      ON m.ITAssetBrandId = b.ITAssetBrandId
+    INNER JOIN dbo.ITAssetStatuses s
+      ON a.ITAssetStatusId = s.ITAssetStatusId
     WHERE
       a.IsDeleted = 0
+
+      /* Hide disposed assets from normal Asset Management */
+      AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+
       AND (
         a.AssetTag LIKE @Search
         OR ISNULL(a.ModelDescription, '') LIKE @Search
@@ -122,6 +181,9 @@ const getAssets = async ({
         OR ISNULL(a.CurrentAssignedName, '') LIKE @Search
         OR ISNULL(a.CurrentAssignedEmployeeCode, '') LIKE @Search
         OR ISNULL(a.CurrentAssignedEmail, '') LIKE @Search
+        OR ISNULL(b.BrandName, '') LIKE @Search
+        OR ISNULL(m.ModelName, '') LIKE @Search
+        OR ISNULL(c.CategoryName, '') LIKE @Search
       )
       AND (@CategoryId IS NULL OR a.ITAssetCategoryId = @CategoryId)
       AND (@StatusId IS NULL OR a.ITAssetStatusId = @StatusId)
@@ -138,6 +200,13 @@ const getAssets = async ({
   };
 };
 
+/**
+ * Get one asset by ID.
+ *
+ * Important:
+ * - Do NOT exclude DISPOSED here.
+ * - Disposed assets must still be viewable from the Disposal module.
+ */
 const getAssetById = async (assetId) => {
   const pool = await poolPromise;
 
@@ -147,12 +216,21 @@ const getAssetById = async (assetId) => {
     .query(`
       SELECT
         a.*,
+
         c.CategoryName,
+
+        b.ITAssetBrandId,
+        b.BrandName,
+
         m.ModelName,
+
         s.StatusKey,
         s.StatusName,
+
         con.ConditionName,
+
         u.FullName AS CurrentAssignedUserName,
+
         r.RoomName,
         d.DepartmentName,
         l.LocationName,
@@ -162,6 +240,8 @@ const getAssetById = async (assetId) => {
         ON a.ITAssetCategoryId = c.ITAssetCategoryId
       LEFT JOIN dbo.ITAssetModels m
         ON a.ITAssetModelId = m.ITAssetModelId
+      LEFT JOIN dbo.ITAssetBrands b
+        ON m.ITAssetBrandId = b.ITAssetBrandId
       INNER JOIN dbo.ITAssetStatuses s
         ON a.ITAssetStatusId = s.ITAssetStatusId
       LEFT JOIN dbo.ITAssetConditions con
@@ -183,6 +263,12 @@ const getAssetById = async (assetId) => {
   return result.recordset[0];
 };
 
+/**
+ * Find asset by AssetTag.
+ *
+ * Used for duplicate validation.
+ * Does not exclude DISPOSED because AssetTag should remain unique.
+ */
 const getAssetByTag = async (assetTag, excludeAssetId = null) => {
   const pool = await poolPromise;
 
@@ -200,6 +286,10 @@ const getAssetByTag = async (assetTag, excludeAssetId = null) => {
 
   return result.recordset[0];
 };
+
+/**
+ * Create a new IT asset.
+ */
 const createAsset = async (data) => {
   const pool = await poolPromise;
 
@@ -277,6 +367,9 @@ const createAsset = async (data) => {
   return result.recordset[0];
 };
 
+/**
+ * Update an existing IT asset.
+ */
 const updateAsset = async (assetId, data) => {
   const pool = await poolPromise;
 
@@ -329,6 +422,11 @@ const updateAsset = async (assetId, data) => {
   return result.recordset[0];
 };
 
+/**
+ * Soft-delete an IT asset.
+ *
+ * Soft delete is different from disposal.
+ */
 const softDeleteAsset = async (assetId, deletedBy) => {
   const pool = await poolPromise;
 

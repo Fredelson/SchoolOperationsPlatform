@@ -64,7 +64,9 @@ const completeDisposal = async ({ payload, user, ipAddress }) => {
     throw Object.assign(new Error("IT asset not found."), { statusCode: 404 });
   }
 
-  const disposedStatus = await repository.getStatusByKey("Disposed");
+  const disposedStatus =
+  (await repository.getStatusByKey("DISPOSED")) ||
+  (await repository.getStatusByKey("Disposed"));
 
   if (!disposedStatus) {
     throw Object.assign(new Error("Disposed status is missing."), { statusCode: 400 });
