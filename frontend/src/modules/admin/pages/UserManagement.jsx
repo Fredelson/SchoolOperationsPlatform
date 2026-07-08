@@ -65,6 +65,14 @@ const initialForm = {
   subject: "",
 };
 
+const getUserId = (user) =>
+  user?.UserId ||
+  user?.userId ||
+  user?.id ||
+  user?.Id ||
+  user?.ID ||
+  user?.UserID;
+
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -164,13 +172,16 @@ export default function UserManagement() {
   };
 
   const handleEdit = (user) => {
+    console.log("EDIT CLICKED USER:", user);
+    console.log("EDIT CLICKED USER ID:", getUserId(user));
+
     setEditingUser(user);
 
     setForm({
       fullName: user.FullName || user.fullName || "",
       employeeId: user.EmployeeId || user.employeeId || "",
       schoolEmail: user.SchoolEmail || user.schoolEmail || "",
-      role: user.Role || user.role || "Teacher",
+      role: user.Role || user.role || user.RoleName || "Teacher",
       departmentId: user.DepartmentId || user.departmentId || "",
       subject: user.Subject || user.subject || "",
     });
@@ -212,7 +223,18 @@ export default function UserManagement() {
       };
 
       if (editingUser) {
-        await updateUser(editingUser.UserId || editingUser.userId, payload);
+        const editingUserId = getUserId(editingUser);
+
+        console.log("EDITING USER:", editingUser);
+        console.log("EDITING USER ID:", editingUserId);
+        console.log("EDIT PAYLOAD:", payload);
+
+        if (!editingUserId) {
+          alert("User ID missing. Please refresh the page and try again.");
+          return;
+        }
+
+        await updateUser(editingUserId, payload);
         alert("User updated successfully");
       } else {
         await createUser(payload);
@@ -229,8 +251,16 @@ export default function UserManagement() {
 
   const handleToggleStatus = async (user) => {
     try {
-      const userId = user.UserId || user.userId;
+      const userId = getUserId(user);
       const isActive = user.IsActive ?? user.isActive;
+
+      console.log("TOGGLE USER:", user);
+      console.log("TOGGLE USER ID:", userId);
+
+      if (!userId) {
+        alert("User ID missing. Please refresh the page and try again.");
+        return;
+      }
 
       if (isActive) {
         await deactivateUser(userId);
@@ -241,7 +271,7 @@ export default function UserManagement() {
       loadUsers();
     } catch (error) {
       console.error("Toggle user error:", error);
-      alert("Failed to update user status");
+      alert(error.response?.data?.message || "Failed to update user status");
     }
   };
 
@@ -493,17 +523,17 @@ export default function UserManagement() {
 
             <TableBody>
               {filteredUsers.map((user) => {
-                const userId = user.UserId || user.userId;
-                const fullName = user.FullName || user.fullName;
-                const employeeId = user.EmployeeId || user.employeeId;
-                const schoolEmail = user.SchoolEmail || user.schoolEmail;
+                const userId = getUserId(user);
+                const fullName = user.FullName || user.fullName || "-";
+                const employeeId = user.EmployeeId || user.employeeId || "-";
+                const schoolEmail = user.SchoolEmail || user.schoolEmail || "-";
                 const role = user.Role || user.role || user.RoleName || "-";
                 const department = user.DepartmentName || user.departmentName || "-";
                 const subject = user.Subject || user.subject || "-";
                 const isActive = user.IsActive ?? user.isActive;
 
                 return (
-                  <TableRow key={userId} hover>
+                  <TableRow key={userId || employeeId} hover>
                     <TableCell>
                       <Typography fontWeight={700}>{fullName}</Typography>
                     </TableCell>
