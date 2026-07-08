@@ -17,10 +17,14 @@ const assetNoteRoutes = require("./notes/routes/assetNoteRoutes");
 const assetDisposalRoutes = require("./disposal/routes/assetDisposalRoutes");
 const assetTimelineRoutes = require("./timeline/routes/assetTimelineRoutes");
 const assetDashboardRoutes = require("./dashboard/routes/assetDashboardRoutes");
+const assetExplorerRoutes = require("./assetExplorer/routes/assetExplorerRoutes");
 const assetImportRoutes = require("./import/routes/itAssetImportRoutes");
 
-/* Dashboard */
+/* Dashboard Routes */
 router.use("/dashboard", assetDashboardRoutes);
+
+/* Asset Explorer Routes */
+router.use("/explorer", assetExplorerRoutes);
 
 /* Lifecycle Routes */
 router.use("/timeline", assetTimelineRoutes);
