@@ -22,7 +22,7 @@ router.get(
   "/categories/:categoryId/brands/:brandId/models",
   controller.getModelsByBrand
 );
-
+router.get("/find-by-tag", controller.findAssetPathByTag);
 router.get("/assets", controller.getExplorerAssets);
 
 module.exports = router;

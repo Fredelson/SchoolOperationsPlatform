@@ -42,9 +42,62 @@ export const getAssetExplorerModelsApi = async (
 };
 
 /**
- * Get assets for the explorer table.
+ * Find exact asset hierarchy path by AssetTag.
  */
-export const getAssetExplorerAssetsApi = async (params = {}) => {
-  const response = await api.get("/it-assets/explorer/assets", { params });
+export const findAssetPathApi = async (assetTag) => {
+  const response = await api.get("/it-assets/explorer/find-by-tag", {
+    params: { assetTag },
+  });
+
   return response.data;
+};
+
+/**
+ * Get assets for the explorer table.
+ * Filters affect table only.
+ */
+export const getAssetExplorerAssetsApi = async ({
+  search = "",
+  categoryId = null,
+  brandId = null,
+  modelId = null,
+  statusId = null,
+  locationId = null,
+  conditionId = null,
+  page = 1,
+  limit = 10,
+} = {}) => {
+  const response = await api.get("/it-assets/explorer/assets", {
+    params: {
+      search,
+      categoryId,
+      brandId,
+      modelId,
+      statusId,
+      locationId,
+      conditionId,
+      page,
+      limit,
+    },
+  });
+
+  return response.data;
+};
+
+/**
+ * Load dropdown filter lookups.
+ * Existing backend endpoint:
+ * GET /api/it-assets/lookups
+ */
+export const getAssetExplorerFilterLookupsApi = async () => {
+  const response = await api.get("/it-assets/lookups");
+
+  const payload = response.data;
+  const lookups = payload?.data || payload || {};
+
+  return {
+    statuses: lookups.statuses || lookups.Statuses || [],
+    locations: lookups.locations || lookups.Locations || [],
+    conditions: lookups.conditions || lookups.Conditions || [],
+  };
 };
