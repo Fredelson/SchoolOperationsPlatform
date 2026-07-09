@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import useAssetLoader from "./core/useAssetLoader";
+import useAssetFilters from "./filters/useAssetFilters";
 import useAssetNavigation from "./navigation/useAssetNavigation";
 import useAssetPagination from "./pagination/useAssetPagination";
 import useAssetRefresh from "./refresh/useAssetRefresh";
@@ -20,35 +21,31 @@ const useAssetExplorer = () => {
 
   const [search, setSearch] = useState("");
 
-  /**
-   * Prevents the filter reload effect from running before the first page load.
-   */
   const initialLoadDoneRef = useRef(false);
 
+  const { pagination, setPagination, resetPagination } = useAssetPagination();
+
   const {
-    pagination,
-    setPagination,
-    resetPagination,
     filters,
     setFilters,
     clearFilters,
-  } = useAssetPagination();
+    hasActiveFilters,
+    filterLookups,
+    filterLookupLoading,
+  } = useAssetFilters();
 
   const {
     categories,
     brands,
     models,
     assets,
-
     setBrands,
     setModels,
     setAssets,
-
     loading,
     tableLoading,
     error,
     setError,
-
     loadCategories,
     loadBrands,
     loadModels,
@@ -74,13 +71,11 @@ const useAssetExplorer = () => {
     selectedCategory,
     selectedBrand,
     selectedModel,
-
     setSelectedCategory,
     setSelectedBrand,
     setSelectedModel,
     setLevel,
     setModels,
-
     loadBrands,
     loadModels,
     loadAssets,
@@ -96,21 +91,17 @@ const useAssetExplorer = () => {
   } = useAssetNavigation({
     selectedCategory,
     selectedBrand,
-
     setSearch,
     setLevel,
     setSelectedCategory,
     setSelectedBrand,
     setSelectedModel,
-
     setBrands,
     setModels,
     setAssets,
-
     loadBrands,
     loadModels,
     loadAssets,
-
     resetSmartSearch,
   });
 
@@ -120,18 +111,12 @@ const useAssetExplorer = () => {
     selectedCategory,
     selectedBrand,
     selectedModel,
-
     loadCategories,
     loadBrands,
     loadModels,
     loadAssets,
   });
 
-  /**
-   * Initial Asset Management load:
-   * - Loads category cards.
-   * - Loads all active/non-disposed assets into table.
-   */
   useEffect(() => {
     const loadInitialAssetManagement = async () => {
       await loadCategories();
@@ -150,13 +135,6 @@ const useAssetExplorer = () => {
     loadInitialAssetManagement();
   }, [loadCategories, loadAssets]);
 
-  /**
-   * Reload explorer when filters change.
-   *
-   * Important:
-   * - Filters affect cards and table.
-   * - Only one filter reload effect should exist.
-   */
   useEffect(() => {
     if (!initialLoadDoneRef.current) return;
 
@@ -218,42 +196,36 @@ const useAssetExplorer = () => {
 
   return {
     level,
-
     categories,
     brands,
     models,
     assets,
-
     selectedCategory,
     selectedBrand,
     selectedModel,
-
     search,
     setSearch,
-
     loading,
     tableLoading,
     smartSearching,
     smartSearchActive,
     smartSearchTarget,
     error,
-
     pagination,
     setPagination,
     resetPagination,
-
     filters,
     setFilters,
     clearFilters,
-
+    hasActiveFilters,
+    filterLookups,
+    filterLookupLoading,
     loadAssets,
-
     openCategory,
     openBrand,
     openModel,
     backToCategories,
     backToBrands,
-
     refresh,
   };
 };

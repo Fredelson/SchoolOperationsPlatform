@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           <Typography
             sx={{
-              fontSize: 28,
+              fontSize: 20,
               fontWeight: 900,
               color: theme.palette.primary.main,
               lineHeight: 1.15,

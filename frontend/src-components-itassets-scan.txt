@@ -1,0 +1,1141 @@
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetBrandCard.jsx
+============================================================
+// ============================================
+// Asset Brand Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Card,
+  CardContent,
+  IconButton,
+  Stack,
+  Typography,
+  alpha,
+} from "@mui/material";
+
+import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+const AssetBrandCard = ({ brand, onClick }) => {
+  const isFallback = brand?.GroupType === "NO_BRAND_MODEL";
+  const title =
+    brand?.DisplayName || brand?.BrandName || brand?.ModelName || "No Brand / Model";
+
+  const accentKey = isFallback ? "text" : "success";
+
+  return (
+    <Card
+      onClick={() => onClick?.(brand)}
+      sx={(theme) => ({
+        height: "100%",
+        borderRadius: 4,
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: theme.shadows[2],
+        cursor: "pointer",
+        overflow: "hidden",
+        transition: theme.transitions.create(["transform", "box-shadow"], {
+          duration: theme.transitions.duration.short,
+        }),
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: theme.shadows[6],
+        },
+        "--asset-accent": isFallback
+          ? theme.palette.text.secondary
+          : theme.palette.success.main,
+      })}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box
+              sx={(theme) => {
+                const color = isFallback
+                  ? theme.palette.text.secondary
+                  : theme.palette.success.main;
+
+                return {
+                  width: 58,
+                  height: 58,
+                  borderRadius: 3,
+                  bgcolor: alpha(color, 0.1),
+                  color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                };
+              }}
+            >
+              {isFallback ? (
+                <Inventory2RoundedIcon sx={{ fontSize: 34 }} />
+              ) : (
+                <BusinessRoundedIcon sx={{ fontSize: 34 }} />
+              )}
+            </Box>
+
+            <IconButton
+              size="small"
+              sx={(theme) => ({
+                width: 38,
+                height: 38,
+                border: `1px solid ${theme.palette.divider}`,
+                color: theme.palette.primary.main,
+                bgcolor: theme.palette.background.paper,
+              })}
+            >
+              <ArrowForwardRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+
+          <Box>
+            <Typography variant="h6" fontWeight={900} noWrap>
+              {title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {brand?.ModelCount || 0} models
+            </Typography>
+          </Box>
+
+          <Stack direction="row" alignItems="end" spacing={1}>
+            <Typography fontSize={32} fontWeight={900}>
+              {brand?.TotalAssets || 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ pb: 0.8 }}>
+              Assets
+            </Typography>
+          </Stack>
+
+          <Box
+            sx={(theme) => ({
+              borderRadius: 2,
+              border: `1px solid ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.action.hover, 0.45),
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              overflow: "hidden",
+            })}
+          >
+            <StatItem icon={<CheckCircleOutlineRoundedIcon fontSize="small" />} label="Available" value={brand?.AvailableCount || 0} colorKey="success" />
+            <StatItem icon={<PersonOutlineRoundedIcon fontSize="small" />} label="Assigned" value={brand?.AssignedCount || 0} colorKey="primary" />
+            <StatItem icon={<BuildRoundedIcon fontSize="small" />} label="Maintenance" value={brand?.MaintenanceCount || 0} colorKey="warning" />
+          </Box>
+        </Stack>
+      </CardContent>
+
+      <Box sx={{ height: 4, bgcolor: "var(--asset-accent)" }} />
+    </Card>
+  );
+};
+
+const StatItem = ({ icon, label, value, colorKey }) => (
+  <Stack
+    alignItems="center"
+    spacing={0.4}
+    sx={(theme) => ({
+      py: 1,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      "&:last-of-type": { borderRight: "none" },
+    })}
+  >
+    <Stack direction="row" spacing={0.4} alignItems="center" sx={(theme) => ({ color: theme.palette[colorKey]?.main })}>
+      {icon}
+      <Typography fontSize={13} fontWeight={900}>{value}</Typography>
+    </Stack>
+    <Typography fontSize={11} color="text.secondary" fontWeight={700}>{label}</Typography>
+  </Stack>
+);
+
+export default AssetBrandCard;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetCategoryCard.jsx
+============================================================
+// ============================================
+// Asset Category Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Card,
+  CardContent,
+  IconButton,
+  Stack,
+  Typography,
+  alpha,
+} from "@mui/material";
+
+import LaptopMacRoundedIcon from "@mui/icons-material/LaptopMacRounded";
+import DesktopWindowsRoundedIcon from "@mui/icons-material/DesktopWindowsRounded";
+import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
+import RouterRoundedIcon from "@mui/icons-material/RouterRounded";
+import TabletMacRoundedIcon from "@mui/icons-material/TabletMacRounded";
+import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
+import TvRoundedIcon from "@mui/icons-material/TvRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+const iconMap = {
+  laptop: LaptopMacRoundedIcon,
+  desktop: DesktopWindowsRoundedIcon,
+  printer: PrintRoundedIcon,
+  network: RouterRoundedIcon,
+  tablet: TabletMacRoundedIcon,
+  camera: VideocamRoundedIcon,
+  monitor: TvRoundedIcon,
+  projector: TvRoundedIcon,
+  category: CategoryRoundedIcon,
+};
+
+const accentPaletteMap = {
+  laptop: "primary",
+  desktop: "success",
+  printer: "warning",
+  network: "info",
+  tablet: "secondary",
+  camera: "warning",
+  monitor: "secondary",
+  projector: "info",
+  category: "primary",
+};
+
+const AssetCategoryCard = ({ category, onClick }) => {
+  const iconKey = category?.IconKey || "category";
+  const Icon = iconMap[iconKey] || CategoryRoundedIcon;
+  const accentKey = accentPaletteMap[iconKey] || "primary";
+
+  return (
+    <Card
+      onClick={() => onClick?.(category)}
+      sx={(theme) => {
+        const accent = theme.palette[accentKey]?.main || theme.palette.primary.main;
+
+        return {
+          height: "100%",
+          borderRadius: 4,
+          border: `1px solid ${theme.palette.divider}`,
+          boxShadow: theme.shadows[2],
+          cursor: "pointer",
+          overflow: "hidden",
+          transition: theme.transitions.create(["transform", "box-shadow"], {
+            duration: theme.transitions.duration.short,
+          }),
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: theme.shadows[6],
+          },
+          "--asset-accent": accent,
+        };
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box
+              sx={(theme) => ({
+                width: 58,
+                height: 58,
+                borderRadius: 3,
+                bgcolor: alpha(
+                  theme.palette[accentKey]?.main || theme.palette.primary.main,
+                  0.1
+                ),
+                color: theme.palette[accentKey]?.main || theme.palette.primary.main,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              })}
+            >
+              <Icon sx={{ fontSize: 34 }} />
+            </Box>
+
+            <IconButton
+              size="small"
+              sx={(theme) => ({
+                width: 38,
+                height: 38,
+                border: `1px solid ${theme.palette.divider}`,
+                color: theme.palette.primary.main,
+                bgcolor: theme.palette.background.paper,
+              })}
+            >
+              <ArrowForwardRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+
+          <Box>
+            <Typography variant="h6" fontWeight={900} noWrap>
+              {category?.CategoryName || "Unnamed Category"}
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary">
+              {category?.BrandCount || 0} brands · {category?.ModelCount || 0} models
+            </Typography>
+          </Box>
+
+          <Stack direction="row" alignItems="end" spacing={1}>
+            <Typography
+              fontSize={32}
+              fontWeight={900}
+              sx={{ color: "var(--asset-accent)" }}
+            >
+              {category?.TotalAssets || 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ pb: 0.8 }}>
+              Assets
+            </Typography>
+          </Stack>
+
+          <Box
+            sx={(theme) => ({
+              borderRadius: 2,
+              border: `1px solid ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.action.hover, 0.45),
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              overflow: "hidden",
+            })}
+          >
+            <StatItem
+              icon={<CheckCircleOutlineRoundedIcon fontSize="small" />}
+              label="Available"
+              value={category?.AvailableCount || 0}
+              colorKey="success"
+            />
+            <StatItem
+              icon={<PersonOutlineRoundedIcon fontSize="small" />}
+              label="Assigned"
+              value={category?.AssignedCount || 0}
+              colorKey="primary"
+            />
+            <StatItem
+              icon={<BuildRoundedIcon fontSize="small" />}
+              label="Maintenance"
+              value={category?.MaintenanceCount || 0}
+              colorKey="warning"
+            />
+          </Box>
+        </Stack>
+      </CardContent>
+
+      <Box sx={{ height: 4, bgcolor: "var(--asset-accent)" }} />
+    </Card>
+  );
+};
+
+const StatItem = ({ icon, label, value, colorKey }) => (
+  <Stack
+    alignItems="center"
+    spacing={0.4}
+    sx={(theme) => ({
+      py: 1,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      "&:last-of-type": { borderRight: "none" },
+    })}
+  >
+    <Stack
+      direction="row"
+      spacing={0.4}
+      alignItems="center"
+      sx={(theme) => ({ color: theme.palette[colorKey]?.main })}
+    >
+      {icon}
+      <Typography fontSize={13} fontWeight={900}>
+        {value}
+      </Typography>
+    </Stack>
+
+    <Typography fontSize={11} color="text.secondary" fontWeight={700}>
+      {label}
+    </Typography>
+  </Stack>
+);
+
+export default AssetCategoryCard;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetModelCard.jsx
+============================================================
+// ============================================
+// Asset Model Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Card,
+  CardContent,
+  IconButton,
+  Stack,
+  Typography,
+  alpha,
+} from "@mui/material";
+
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+const AssetModelCard = ({ model, selected = false, onClick }) => {
+  return (
+    <Card
+      onClick={() => onClick?.(model)}
+      sx={(theme) => ({
+        height: "100%",
+        borderRadius: 4,
+        border: selected
+          ? `2px solid ${theme.palette.primary.main}`
+          : `1px solid ${theme.palette.divider}`,
+        boxShadow: selected ? theme.shadows[6] : theme.shadows[2],
+        cursor: "pointer",
+        overflow: "hidden",
+        transition: theme.transitions.create(["transform", "box-shadow"], {
+          duration: theme.transitions.duration.short,
+        }),
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: theme.shadows[6],
+        },
+      })}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box
+              sx={(theme) => ({
+                width: 58,
+                height: 58,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.secondary.main, 0.12),
+                color: theme.palette.secondary.main,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              })}
+            >
+              <Inventory2RoundedIcon sx={{ fontSize: 34 }} />
+            </Box>
+
+            <IconButton
+              size="small"
+              sx={(theme) => ({
+                width: 38,
+                height: 38,
+                border: `1px solid ${theme.palette.divider}`,
+                color: theme.palette.primary.main,
+                bgcolor: theme.palette.background.paper,
+              })}
+            >
+              <ArrowForwardRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+
+          <Typography variant="h6" fontWeight={900} noWrap>
+            {model?.ModelName || "Unnamed Model"}
+          </Typography>
+
+          <Stack direction="row" alignItems="end" spacing={1}>
+            <Typography
+              fontSize={32}
+              fontWeight={900}
+              sx={(theme) => ({ color: theme.palette.secondary.main })}
+            >
+              {model?.TotalAssets || 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ pb: 0.8 }}>
+              Assets
+            </Typography>
+          </Stack>
+
+          <Box
+            sx={(theme) => ({
+              borderRadius: 2,
+              border: `1px solid ${theme.palette.divider}`,
+              bgcolor: alpha(theme.palette.action.hover, 0.45),
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              overflow: "hidden",
+            })}
+          >
+            <StatItem icon={<CheckCircleOutlineRoundedIcon fontSize="small" />} label="Available" value={model?.AvailableCount || 0} colorKey="success" />
+            <StatItem icon={<PersonOutlineRoundedIcon fontSize="small" />} label="Assigned" value={model?.AssignedCount || 0} colorKey="primary" />
+            <StatItem icon={<BuildRoundedIcon fontSize="small" />} label="Maintenance" value={model?.MaintenanceCount || 0} colorKey="warning" />
+          </Box>
+        </Stack>
+      </CardContent>
+
+      <Box sx={(theme) => ({ height: 4, bgcolor: theme.palette.secondary.main })} />
+    </Card>
+  );
+};
+
+const StatItem = ({ icon, label, value, colorKey }) => (
+  <Stack
+    alignItems="center"
+    spacing={0.4}
+    sx={(theme) => ({
+      py: 1,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      "&:last-of-type": { borderRight: "none" },
+    })}
+  >
+    <Stack direction="row" spacing={0.4} alignItems="center" sx={(theme) => ({ color: theme.palette[colorKey]?.main })}>
+      {icon}
+      <Typography fontSize={13} fontWeight={900}>{value}</Typography>
+    </Stack>
+    <Typography fontSize={11} color="text.secondary" fontWeight={700}>{label}</Typography>
+  </Stack>
+);
+
+export default AssetModelCard;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\common\EmptyState.jsx
+============================================================
+// ============================================
+// IT Assets Empty State
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Box, Paper, Typography } from "@mui/material";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+
+const EmptyState = ({
+  title = "No records found",
+  message = "There is no data available for the selected view.",
+}) => {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 5,
+        borderRadius: 4,
+        border: "1px dashed",
+        borderColor: "divider",
+        textAlign: "center",
+      }}
+    >
+      <Box
+        sx={{
+          width: 72,
+          height: 72,
+          mx: "auto",
+          mb: 2,
+          borderRadius: "50%",
+          bgcolor: "grey.100",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Inventory2RoundedIcon sx={{ fontSize: 36, color: "text.secondary" }} />
+      </Box>
+
+      <Typography variant="h6" fontWeight={800}>
+        {title}
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {message}
+      </Typography>
+    </Paper>
+  );
+};
+
+export default EmptyState;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\filters\AssetExplorerFilters.jsx
+============================================================
+// ============================================
+// Asset Explorer Filters
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Button, MenuItem, Stack, TextField } from "@mui/material";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+
+const getId = (item, keys) => {
+  for (const key of keys) {
+    if (item?.[key] !== undefined && item?.[key] !== null) return item[key];
+  }
+  return "";
+};
+
+const getLabel = (item, keys) => {
+  for (const key of keys) {
+    if (item?.[key]) return item[key];
+  }
+  return "Unnamed";
+};
+
+const selectMenuProps = {
+  MenuProps: {
+    PaperProps: {
+      sx: {
+        zIndex: (theme) => theme.zIndex.modal + 20,
+      },
+    },
+  },
+};
+
+const AssetExplorerFilters = ({
+  filters,
+  statusOptions = [],
+  locationOptions = [],
+  conditionOptions = [],
+  onChange,
+  onClear,
+}) => {
+  const handleChange = (field) => (event) => {
+    onChange?.({
+      ...filters,
+      [field]: event.target.value,
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={filters.statusId}
+        onChange={handleChange("statusId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Status</MenuItem>
+
+        {statusOptions.map((status) => (
+          <MenuItem
+            key={getId(status, ["ITAssetStatusId", "statusId", "id"])}
+            value={getId(status, ["ITAssetStatusId", "statusId", "id"])}
+          >
+            {getLabel(status, ["StatusName", "statusName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Location"
+        value={filters.locationId}
+        onChange={handleChange("locationId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Locations</MenuItem>
+
+        {locationOptions.map((location) => (
+          <MenuItem
+            key={getId(location, ["LocationId", "locationId", "id"])}
+            value={getId(location, ["LocationId", "locationId", "id"])}
+          >
+            {getLabel(location, ["LocationName", "locationName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Condition"
+        value={filters.conditionId}
+        onChange={handleChange("conditionId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Conditions</MenuItem>
+
+        {conditionOptions.map((condition) => (
+          <MenuItem
+            key={getId(condition, ["ITAssetConditionId", "conditionId", "id"])}
+            value={getId(condition, ["ITAssetConditionId", "conditionId", "id"])}
+          >
+            {getLabel(condition, ["ConditionName", "conditionName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ClearRoundedIcon />}
+        onClick={onClear}
+        sx={{
+          height: 38,
+          borderRadius: 2.5,
+          fontWeight: 800,
+          whiteSpace: "nowrap",
+        }}
+      >
+        Clear
+      </Button>
+    </Stack>
+  );
+};
+
+const selectSx = {
+  minWidth: 160,
+  "& .MuiOutlinedInput-root": {
+    height: 38,
+    borderRadius: 2.5,
+  },
+};
+
+export default AssetExplorerFilters;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\navigation\AssetBreadcrumb.jsx
+============================================================
+// ============================================
+// Asset Breadcrumb
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Breadcrumbs, Button, Typography } from "@mui/material";
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+
+const AssetBreadcrumb = ({
+  selectedCategory,
+  selectedBrand,
+  selectedModel,
+  onRoot,
+  onCategory,
+}) => {
+  return (
+    <Breadcrumbs separator={<NavigateNextRoundedIcon fontSize="small" />} sx={{ mb: 2 }}>
+      <Button size="small" onClick={onRoot}>
+        Asset Management
+      </Button>
+
+      {selectedCategory && (
+        <Button size="small" onClick={onCategory}>
+          {selectedCategory.CategoryName}
+        </Button>
+      )}
+
+      {selectedBrand && (
+        <Typography variant="body2" color="text.primary" fontWeight={700}>
+          {selectedBrand.BrandName}
+        </Typography>
+      )}
+
+      {selectedModel && (
+        <Typography variant="body2" color="text.primary" fontWeight={700}>
+          {selectedModel.ModelName}
+        </Typography>
+      )}
+    </Breadcrumbs>
+  );
+};
+
+export default AssetBreadcrumb;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\overview\AssetOverviewBar.jsx
+============================================================
+// ============================================
+// Asset Overview Bar
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Box, Paper, Stack, Typography, alpha } from "@mui/material";
+
+import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+const AssetOverviewBar = ({ categories = [] }) => {
+  const totals = categories.reduce(
+    (acc, item) => {
+      acc.total += Number(item.TotalAssets || 0);
+      acc.available += Number(item.AvailableCount || 0);
+      acc.assigned += Number(item.AssignedCount || 0);
+      acc.maintenance += Number(item.MaintenanceCount || 0);
+      return acc;
+    },
+    { total: 0, available: 0, assigned: 0, maintenance: 0 }
+  );
+
+  return (
+    <Paper
+      elevation={0}
+      sx={(theme) => ({
+        mt: 3,
+        p: 2.5,
+        borderRadius: 4,
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: theme.palette.background.paper,
+        boxShadow: theme.shadows[1],
+      })}
+    >
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={2.5}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 280 }}>
+          <IconCircle colorKey="success">
+            <BarChartRoundedIcon />
+          </IconCircle>
+
+          <Box>
+            <Typography fontWeight={900}>Asset Overview</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Real-time overview across visible categories.
+            </Typography>
+          </Box>
+        </Stack>
+
+        <OverviewItem icon={<Inventory2RoundedIcon />} label="Total Assets" value={totals.total} colorKey="secondary" />
+        <OverviewItem icon={<CheckCircleOutlineRoundedIcon />} label="Available" value={totals.available} colorKey="success" />
+        <OverviewItem icon={<PersonOutlineRoundedIcon />} label="Assigned" value={totals.assigned} colorKey="primary" />
+        <OverviewItem icon={<BuildRoundedIcon />} label="In Maintenance" value={totals.maintenance} colorKey="warning" />
+      </Stack>
+    </Paper>
+  );
+};
+
+const OverviewItem = ({ icon, label, value, colorKey }) => (
+  <Stack
+    direction="row"
+    alignItems="center"
+    spacing={1.2}
+    sx={(theme) => ({
+      flex: 1,
+      minWidth: 160,
+      borderLeft: { md: `1px solid ${theme.palette.divider}` },
+      pl: { md: 2.5 },
+    })}
+  >
+    <IconCircle colorKey={colorKey}>{icon}</IconCircle>
+
+    <Box>
+      <Typography variant="body2" color="text.secondary" fontWeight={700}>
+        {label}
+      </Typography>
+      <Typography fontSize={24} lineHeight={1.1} fontWeight={900}>
+        {value}
+      </Typography>
+    </Box>
+  </Stack>
+);
+
+const IconCircle = ({ children, colorKey }) => (
+  <Box
+    sx={(theme) => {
+      const color = theme.palette[colorKey]?.main || theme.palette.primary.main;
+      return {
+        width: 46,
+        height: 46,
+        borderRadius: "50%",
+        bgcolor: alpha(color, 0.1),
+        color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      };
+    }}
+  >
+    {children}
+  </Box>
+);
+
+export default AssetOverviewBar;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\tables\AssetTable.jsx
+============================================================
+// ============================================
+// IT Asset Table
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Chip,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TablePagination,
+  TableRow,
+  Typography,
+} from "@mui/material";
+
+const getStatusColor = (statusKey = "") => {
+  const key = statusKey.toUpperCase();
+
+  if (key === "AVAILABLE") return "success";
+  if (key === "ASSIGNED" || key === "IN_USE") return "primary";
+  if (key === "MAINTENANCE") return "warning";
+
+  return "default";
+};
+
+/**
+ * Reusable IT Asset table.
+ */
+const AssetTable = ({
+  rows = [],
+  loading = false,
+  page = 1,
+  limit = 10,
+  total = 0,
+  onPageChange,
+  onLimitChange,
+  onRowClick,
+}) => {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        border: "1px solid",
+        borderColor: "divider",
+        overflow: "hidden",
+      }}
+    >
+      <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider" }}>
+        <Typography variant="h6" fontWeight={900}>
+          Assets
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Showing assets for the selected hierarchy level.
+        </Typography>
+      </Box>
+
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Asset Tag</TableCell>
+            <TableCell>Category</TableCell>
+            <TableCell>Brand</TableCell>
+            <TableCell>Model</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Assigned To</TableCell>
+            <TableCell>Location</TableCell>
+            <TableCell>Room</TableCell>
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {rows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={8}>
+                <Typography textAlign="center" color="text.secondary" sx={{ py: 4 }}>
+                  {loading ? "Loading assets..." : "No assets found."}
+                </Typography>
+              </TableCell>
+            </TableRow>
+          )}
+
+          {rows.map((asset) => (
+            <TableRow
+              key={asset.AssetId}
+              hover
+              onClick={() => onRowClick?.(asset)}
+              sx={{ cursor: onRowClick ? "pointer" : "default" }}
+            >
+              <TableCell>
+                <Typography fontWeight={800}>{asset.AssetTag}</Typography>
+              </TableCell>
+              <TableCell>{asset.CategoryName || "—"}</TableCell>
+              <TableCell>{asset.BrandName || "—"}</TableCell>
+              <TableCell>{asset.ModelName || "—"}</TableCell>
+              <TableCell>
+                <Chip
+                  size="small"
+                  label={asset.StatusName || "Unknown"}
+                  color={getStatusColor(asset.StatusKey)}
+                />
+              </TableCell>
+              <TableCell>
+                {asset.CurrentAssignedName ||
+                  asset.CurrentAssignedEmployeeCode ||
+                  "—"}
+              </TableCell>
+              <TableCell>{asset.LocationName || "—"}</TableCell>
+              <TableCell>{asset.RoomName || "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <TablePagination
+        component="div"
+        count={total}
+        page={Math.max(page - 1, 0)}
+        rowsPerPage={limit}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        onPageChange={(_, newPage) => onPageChange?.(newPage + 1)}
+        onRowsPerPageChange={(event) => onLimitChange?.(Number(event.target.value))}
+      />
+    </Paper>
+  );
+};
+
+export default AssetTable;
+
+============================================================
+C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\toolbars\AssetExplorerToolbar.jsx
+============================================================
+// ============================================
+// Compact Asset Explorer Toolbar
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Button,
+  InputAdornment,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+
+const AssetExplorerToolbar = ({
+  title = "Asset Management",
+  subtitle = "Manage and organize all IT assets across the school.",
+  search,
+  searchPlaceholder = "Search assets...",
+  filtersContent,
+  onSearchChange,
+  onRefresh,
+  onImport,
+  onAddAsset,
+}) => {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={1.5}
+        sx={{ mb: 1.5 }}
+      >
+        <Box>
+          <Typography
+            sx={{
+              fontSize: { xs: 26, md: 32 },
+              fontWeight: 900,
+              lineHeight: 1.05,
+            }}
+          >
+            {title}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
+            {subtitle}
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshRoundedIcon />}
+            onClick={onRefresh}
+            sx={actionButtonSx}
+          >
+            Refresh
+          </Button>
+
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<UploadFileRoundedIcon />}
+            onClick={onImport}
+            sx={actionButtonSx}
+          >
+            Import
+          </Button>
+
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={onAddAsset}
+            sx={actionButtonSx}
+          >
+            Add Asset
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Paper
+        elevation={0}
+        sx={(theme) => ({
+          p: 1,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: theme.palette.background.paper,
+        })}
+      >
+        <Stack
+          direction={{ xs: "column", xl: "row" }}
+          spacing={1}
+          alignItems={{ xs: "stretch", xl: "center" }}
+        >
+          <TextField
+            fullWidth
+            size="small"
+            value={search}
+            onChange={(event) => onSearchChange?.(event.target.value)}
+            placeholder={searchPlaceholder}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon color="action" fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              maxWidth: { xl: 560 },
+              "& .MuiOutlinedInput-root": {
+                height: 38,
+                borderRadius: 2.5,
+              },
+            }}
+          />
+
+          {filtersContent}
+        </Stack>
+      </Paper>
+    </Box>
+  );
+};
+
+const actionButtonSx = {
+  minHeight: 38,
+  px: 2,
+  borderRadius: 2.5,
+  fontWeight: 800,
+};
+
+export default AssetExplorerToolbar;

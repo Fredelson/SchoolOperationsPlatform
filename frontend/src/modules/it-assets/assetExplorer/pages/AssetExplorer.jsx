@@ -3,10 +3,11 @@
 // Arab Unity School Operations Platform
 // ============================================
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Grid,
   Paper,
@@ -22,8 +23,6 @@ import {
   commitItAssetsImportService,
 } from "../../services/itAssetImportService";
 
-import { getAssetExplorerFilterLookupsApi } from "../api/assetExplorerApi";
-
 import ImportDialog from "../../../../platform/import/ImportDialog";
 
 import AssetCategoryCard from "../../../../components/itAssets/cards/AssetCategoryCard";
@@ -35,6 +34,8 @@ import AssetExplorerFilters from "../../../../components/itAssets/filters/AssetE
 import AssetTable from "../../../../components/itAssets/tables/AssetTable";
 import EmptyState from "../../../../components/itAssets/common/EmptyState";
 
+const MAX_VISIBLE_CARDS = 12;
+
 const AssetExplorer = () => {
   const navigate = useNavigate();
 
@@ -45,11 +46,9 @@ const AssetExplorer = () => {
   const [commitResult, setCommitResult] = useState(null);
   const [importError, setImportError] = useState("");
 
-  const [filterLookups, setFilterLookups] = useState({
-    statuses: [],
-    locations: [],
-    conditions: [],
-  });
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllBrands, setShowAllBrands] = useState(false);
+  const [showAllModels, setShowAllModels] = useState(false);
 
   const {
     level,
@@ -71,6 +70,8 @@ const AssetExplorer = () => {
     filters,
     setFilters,
     clearFilters,
+    hasActiveFilters,
+    filterLookups,
     loadAssets,
     openCategory,
     openBrand,
@@ -80,62 +81,50 @@ const AssetExplorer = () => {
     refresh,
   } = useAssetExplorer();
 
-  useEffect(() => {
-    const loadFilterLookups = async () => {
-      try {
-        const result = await getAssetExplorerFilterLookupsApi();
-
-        setFilterLookups({
-          statuses: result.statuses || [],
-          locations: result.locations || [],
-          conditions: result.conditions || [],
-        });
-      } catch (err) {
-        console.error("Failed to load asset filter lookups:", err);
-      }
-    };
-
-    loadFilterLookups();
-  }, []);
-
-  const hasActiveFilters =
-  Boolean(filters.statusId) ||
-  Boolean(filters.locationId) ||
-  Boolean(filters.conditionId);
-
-const visibleBrands =
-  smartSearchActive && smartSearchTarget?.brandId
-    ? brands.filter(
-        (brand) =>
-          Number(brand.ITAssetBrandId) === Number(smartSearchTarget.brandId)
-      )
-    : hasActiveFilters
-    ? brands.filter((brand) =>
-        assets.some((asset) => {
-          const assetBrandId = asset.ITAssetBrandId;
-
-          if (!assetBrandId && brand.GroupType === "NO_BRAND_MODEL") {
-            return true;
-          }
-
-          return Number(assetBrandId) === Number(brand.ITAssetBrandId);
-        })
-      )
-    : brands;
-
-const visibleModels =
-  smartSearchActive && smartSearchTarget?.modelId
-    ? models.filter(
-        (model) =>
-          Number(model.ITAssetModelId) === Number(smartSearchTarget.modelId)
-      )
-    : hasActiveFilters
-    ? models.filter((model) =>
-        assets.some(
-          (asset) => Number(asset.ITAssetModelId) === Number(model.ITAssetModelId)
+  const visibleBrands =
+    smartSearchActive && smartSearchTarget?.brandId
+      ? brands.filter(
+          (brand) =>
+            Number(brand.ITAssetBrandId) === Number(smartSearchTarget.brandId)
         )
-      )
-    : models;
+      : hasActiveFilters
+      ? brands.filter((brand) =>
+          assets.some((asset) => {
+            if (!asset.ITAssetBrandId && brand.GroupType === "NO_BRAND_MODEL") {
+              return true;
+            }
+
+            return Number(asset.ITAssetBrandId) === Number(brand.ITAssetBrandId);
+          })
+        )
+      : brands;
+
+  const visibleModels =
+    smartSearchActive && smartSearchTarget?.modelId
+      ? models.filter(
+          (model) =>
+            Number(model.ITAssetModelId) === Number(smartSearchTarget.modelId)
+        )
+      : hasActiveFilters
+      ? models.filter((model) =>
+          assets.some(
+            (asset) =>
+              Number(asset.ITAssetModelId) === Number(model.ITAssetModelId)
+          )
+        )
+      : models;
+
+  const displayedCategories = showAllCategories
+    ? categories
+    : categories.slice(0, MAX_VISIBLE_CARDS);
+
+  const displayedBrands = showAllBrands
+    ? visibleBrands
+    : visibleBrands.slice(0, MAX_VISIBLE_CARDS);
+
+  const displayedModels = showAllModels
+    ? visibleModels
+    : visibleModels.slice(0, MAX_VISIBLE_CARDS);
 
   const handlePreviewImport = async () => {
     if (!importFile) {
@@ -252,14 +241,14 @@ const visibleModels =
       <Paper
         elevation={0}
         sx={(theme) => ({
-          p: { xs: 2, md: 3 },
+          p: { xs: 1.5, md: 2 },
           borderRadius: 4,
           border: `1px solid ${theme.palette.divider}`,
           bgcolor: theme.palette.background.paper,
           boxShadow: theme.shadows[1],
         })}
       >
-        <Stack sx={{ mb: 2.5 }}>
+        <Stack sx={{ mb: 2 }}>
           <Typography variant="h6" fontWeight={900}>
             {sectionTitle}
           </Typography>
@@ -283,23 +272,34 @@ const visibleModels =
               message="Create a category or import assets to begin."
             />
           ) : (
-            <Grid container spacing={2.5}>
-              {categories.map((category) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
-                  lg={3}
-                  key={category.ITAssetCategoryId}
-                >
-                  <AssetCategoryCard
-                    category={category}
-                    onClick={openCategory}
-                  />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={1}>
+                {displayedCategories.map((category) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    md={3}
+                    lg={3}
+                    xl={3}
+                    key={category.ITAssetCategoryId}
+                  >
+                    <AssetCategoryCard
+                      category={category}
+                      onClick={openCategory}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+
+              {categories.length > MAX_VISIBLE_CARDS && (
+                <ShowMoreButton
+                  showAll={showAllCategories}
+                  hiddenCount={categories.length - MAX_VISIBLE_CARDS}
+                  onClick={() => setShowAllCategories((prev) => !prev)}
+                />
+              )}
+            </>
           ))}
 
         {!loading &&
@@ -307,25 +307,36 @@ const visibleModels =
           (visibleBrands.length === 0 ? (
             <EmptyState
               title="No brands found"
-              message="There are no brands or fallback model groups under this category yet."
+              message="There are no brands or matching assets under this category."
             />
           ) : (
-            <Grid container spacing={2.5}>
-              {visibleBrands.map((brand) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
-                  lg={3}
-                  key={`${brand.GroupType}-${
-                    brand.ITAssetBrandId || brand.DisplayName
-                  }`}
-                >
-                  <AssetBrandCard brand={brand} onClick={openBrand} />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={1}>
+                {displayedBrands.map((brand) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    md={3}
+                    lg={3}
+                    xl={3}
+                    key={`${brand.GroupType}-${
+                      brand.ITAssetBrandId || brand.DisplayName
+                    }`}
+                  >
+                    <AssetBrandCard brand={brand} onClick={openBrand} />
+                  </Grid>
+                ))}
+              </Grid>
+
+              {visibleBrands.length > MAX_VISIBLE_CARDS && (
+                <ShowMoreButton
+                  showAll={showAllBrands}
+                  hiddenCount={visibleBrands.length - MAX_VISIBLE_CARDS}
+                  onClick={() => setShowAllBrands((prev) => !prev)}
+                />
+              )}
+            </>
           ))}
 
         {!loading &&
@@ -333,30 +344,41 @@ const visibleModels =
           (visibleModels.length === 0 ? (
             <EmptyState
               title="No models found"
-              message="There are no models under this brand yet."
+              message="There are no models or matching assets under this brand."
             />
           ) : (
-            <Grid container spacing={2.5}>
-              {visibleModels.map((model) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
-                  lg={3}
-                  key={model.ITAssetModelId}
-                >
-                  <AssetModelCard
-                    model={model}
-                    selected={
-                      Number(selectedModel?.ITAssetModelId) ===
-                      Number(model.ITAssetModelId)
-                    }
-                    onClick={openModel}
-                  />
-                </Grid>
-              ))}
-            </Grid>
+            <>
+              <Grid container spacing={1}>
+                {displayedModels.map((model) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    md={3}
+                    lg={3}
+                    xl={3}
+                    key={model.ITAssetModelId}
+                  >
+                    <AssetModelCard
+                      model={model}
+                      selected={
+                        Number(selectedModel?.ITAssetModelId) ===
+                        Number(model.ITAssetModelId)
+                      }
+                      onClick={openModel}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+
+              {visibleModels.length > MAX_VISIBLE_CARDS && (
+                <ShowMoreButton
+                  showAll={showAllModels}
+                  hiddenCount={visibleModels.length - MAX_VISIBLE_CARDS}
+                  onClick={() => setShowAllModels((prev) => !prev)}
+                />
+              )}
+            </>
           ))}
       </Paper>
 
@@ -395,6 +417,16 @@ const visibleModels =
         onPreview={handlePreviewImport}
         onCommit={handleCommitImport}
       />
+    </Box>
+  );
+};
+
+const ShowMoreButton = ({ showAll, hiddenCount, onClick }) => {
+  return (
+    <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+      <Button variant="outlined" onClick={onClick}>
+        {showAll ? "Show Less" : `Show ${hiddenCount} More`}
+      </Button>
     </Box>
   );
 };
