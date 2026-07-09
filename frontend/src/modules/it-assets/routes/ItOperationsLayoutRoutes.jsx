@@ -9,6 +9,7 @@ import { Navigate } from "react-router-dom";
 import PlatformLayout from "@layouts/PlatformLayout";
 
 import ItAssetDashboard from "../pages/ItAssetDashboard";
+import AssetDetails from "../pages/AssetDetails";
 import { AssetExplorer } from "../assetExplorer";
 
 const itOperationsLayoutRoutes = [
@@ -27,6 +28,10 @@ const itOperationsLayoutRoutes = [
       {
         path: "assets",
         element: <AssetExplorer />,
+      },
+      {
+        path: ":assetId",
+        element: <AssetDetails />,
       },
       {
         path: "assignments",

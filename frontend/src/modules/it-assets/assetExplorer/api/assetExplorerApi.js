@@ -55,6 +55,10 @@ export const findAssetPathApi = async (assetTag) => {
 /**
  * Get assets for the explorer table.
  * Filters affect table only.
+ *
+ * Important:
+ * - brandId filters normal brand cards.
+ * - noBrandModel filters the synthetic "No Brand / Model" card.
  */
 export const getAssetExplorerAssetsApi = async ({
   search = "",
@@ -64,6 +68,7 @@ export const getAssetExplorerAssetsApi = async ({
   statusId = null,
   locationId = null,
   conditionId = null,
+  noBrandModel = false,
   page = 1,
   limit = 10,
 } = {}) => {
@@ -76,6 +81,7 @@ export const getAssetExplorerAssetsApi = async ({
       statusId,
       locationId,
       conditionId,
+      noBrandModel,
       page,
       limit,
     },

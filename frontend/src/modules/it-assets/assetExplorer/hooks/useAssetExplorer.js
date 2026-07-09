@@ -168,6 +168,28 @@ const useAssetExplorer = () => {
       }
 
       if (level === "models") {
+        const isNoBrandModel =
+          selectedBrand?.GroupType === "NO_BRAND_MODEL";
+
+        /*
+          No Brand / Model is a synthetic group.
+          It has no real BrandId, so we do not load model cards for it.
+          The asset table will be filtered using noBrandModel=true in useAssetLoader.
+        */
+        if (isNoBrandModel) {
+          setModels([]);
+
+          await loadAssets({
+            category: selectedCategory,
+            brand: selectedBrand,
+            model: null,
+            page: 1,
+            searchValue: search,
+          });
+
+          return;
+        }
+
         await loadModels(selectedCategory, selectedBrand);
 
         await loadAssets({
@@ -192,6 +214,7 @@ const useAssetExplorer = () => {
     loadBrands,
     loadModels,
     loadAssets,
+    setModels,
   ]);
 
   return {

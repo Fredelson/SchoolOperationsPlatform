@@ -3,27 +3,14 @@
 // Arab Unity School Operations Platform
 // ============================================
 
-import { getItAssetsApi } from "../api/itAssetApi";
+import {
+  getItAssetsApi,
+  getItAssetByIdApi,
+  getItAssetTimelineApi,
+} from "../api/itAssetApi";
 
 /**
  * Get paginated IT asset list.
- *
- * Purpose:
- * - Calls the IT Asset API layer.
- * - Normalizes the backend response into the shape used by useAssetList.
- *
- * Backend response shape:
- * {
- *   success: true,
- *   message: "...",
- *   data: [],
- *   pagination: {
- *     page,
- *     limit,
- *     total,
- *     totalPages
- *   }
- * }
  */
 export const getItAssetsService = async (params = {}) => {
   const response = await getItAssetsApi(params);
@@ -37,4 +24,19 @@ export const getItAssetsService = async (params = {}) => {
       totalPages: response?.pagination?.totalPages || 1,
     },
   };
+};
+
+/**
+ * Get one IT asset by ID.
+ */
+export const getItAssetByIdService = async (assetId) => {
+  const response = await getItAssetByIdApi(assetId);
+  return response?.data || null;
+};
+/**
+ * Get IT asset lifecycle timeline.
+ */
+export const getItAssetTimelineService = async (assetId) => {
+  const response = await getItAssetTimelineApi(assetId);
+  return response?.data || { timeline: [], summary: {} };
 };

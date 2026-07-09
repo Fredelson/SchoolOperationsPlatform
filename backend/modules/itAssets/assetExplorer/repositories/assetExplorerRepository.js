@@ -5,9 +5,13 @@
    Purpose:
    - Provides SQL data for Asset Management hierarchy.
    - Category → Brand → Model → Assets.
-   - Everything is database-driven.
+   - Supports special "No Brand / Model" grouping.
    - Disposed assets are excluded from Asset Management.
-   - Filters apply to cards and table.
+
+   Rules:
+   - SQL only in Repository.
+   - No business logic.
+   - No HTTP logic.
 ========================================================= */
 
 const { poolPromise, sql } = require("../../../../config/db");
@@ -137,19 +141,19 @@ const getBrandsByCategory = async ({
     .input("Search", sql.NVarChar, `%${search}%`)
     .query(`
       SELECT
-        CASE 
+        CASE
           WHEN b.ITAssetBrandId IS NULL THEN 'NO_BRAND_MODEL'
           ELSE 'BRAND'
         END AS GroupType,
 
         b.ITAssetBrandId,
 
-        CASE 
+        CASE
           WHEN b.ITAssetBrandId IS NULL THEN 'No Brand / Model'
           ELSE b.BrandName
         END AS BrandName,
 
-        CASE 
+        CASE
           WHEN b.ITAssetBrandId IS NULL THEN 'No Brand / Model'
           ELSE b.BrandName
         END AS DisplayName,
@@ -191,12 +195,12 @@ const getBrandsByCategory = async ({
         )
 
       GROUP BY
-        CASE 
+        CASE
           WHEN b.ITAssetBrandId IS NULL THEN 'NO_BRAND_MODEL'
           ELSE 'BRAND'
         END,
         b.ITAssetBrandId,
-        CASE 
+        CASE
           WHEN b.ITAssetBrandId IS NULL THEN 'No Brand / Model'
           ELSE b.BrandName
         END
@@ -211,6 +215,10 @@ const getBrandsByCategory = async ({
 
 /**
  * Get model cards under selected category and brand.
+ *
+ * Note:
+ * - Normal brands have real models.
+ * - "No Brand / Model" does not call this endpoint because it has no BrandId.
  */
 const getModelsByBrand = async ({
   categoryId,
@@ -274,6 +282,10 @@ const getModelsByBrand = async ({
 
 /**
  * Get assets for table.
+ *
+ * Important:
+ * - Normal brand filtering uses BrandId.
+ * - "No Brand / Model" uses NoBrandModel flag.
  */
 const getExplorerAssets = async ({
   search = "",
@@ -283,6 +295,7 @@ const getExplorerAssets = async ({
   statusId = null,
   locationId = null,
   conditionId = null,
+  noBrandModel = false,
   page = 1,
   limit = 10,
 }) => {
@@ -300,6 +313,7 @@ const getExplorerAssets = async ({
     .input("CategoryId", sql.Int, categoryId ? Number(categoryId) : null)
     .input("BrandId", sql.Int, brandId ? Number(brandId) : null)
     .input("ModelId", sql.Int, modelId ? Number(modelId) : null)
+    .input("NoBrandModel", sql.Bit, noBrandModel ? 1 : 0)
     .input("Offset", sql.Int, offset)
     .input("Limit", sql.Int, Number(limit))
     .query(`
@@ -361,9 +375,23 @@ const getExplorerAssets = async ({
       WHERE
         ${ACTIVE_ASSET_FILTER}
         AND (@CategoryId IS NULL OR a.ITAssetCategoryId = @CategoryId)
-        AND (@BrandId IS NULL OR b.ITAssetBrandId = @BrandId)
+
+        /* Special selected card: No Brand / Model */
+        AND (
+          @NoBrandModel = 0
+          OR b.ITAssetBrandId IS NULL
+        )
+
+        /* Normal brand filtering */
+        AND (
+          @NoBrandModel = 1
+          OR @BrandId IS NULL
+          OR b.ITAssetBrandId = @BrandId
+        )
+
         AND (@ModelId IS NULL OR a.ITAssetModelId = @ModelId)
         ${TABLE_FILTER_SQL}
+
         AND (
           a.AssetTag LIKE @Search
           OR ISNULL(c.CategoryName, '') LIKE @Search
@@ -397,9 +425,23 @@ const getExplorerAssets = async ({
       WHERE
         ${ACTIVE_ASSET_FILTER}
         AND (@CategoryId IS NULL OR a.ITAssetCategoryId = @CategoryId)
-        AND (@BrandId IS NULL OR b.ITAssetBrandId = @BrandId)
+
+        /* Special selected card: No Brand / Model */
+        AND (
+          @NoBrandModel = 0
+          OR b.ITAssetBrandId IS NULL
+        )
+
+        /* Normal brand filtering */
+        AND (
+          @NoBrandModel = 1
+          OR @BrandId IS NULL
+          OR b.ITAssetBrandId = @BrandId
+        )
+
         AND (@ModelId IS NULL OR a.ITAssetModelId = @ModelId)
         ${TABLE_FILTER_SQL}
+
         AND (
           a.AssetTag LIKE @Search
           OR ISNULL(c.CategoryName, '') LIKE @Search

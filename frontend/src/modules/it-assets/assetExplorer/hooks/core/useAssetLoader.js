@@ -13,12 +13,19 @@ import {
 } from "../../api/assetExplorerApi";
 
 /**
+ * Checks if selected brand is the synthetic "No Brand / Model" group.
+ */
+const isNoBrandModelGroup = (brand) =>
+  brand?.GroupType === "NO_BRAND_MODEL";
+
+/**
  * Handles all data loading for Asset Explorer.
  *
  * Important:
  * - Filters affect cards and table.
  * - Search affects table and smart search logic.
  * - Disposed assets are excluded by backend.
+ * - "No Brand / Model" is not a real brand, so it needs a special API flag.
  */
 const useAssetLoader = ({
   selectedCategory,
@@ -53,32 +60,32 @@ const useAssetLoader = ({
   /**
    * Load category cards with active filters.
    */
-  const loadCategories = useCallback(
-    async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const loadCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const result = await getAssetExplorerCategoriesApi({
-          ...getFilterParams(),
-        });
+      const result = await getAssetExplorerCategoriesApi({
+        ...getFilterParams(),
+      });
 
-        setCategories(result?.data || []);
-      } catch (err) {
-        setError(err?.response?.data?.message || "Failed to load categories.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [getFilterParams]
-  );
+      setCategories(result?.data || []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to load categories.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getFilterParams]);
 
   /**
    * Load brand cards with active filters.
    */
   const loadBrands = useCallback(
     async (category) => {
-      if (!category?.ITAssetCategoryId) return [];
+      if (!category?.ITAssetCategoryId) {
+        setBrands([]);
+        return [];
+      }
 
       try {
         setLoading(true);
@@ -107,10 +114,25 @@ const useAssetLoader = ({
 
   /**
    * Load model cards with active filters.
+   *
+   * Important:
+   * - "No Brand / Model" is a synthetic card.
+   * - It has no real ITAssetBrandId.
+   * - Therefore, it must not call the normal models endpoint.
    */
   const loadModels = useCallback(
     async (category, brand) => {
-      if (!category?.ITAssetCategoryId || !brand?.ITAssetBrandId) {
+      if (!category?.ITAssetCategoryId) {
+        setModels([]);
+        return [];
+      }
+
+      if (isNoBrandModelGroup(brand)) {
+        setModels([]);
+        return [];
+      }
+
+      if (!brand?.ITAssetBrandId) {
         setModels([]);
         return [];
       }
@@ -143,6 +165,10 @@ const useAssetLoader = ({
 
   /**
    * Load asset table rows with active filters.
+   *
+   * Important:
+   * - Normal brand card: send brandId.
+   * - No Brand / Model card: send noBrandModel=true and brandId=null.
    */
   const loadAssets = useCallback(
     async ({
@@ -160,11 +186,20 @@ const useAssetLoader = ({
         setTableLoading(true);
         setError("");
 
+        const noBrandModel = isNoBrandModelGroup(brand);
+
         const result = await getAssetExplorerAssetsApi({
-          search: searchValue,
+          search: searchValue || "",
           categoryId: category?.ITAssetCategoryId || null,
-          brandId: brand?.ITAssetBrandId || null,
+
+          // Do not send brandId for the synthetic "No Brand / Model" card.
+          brandId: noBrandModel ? null : brand?.ITAssetBrandId || null,
+
           modelId: model?.ITAssetModelId || null,
+
+          // Backend uses this to filter b.ITAssetBrandId IS NULL.
+          noBrandModel,
+
           statusId: statusId || null,
           locationId: locationId || null,
           conditionId: conditionId || null,

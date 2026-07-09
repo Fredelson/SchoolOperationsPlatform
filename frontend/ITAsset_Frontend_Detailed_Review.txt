@@ -1,0 +1,2600 @@
+####################################################################
+# FOLDER: .\src\modules\it-assets\api
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\api\itAssetApi.js
+LINES: 14
+============================================================
+// ============================================
+// IT Asset API
+// Arab Unity School Operations Platform
+// ============================================
+
+import api from "../../../services/api";
+
+/**
+ * Get paginated IT asset list.
+ */
+export const getItAssetsApi = async (params = {}) => {
+  const response = await api.get("/it-assets", { params });
+  return response.data;
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\api\itAssetDashboardApi.js
+LINES: 16
+============================================================
+// ============================================
+// IT Asset Dashboard API
+// Arab Unity School Operations Platform
+// ============================================
+
+import api from "../../../services/api";
+
+/**
+ * Fetch IT Asset Dashboard data.
+ * Backend verified endpoint:
+ * GET /api/it-assets/dashboard
+ */
+export const getItAssetDashboardApi = async () => {
+  const response = await api.get("/it-assets/dashboard");
+  return response.data;
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\api\itAssetImportApi.js
+LINES: 17
+============================================================
+import api from "../../../services/api";
+
+export const previewItAssetsImportApi = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post("/it-assets/import/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data;
+};
+
+export const commitItAssetsImportApi = async (batchId) => {
+  const response = await api.post(`/it-assets/import/${batchId}/commit`);
+  return response.data;
+};
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\services
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\services\itAssetDashboardService.js
+LINES: 24
+============================================================
+// ============================================
+// IT Asset Dashboard Service
+// ============================================
+
+import { getItAssetDashboardApi } from "../api/itAssetDashboardApi";
+
+/**
+ * Normalizes backend dashboard response for frontend use.
+ */
+export const getItAssetDashboardService = async () => {
+  const response = await getItAssetDashboardApi();
+
+  const data = response?.data || response || {};
+
+  return {
+    kpis: data.kpis || {},
+    charts: data.charts || {},
+    recentActivity: data.recentActivity || [],
+    recentlyAssignedAssets: data.recentlyAssignedAssets || [],
+    openIssues: data.openIssues || [],
+    pendingTransfers: data.pendingTransfers || [],
+    pendingDisposals: data.pendingDisposals || [],
+  };
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\services\itAssetImportService.js
+LINES: 12
+============================================================
+import {
+  previewItAssetsImportApi,
+  commitItAssetsImportApi,
+} from "../api/itAssetImportApi";
+
+export const importItAssetsService = async (file) => {
+  return previewItAssetsImportApi(file);
+};
+
+export const commitItAssetsImportService = async (batchId) => {
+  return commitItAssetsImportApi(batchId);
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\services\itAssetService.js
+LINES: 40
+============================================================
+// ============================================
+// IT Asset Service
+// Arab Unity School Operations Platform
+// ============================================
+
+import { getItAssetsApi } from "../api/itAssetApi";
+
+/**
+ * Get paginated IT asset list.
+ *
+ * Purpose:
+ * - Calls the IT Asset API layer.
+ * - Normalizes the backend response into the shape used by useAssetList.
+ *
+ * Backend response shape:
+ * {
+ *   success: true,
+ *   message: "...",
+ *   data: [],
+ *   pagination: {
+ *     page,
+ *     limit,
+ *     total,
+ *     totalPages
+ *   }
+ * }
+ */
+export const getItAssetsService = async (params = {}) => {
+  const response = await getItAssetsApi(params);
+
+  return {
+    assets: response?.data || [],
+    pagination: {
+      page: response?.pagination?.page || 1,
+      pageSize: response?.pagination?.limit || params.limit || 10,
+      totalRecords: response?.pagination?.total || 0,
+      totalPages: response?.pagination?.totalPages || 1,
+    },
+  };
+};
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\hooks
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\hooks\useAssetImport.js
+LINES: 60
+============================================================
+import { useState } from "react";
+import { importItAssetsService } from "../services/itAssetImportService";
+
+export const useAssetImport = ({ onSuccess } = {}) => {
+  const [file, setFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files?.[0] || null;
+    setFile(selectedFile);
+    setResult(null);
+    setError("");
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      setError("Please select an Excel file first.");
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setError("");
+
+      const importResult = await importItAssetsService(file);
+      setResult(importResult);
+
+      if (importResult.success) {
+        onSuccess?.();
+      }
+    } catch (err) {
+      console.error("Asset import failed:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Unable to import IT assets."
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const resetImport = () => {
+    setFile(null);
+    setResult(null);
+    setError("");
+  };
+
+  return {
+    file,
+    importing,
+    result,
+    error,
+    handleFileChange,
+    handleImport,
+    resetImport,
+  };
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\hooks\useAssetList.js
+LINES: 132
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// useAssetList Hook
+// ============================================
+
+import { useCallback, useEffect, useState } from "react";
+import { getItAssetsService } from "../services/itAssetService";
+
+/**
+ * useAssetList
+ *
+ * Purpose:
+ * - Loads paginated IT assets from the backend.
+ * - Handles search, pagination, loading, and error state.
+ *
+ * Important:
+ * Backend returns:
+ * {
+ *   success: true,
+ *   message: "...",
+ *   data: [],
+ *   pagination: {
+ *     page,
+ *     limit,
+ *     total,
+ *     totalPages
+ *   }
+ * }
+ */
+export const useAssetList = () => {
+  const [assets, setAssets] = useState([]);
+
+  const [pagination, setPagination] = useState({
+    page: 0, // MUI table uses zero-based page index
+    rowsPerPage: 10,
+    totalRows: 0,
+  });
+
+  const [search, setSearch] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  /**
+   * Fetch IT assets from backend.
+   *
+   * Frontend page is zero-based.
+   * Backend page is one-based.
+   */
+  const fetchAssets = useCallback(
+    async (options = {}) => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const page = options.page ?? pagination.page;
+        const rowsPerPage = options.rowsPerPage ?? pagination.rowsPerPage;
+        const searchValue = options.search ?? search;
+
+        const result = await getItAssetsService({
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchValue,
+        });
+
+        // Backend returns rows in "data", not "assets".
+       setAssets(result.assets || []);
+
+setPagination({
+  page,
+  rowsPerPage,
+  totalRows: result.pagination?.totalRecords || 0,
+});
+      } catch (err) {
+        console.error("Failed to fetch IT assets:", err);
+        setError("Unable to load IT assets.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pagination.page, pagination.rowsPerPage, search]
+  );
+
+  useEffect(() => {
+    fetchAssets();
+    // Intentionally run only once on initial page load.
+    // Manual refresh/search/pagination actions call fetchAssets directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);
+  };
+
+  const handleSearchSubmit = () => {
+    fetchAssets({
+      page: 0,
+      search,
+    });
+  };
+
+  const handlePageChange = (_event, newPage) => {
+    fetchAssets({
+      page: newPage,
+    });
+  };
+
+  const handleRowsPerPageChange = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+
+    fetchAssets({
+      page: 0,
+      rowsPerPage: newRowsPerPage,
+    });
+  };
+
+  return {
+    assets,
+    pagination,
+    search,
+    loading,
+    error,
+
+    refetch: fetchAssets,
+
+    handleSearchChange,
+    handleSearchSubmit,
+    handlePageChange,
+    handleRowsPerPageChange,
+  };
+};
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\hooks\useItAssetDashboard.js
+LINES: 38
+============================================================
+// ============================================
+// useItAssetDashboard Hook
+// ============================================
+
+import { useEffect, useState } from "react";
+import { getItAssetDashboardService } from "../services/itAssetDashboardService";
+
+export const useItAssetDashboard = () => {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await getItAssetDashboardService();
+      setDashboard(data);
+    } catch (err) {
+      console.error("IT Asset Dashboard Error:", err);
+      setError("Unable to load IT Asset Dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  return {
+    dashboard,
+    loading,
+    error,
+    refetch: fetchDashboard,
+  };
+};
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\pages
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\AssetDetails.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Assignments.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\BorrowedAssets.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Disposals.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Issues.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\ItAssetDashboard.jsx
+LINES: 75
+============================================================
+// ============================================
+// IT Asset Dashboard Page
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Box, Stack } from "@mui/material";
+
+import usePageTitle from "../../../platform/hooks/usePageTitle";
+import {
+  AppBreadcrumbs,
+  AppButton,
+  AppEmptyState,
+  AppLoadingState,
+  AppPageHeader,
+  AppStatCards,
+  AppToolbar,
+} from "../../../platform/ui";
+
+import { useItAssetDashboard } from "../hooks/useItAssetDashboard";
+import { buildItAssetDashboardCards } from "../cards/dashboardCards";
+import DashboardCharts from "../components/DashboardCharts";
+import DashboardTables from "../components/DashboardTables";
+
+const ItAssetDashboard = () => {
+  usePageTitle("AUS | IT Asset Dashboard");
+
+  const { dashboard, loading, error, refetch } = useItAssetDashboard();
+
+  if (loading) {
+    return <AppLoadingState title="Loading IT Asset Dashboard..." />;
+  }
+
+  if (error) {
+    return (
+      <AppEmptyState
+        title="Unable to load dashboard"
+        description={error}
+        action={<AppButton onClick={refetch}>Retry</AppButton>}
+      />
+    );
+  }
+
+  const cards = buildItAssetDashboardCards(dashboard?.kpis);
+
+  return (
+    <Box>
+      <AppBreadcrumbs
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "IT Assets", path: "/it-assets/dashboard" },
+        ]}
+      />
+
+      <AppPageHeader
+        title="IT Asset Dashboard"
+        subtitle="Power BI-style overview of school IT assets, assignments, issues, transfers, maintenance, and disposals."
+      />
+
+      <AppToolbar
+        title="Asset Overview"
+        actions={<AppButton onClick={refetch}>Refresh</AppButton>}
+      />
+
+      <Stack spacing={3}>
+        <AppStatCards cards={cards} />
+
+        <DashboardCharts charts={dashboard?.charts} />
+
+        <DashboardTables dashboard={dashboard} />
+      </Stack>
+    </Box>
+  );
+};
+
+export default ItAssetDashboard;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Maintenance.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Notes.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Reports.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\pages\Transfers.jsx
+LINES: 0
+============================================================
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\dialogs
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\AssetDetailsDialog.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\AssignAssetDialog.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\BorrowAssetDialog.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\DisposalDialog.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\ImportAssetDialog.jsx
+LINES: 211
+============================================================
+import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
+import { UploadFile } from "@mui/icons-material";
+
+import {
+  importItAssetsService,
+  commitItAssetsImportService,
+} from "../services/itAssetImportService";
+
+export default function ImportAssetDialog({ open, onClose, onSuccess }) {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [commitResult, setCommitResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handlePreview = async () => {
+    if (!file) {
+      setError("Please select an Excel or CSV file first.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      setPreview(null);
+      setCommitResult(null);
+
+      const result = await importItAssetsService(file);
+      setPreview(result);
+    } catch (err) {
+      console.error("IT asset import preview failed:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data?.errors?.join(" ") ||
+          "Failed to preview IT asset import."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCommit = async () => {
+    if (!preview?.batchId) {
+      setError("No import batch found.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const result = await commitItAssetsImportService(preview.batchId);
+      setCommitResult(result?.data || result);
+
+      onSuccess?.();
+    } catch (err) {
+      console.error("IT asset import commit failed:", err);
+      setError(
+        err?.response?.data?.message || "Failed to commit IT asset import."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetAndClose = () => {
+    setFile(null);
+    setPreview(null);
+    setCommitResult(null);
+    setError("");
+    onClose?.();
+  };
+
+  const rows = preview?.rows || [];
+  const validRows = preview?.validRows || 0;
+  const invalidRows = preview?.invalidRows || 0;
+  const totalRows = preview?.totalRows || rows.length || 0;
+
+  return (
+    <Dialog open={open} onClose={resetAndClose} maxWidth="xl" fullWidth>
+      <DialogTitle>Import IT Assets</DialogTitle>
+
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Required columns: AssetCode, Category, Status. Optional columns:
+          Brand, Model, Department, Location, Room, Condition, PurchaseDate,
+          EmployeeCode, Remarks.
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}>
+          <Button variant="outlined" component="label" startIcon={<UploadFile />}>
+            Select File
+            <input
+              hidden
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={(event) => {
+                setFile(event.target.files?.[0] || null);
+                setPreview(null);
+                setCommitResult(null);
+                setError("");
+              }}
+            />
+          </Button>
+
+          <Typography variant="body2">
+            {file ? file.name : "No file selected"}
+          </Typography>
+
+          <Button variant="contained" disabled={!file || loading} onClick={handlePreview}>
+            {loading ? "Processing..." : "Preview Import"}
+          </Button>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {preview && (
+          <Alert severity={invalidRows > 0 ? "warning" : "success"} sx={{ mb: 2 }}>
+            Preview ready. Total: {totalRows}, Valid: {validRows}, Invalid:{" "}
+            {invalidRows}
+          </Alert>
+        )}
+
+        {commitResult && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Import committed. Imported rows: {commitResult.importedRows || 0}
+          </Alert>
+        )}
+
+        {rows.length > 0 && (
+          <Box sx={{ maxHeight: 420, overflow: "auto", border: "1px solid #eee" }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Row</TableCell>
+                  <TableCell>AssetCode</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Brand</TableCell>
+                  <TableCell>Model</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>EmployeeCode</TableCell>
+                  <TableCell>Import Status</TableCell>
+                  <TableCell>Message</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {rows.slice(0, 100).map((row) => (
+                  <TableRow key={row.ImportStagingId || row.importStagingId}>
+                    <TableCell>{row.SourceRow || row.sourceRow}</TableCell>
+                    <TableCell>{row.AssetTag || row.assetTag}</TableCell>
+                    <TableCell>{row.CategoryName || row.categoryName}</TableCell>
+                    <TableCell>{row.BrandName || row.brandName}</TableCell>
+                    <TableCell>{row.ModelName || row.modelName}</TableCell>
+                    <TableCell>{row.StatusName || row.statusName}</TableCell>
+                    <TableCell>{row.EmployeeCode || row.employeeCode}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={row.ImportStatus || row.importStatus}
+                        color={
+                          (row.ImportStatus || row.importStatus) === "Valid"
+                            ? "success"
+                            : "error"
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>{row.ImportMessage || row.importMessage || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ p: 3 }}>
+        <Button onClick={resetAndClose}>Cancel</Button>
+
+        <Button
+          variant="contained"
+          color="success"
+          disabled={!preview?.batchId || validRows === 0 || loading}
+          onClick={handleCommit}
+        >
+          Commit Import
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\MaintenanceDialog.jsx
+LINES: 0
+============================================================
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\dialogs\TransferAssetDialog.jsx
+LINES: 0
+============================================================
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\components
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\components\AssetActionMenu.jsx
+LINES: 69
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// IT Asset Action Menu
+// ============================================
+
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
+import LaptopChromebookOutlinedIcon from "@mui/icons-material/LaptopChromebookOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+
+import { AppActionMenu } from "../../../platform/ui";
+
+export default function AssetActionMenu({
+  asset,
+  onView,
+  onEdit,
+  onAssign,
+  onBorrow,
+  onTransfer,
+  onMaintenance,
+  onDispose,
+}) {
+  return (
+    <AppActionMenu
+      items={[
+        {
+          label: "View Details",
+          icon: <VisibilityOutlinedIcon fontSize="small" />,
+          onClick: () => onView?.(asset),
+        },
+        {
+          label: "Edit Asset",
+          icon: <EditOutlinedIcon fontSize="small" />,
+          onClick: () => onEdit?.(asset),
+        },
+        {
+          label: "Assign",
+          icon: <AssignmentIndOutlinedIcon fontSize="small" />,
+          onClick: () => onAssign?.(asset),
+        },
+        {
+          label: "Borrow",
+          icon: <LaptopChromebookOutlinedIcon fontSize="small" />,
+          onClick: () => onBorrow?.(asset),
+        },
+        {
+          label: "Transfer",
+          icon: <SwapHorizOutlinedIcon fontSize="small" />,
+          onClick: () => onTransfer?.(asset),
+        },
+        {
+          label: "Maintenance",
+          icon: <BuildOutlinedIcon fontSize="small" />,
+          onClick: () => onMaintenance?.(asset),
+        },
+        {
+          label: "Dispose",
+          icon: <DeleteOutlineOutlinedIcon fontSize="small" />,
+          color: "error.main",
+          onClick: () => onDispose?.(asset),
+        },
+      ]}
+    />
+  );
+}
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\components\AssetStatusChip.jsx
+LINES: 31
+============================================================
+// ============================================
+// Asset Status Chip
+// ============================================
+
+import { AppChip } from "../../../platform/ui";
+
+const getStatusColor = (status = "") => {
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes("available")) return "success";
+  if (normalized.includes("assigned")) return "info";
+  if (normalized.includes("borrowed")) return "warning";
+  if (normalized.includes("maintenance")) return "error";
+  if (normalized.includes("disposed")) return "default";
+  if (normalized.includes("lost")) return "error";
+  if (normalized.includes("damaged")) return "warning";
+
+  return "default";
+};
+
+const AssetStatusChip = ({ status }) => {
+  return (
+    <AppChip
+      label={status || "Unknown"}
+      color={getStatusColor(status)}
+      size="small"
+    />
+  );
+};
+
+export default AssetStatusChip;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\components\DashboardCharts.jsx
+LINES: 113
+============================================================
+// ============================================
+// IT Asset Dashboard Charts
+// ============================================
+
+import { Box, Grid, Typography } from "@mui/material";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+
+import { AppCard, AppEmptyState } from "../../../platform/ui";
+
+const COLORS = ["#0B5D3B", "#1976D2", "#F57C00", "#7B1FA2", "#C62828", "#455A64"];
+
+const normalizeChartData = (items = []) => {
+  if (!Array.isArray(items)) return [];
+
+  return items.map((item) => ({
+    name:
+      item.name ||
+      item.label ||
+      item.categoryName ||
+      item.statusName ||
+      item.locationName ||
+      "Unknown",
+    value: Number(item.value || item.count || item.total || 0),
+  }));
+};
+
+const PieChartCard = ({ title, data }) => {
+  const chartData = normalizeChartData(data);
+
+  return (
+    <AppCard>
+      <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+        {title}
+      </Typography>
+
+      {chartData.length === 0 ? (
+        <AppEmptyState title="No chart data available" />
+      ) : (
+        <Box sx={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={95} label>
+                {chartData.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </Box>
+      )}
+    </AppCard>
+  );
+};
+
+const BarChartCard = ({ title, data }) => {
+  const chartData = normalizeChartData(data);
+
+  return (
+    <AppCard>
+      <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+        {title}
+      </Typography>
+
+      {chartData.length === 0 ? (
+        <AppEmptyState title="No chart data available" />
+      ) : (
+        <Box sx={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Box>
+      )}
+    </AppCard>
+  );
+};
+
+const DashboardCharts = ({ charts = {} }) => {
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={4}>
+        <PieChartCard title="Assets by Category" data={charts.assetsByCategory} />
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <PieChartCard title="Assets by Status" data={charts.assetsByStatus} />
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <BarChartCard title="Assets by Location" data={charts.assetsByLocation} />
+      </Grid>
+    </Grid>
+  );
+};
+
+export default DashboardCharts;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\components\DashboardTables.jsx
+LINES: 93
+============================================================
+// ============================================
+// IT Asset Dashboard Tables
+// ============================================
+
+import { Grid, Typography } from "@mui/material";
+import { AppCard, AppDataTable, AppEmptyState } from "../../../platform/ui";
+
+const withId = (rows = []) =>
+  rows.map((row, index) => ({
+    id: row.id || row.assetId || row.activityId || row.issueId || index + 1,
+    ...row,
+  }));
+
+const tableCard = (title, rows, columns) => (
+  <AppCard>
+    <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+      {title}
+    </Typography>
+
+    {!rows || rows.length === 0 ? (
+      <AppEmptyState title="No records found" />
+    ) : (
+      <AppDataTable rows={withId(rows)} columns={columns} />
+    )}
+  </AppCard>
+);
+
+const activityColumns = [
+  { field: "activityType", headerName: "Activity", flex: 1 },
+  { field: "assetCode", headerName: "Asset Code", flex: 1 },
+  { field: "description", headerName: "Description", flex: 2 },
+  { field: "createdAt", headerName: "Date", flex: 1 },
+];
+
+const assignedColumns = [
+  { field: "assetCode", headerName: "Asset Code", flex: 1 },
+  { field: "assetName", headerName: "Asset Name", flex: 1.5 },
+  { field: "assignedToName", headerName: "Assigned To", flex: 1.5 },
+  { field: "assignedAt", headerName: "Assigned Date", flex: 1 },
+];
+
+const issueColumns = [
+  { field: "assetCode", headerName: "Asset Code", flex: 1 },
+  { field: "issueTitle", headerName: "Issue", flex: 2 },
+  { field: "priority", headerName: "Priority", flex: 1 },
+  { field: "statusName", headerName: "Status", flex: 1 },
+];
+
+const transferColumns = [
+  { field: "assetCode", headerName: "Asset Code", flex: 1 },
+  { field: "fromLocationName", headerName: "From", flex: 1 },
+  { field: "toLocationName", headerName: "To", flex: 1 },
+  { field: "statusName", headerName: "Status", flex: 1 },
+];
+
+const disposalColumns = [
+  { field: "assetCode", headerName: "Asset Code", flex: 1 },
+  { field: "assetName", headerName: "Asset Name", flex: 1.5 },
+  { field: "reason", headerName: "Reason", flex: 2 },
+  { field: "statusName", headerName: "Status", flex: 1 },
+];
+
+const DashboardTables = ({ dashboard = {} }) => {
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        {tableCard("Recent Activity", dashboard.recentActivity, activityColumns)}
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        {tableCard(
+          "Recently Assigned Assets",
+          dashboard.recentlyAssignedAssets,
+          assignedColumns
+        )}
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        {tableCard("Open Issues", dashboard.openIssues, issueColumns)}
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        {tableCard("Pending Transfers", dashboard.pendingTransfers, transferColumns)}
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        {tableCard("Pending Disposals", dashboard.pendingDisposals, disposalColumns)}
+      </Grid>
+    </Grid>
+  );
+};
+
+export default DashboardTables;
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\routes
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\routes\ItOperationsLayoutRoutes.jsx
+LINES: 63
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// IT Operations Layout Routes
+// ============================================
+
+import { Navigate } from "react-router-dom";
+
+import PlatformLayout from "@layouts/PlatformLayout";
+
+import ItAssetDashboard from "../pages/ItAssetDashboard";
+import { AssetExplorer } from "../assetExplorer";
+
+const itOperationsLayoutRoutes = [
+  {
+    path: "/it-assets",
+    element: <PlatformLayout />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/it-assets/dashboard" replace />,
+      },
+      {
+        path: "dashboard",
+        element: <ItAssetDashboard />,
+      },
+      {
+        path: "assets",
+        element: <AssetExplorer />,
+      },
+      {
+        path: "assignments",
+        element: <div>Assignments - Coming Soon</div>,
+      },
+      {
+        path: "borrow",
+        element: <div>Borrow & Return - Coming Soon</div>,
+      },
+      {
+        path: "transfers",
+        element: <div>Transfers - Coming Soon</div>,
+      },
+      {
+        path: "issues",
+        element: <div>Issues - Coming Soon</div>,
+      },
+      {
+        path: "maintenance",
+        element: <div>Maintenance - Coming Soon</div>,
+      },
+      {
+        path: "disposals",
+        element: <div>Disposals - Coming Soon</div>,
+      },
+      {
+        path: "reports",
+        element: <div>Reports - Coming Soon</div>,
+      },
+    ],
+  },
+];
+
+export default itOperationsLayoutRoutes;
+
+
+####################################################################
+# FOLDER: .\src\modules\it-assets\columns
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\columns\assetColumns.js
+LINES: 97
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// IT Asset Table Columns
+// ============================================
+
+import { AppChip } from "../../../platform/ui";
+import AssetActionMenu from "../components/AssetActionMenu";
+
+const getStatusColor = (status = "") => {
+  const value = String(status).toLowerCase();
+
+  if (value.includes("available")) return "success";
+  if (value.includes("assigned")) return "info";
+  if (value.includes("borrowed")) return "warning";
+  if (value.includes("maintenance")) return "error";
+  if (value.includes("disposed")) return "default";
+  if (value.includes("lost")) return "error";
+  if (value.includes("damaged")) return "warning";
+
+  return "default";
+};
+
+const safeText = (value) => value || "—";
+
+export const buildAssetColumns = (handlers = {}) => [
+  {
+    field: "assetCode",
+    headerName: "Asset Code",
+    width: 140,
+  },
+  {
+    field: "assetName",
+    headerName: "Asset Name",
+    width: 220,
+  },
+  {
+    field: "categoryName",
+    headerName: "Category",
+    width: 150,
+    render: (row) => safeText(row.categoryName),
+  },
+  {
+    field: "brandName",
+    headerName: "Brand",
+    width: 130,
+    render: (row) => safeText(row.brandName),
+  },
+  {
+    field: "modelName",
+    headerName: "Model",
+    width: 150,
+    render: (row) => safeText(row.modelName),
+  },
+  {
+    field: "locationName",
+    headerName: "Location",
+    width: 170,
+    render: (row) => safeText(row.locationName),
+  },
+  {
+    field: "assignedToName",
+    headerName: "Assigned To",
+    width: 180,
+    render: (row) => safeText(row.assignedToName),
+  },
+  {
+    field: "statusName",
+    headerName: "Status",
+    width: 150,
+    render: (row) => (
+      <AppChip
+        label={row.statusName || "Unknown"}
+        color={getStatusColor(row.statusName)}
+        size="small"
+      />
+    ),
+  },
+  {
+    field: "actions",
+    headerName: "Actions",
+    width: 90,
+    align: "center",
+    render: (row) => (
+      <AssetActionMenu
+        asset={row}
+        onView={handlers.onView}
+        onEdit={handlers.onEdit}
+        onAssign={handlers.onAssign}
+        onBorrow={handlers.onBorrow}
+        onTransfer={handlers.onTransfer}
+        onMaintenance={handlers.onMaintenance}
+        onDispose={handlers.onDispose}
+      />
+    ),
+  },
+];
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\modules\it-assets\columns\assetColumns.jsx
+LINES: 112
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// IT Asset Table Columns
+// ============================================
+
+import { AppChip } from "../../../platform/ui";
+import AssetActionMenu from "../components/AssetActionMenu";
+
+/**
+ * Resolve status chip color from status name.
+ */
+const getStatusColor = (status = "") => {
+  const value = String(status).toLowerCase();
+
+  if (value.includes("available")) return "success";
+  if (value.includes("assigned")) return "info";
+  if (value.includes("borrowed")) return "warning";
+  if (value.includes("maintenance")) return "error";
+  if (value.includes("disposed")) return "default";
+  if (value.includes("lost")) return "error";
+  if (value.includes("damaged")) return "warning";
+
+  return "default";
+};
+
+/**
+ * Safe display helper.
+ */
+const safeText = (value) => value || "—";
+
+export const buildAssetColumns = (handlers = {}) => [
+  {
+    field: "AssetTag",
+    headerName: "Asset Code",
+    width: 140,
+    render: (row) => safeText(row.AssetTag),
+  },
+  {
+    field: "ModelDescription",
+    headerName: "Asset Name",
+    width: 220,
+    render: (row) => safeText(row.ModelDescription || row.ModelName),
+  },
+  {
+    field: "CategoryName",
+    headerName: "Category",
+    width: 150,
+    render: (row) => safeText(row.CategoryName),
+  },
+  {
+    field: "BrandName",
+    headerName: "Brand",
+    width: 130,
+    render: (row) => safeText(row.BrandName),
+  },
+  {
+    field: "ModelName",
+    headerName: "Model",
+    width: 150,
+    render: (row) => safeText(row.ModelName),
+  },
+  {
+    field: "LocationName",
+    headerName: "Location",
+    width: 170,
+    render: (row) => safeText(row.LocationName),
+  },
+  {
+    field: "RoomName",
+    headerName: "Room",
+    width: 120,
+    render: (row) => safeText(row.RoomName),
+  },
+  {
+    field: "CurrentAssignedUserName",
+    headerName: "Assigned To",
+    width: 180,
+    render: (row) =>
+      safeText(row.CurrentAssignedUserName || row.CurrentAssignedName),
+  },
+  {
+    field: "StatusName",
+    headerName: "Status",
+    width: 150,
+    render: (row) => (
+      <AppChip
+        label={row.StatusName || "Unknown"}
+        color={getStatusColor(row.StatusName)}
+        size="small"
+      />
+    ),
+  },
+  {
+    field: "actions",
+    headerName: "Actions",
+    width: 90,
+    align: "center",
+    render: (row) => (
+      <AssetActionMenu
+        asset={row}
+        onView={handlers.onView}
+        onEdit={handlers.onEdit}
+        onAssign={handlers.onAssign}
+        onBorrow={handlers.onBorrow}
+        onTransfer={handlers.onTransfer}
+        onMaintenance={handlers.onMaintenance}
+        onDispose={handlers.onDispose}
+      />
+    ),
+  },
+];
+
+
+####################################################################
+# FOLDER: .\src\components\itAssets
+####################################################################
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetBrandCard.jsx
+LINES: 65
+============================================================
+// ============================================
+// Asset Brand Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+import AssetCard from "./base/AssetCard";
+import AssetCardIcon from "./base/AssetCardIcon";
+import AssetCardStats from "./base/AssetCardStats";
+
+const AssetBrandCard = ({ brand, onClick }) => {
+  const isFallback = brand?.GroupType === "NO_BRAND_MODEL";
+  const title =
+    brand?.DisplayName || brand?.BrandName || brand?.ModelName || "No Brand / Model";
+
+  const accentKey = isFallback ? "text" : "success";
+  const Icon = isFallback ? Inventory2RoundedIcon : BusinessRoundedIcon;
+
+  return (
+    <AssetCard
+      title={title}
+      subtitle={`${brand?.ModelCount || 0} models`}
+      assetCount={brand?.TotalAssets || 0}
+      accentKey={accentKey}
+      icon={
+        <AssetCardIcon accentKey={accentKey}>
+          <Icon sx={{ fontSize: 20 }} />
+        </AssetCardIcon>
+      }
+      stats={
+        <AssetCardStats
+          items={[
+            {
+              icon: <CheckCircleOutlineRoundedIcon fontSize="small" />,
+              label: "Available",
+              value: brand?.AvailableCount || 0,
+              colorKey: "success",
+            },
+            {
+              icon: <PersonOutlineRoundedIcon fontSize="small" />,
+              label: "Assigned",
+              value: brand?.AssignedCount || 0,
+              colorKey: "primary",
+            },
+            {
+              icon: <BuildRoundedIcon fontSize="small" />,
+              label: "Maintenance",
+              value: brand?.MaintenanceCount || 0,
+              colorKey: "warning",
+            },
+          ]}
+        />
+      }
+      ariaLabel={`Open ${title}`}
+      onClick={() => onClick?.(brand)}
+    />
+  );
+};
+
+export default AssetBrandCard;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetCategoryCard.jsx
+LINES: 94
+============================================================
+// ============================================
+// Asset Category Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import LaptopMacRoundedIcon from "@mui/icons-material/LaptopMacRounded";
+import DesktopWindowsRoundedIcon from "@mui/icons-material/DesktopWindowsRounded";
+import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
+import RouterRoundedIcon from "@mui/icons-material/RouterRounded";
+import TabletMacRoundedIcon from "@mui/icons-material/TabletMacRounded";
+import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
+import TvRoundedIcon from "@mui/icons-material/TvRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+import AssetCard from "./base/AssetCard";
+import AssetCardIcon from "./base/AssetCardIcon";
+import AssetCardStats from "./base/AssetCardStats";
+
+const iconMap = {
+  laptop: LaptopMacRoundedIcon,
+  desktop: DesktopWindowsRoundedIcon,
+  printer: PrintRoundedIcon,
+  network: RouterRoundedIcon,
+  tablet: TabletMacRoundedIcon,
+  camera: VideocamRoundedIcon,
+  monitor: TvRoundedIcon,
+  projector: TvRoundedIcon,
+  category: CategoryRoundedIcon,
+};
+
+const accentPaletteMap = {
+  laptop: "primary",
+  desktop: "success",
+  printer: "warning",
+  network: "info",
+  tablet: "secondary",
+  camera: "warning",
+  monitor: "secondary",
+  projector: "info",
+  category: "primary",
+};
+
+const AssetCategoryCard = ({ category, onClick }) => {
+  const iconKey = category?.IconKey || "category";
+  const Icon = iconMap[iconKey] || CategoryRoundedIcon;
+  const accentKey = accentPaletteMap[iconKey] || "primary";
+
+  return (
+    <AssetCard
+      title={category?.CategoryName || "Unnamed Category"}
+      subtitle={`${category?.BrandCount || 0} brands · ${
+        category?.ModelCount || 0
+      } models`}
+      assetCount={category?.TotalAssets || 0}
+      accentKey={accentKey}
+      icon={
+        <AssetCardIcon accentKey={accentKey}>
+          <Icon sx={{ fontSize: 20 }} />
+        </AssetCardIcon>
+      }
+      stats={
+        <AssetCardStats
+          items={[
+            {
+              icon: <CheckCircleOutlineRoundedIcon fontSize="small" />,
+              label: "Available",
+              value: category?.AvailableCount || 0,
+              colorKey: "success",
+            },
+            {
+              icon: <PersonOutlineRoundedIcon fontSize="small" />,
+              label: "Assigned",
+              value: category?.AssignedCount || 0,
+              colorKey: "primary",
+            },
+            {
+              icon: <BuildRoundedIcon fontSize="small" />,
+              label: "Maintenance",
+              value: category?.MaintenanceCount || 0,
+              colorKey: "warning",
+            },
+          ]}
+        />
+      }
+      ariaLabel={`Open ${category?.CategoryName || "category"}`}
+      onClick={() => onClick?.(category)}
+    />
+  );
+};
+
+export default AssetCategoryCard;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\AssetModelCard.jsx
+LINES: 59
+============================================================
+// ============================================
+// Asset Model Card
+// Arab Unity School Operations Platform
+// ============================================
+
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+import AssetCard from "./base/AssetCard";
+import AssetCardIcon from "./base/AssetCardIcon";
+import AssetCardStats from "./base/AssetCardStats";
+
+const AssetModelCard = ({ model, selected = false, onClick }) => {
+  const title = model?.ModelName || "Unnamed Model";
+
+  return (
+    <AssetCard
+      title={title}
+      assetCount={model?.TotalAssets || 0}
+      accentKey="secondary"
+      selected={selected}
+      icon={
+        <AssetCardIcon accentKey="secondary">
+          <Inventory2RoundedIcon sx={{ fontSize: 20 }} />
+        </AssetCardIcon>
+      }
+      stats={
+        <AssetCardStats
+          items={[
+            {
+              icon: <CheckCircleOutlineRoundedIcon fontSize="small" />,
+              label: "Available",
+              value: model?.AvailableCount || 0,
+              colorKey: "success",
+            },
+            {
+              icon: <PersonOutlineRoundedIcon fontSize="small" />,
+              label: "Assigned",
+              value: model?.AssignedCount || 0,
+              colorKey: "primary",
+            },
+            {
+              icon: <BuildRoundedIcon fontSize="small" />,
+              label: "Maintenance",
+              value: model?.MaintenanceCount || 0,
+              colorKey: "warning",
+            },
+          ]}
+        />
+      }
+      ariaLabel={`Open ${title}`}
+      onClick={() => onClick?.(model)}
+    />
+  );
+};
+
+export default AssetModelCard;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\base\AssetCard.jsx
+LINES: 147
+============================================================
+// ============================================
+// Enterprise IT Asset Card Base
+// Arab Unity School Operations Platform
+//
+// Purpose:
+// - Compact reusable card for the IT Asset Explorer.
+// - Used by Category, Brand, and Model cards.
+// - Keeps arrow fixed on the far right.
+// - Keeps layout small for responsive 4-column display.
+// ============================================
+
+import {
+  Box,
+  Card,
+  CardContent,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
+
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+
+const AssetCard = ({
+  title,
+  assetCount = 0,
+  accentKey = "primary",
+  selected = false,
+  icon,
+  stats,
+  onClick,
+  ariaLabel,
+}) => {
+  return (
+    <Card
+      elevation={0}
+      onClick={onClick}
+      tabIndex={0}
+      role="button"
+      aria-label={ariaLabel || title}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+      sx={(theme) => {
+        const accent =
+          theme.palette[accentKey]?.main || theme.palette.text.secondary;
+
+        return {
+          height: "100%",
+          minHeight: 165,
+          borderRadius: 3,
+          border: selected
+            ? `2px solid ${theme.palette.primary.main}`
+            : `1px solid ${theme.palette.divider}`,
+          bgcolor: theme.palette.background.paper,
+          cursor: "pointer",
+          overflow: "hidden",
+          outline: "none",
+          boxShadow: selected ? theme.shadows[3] : theme.shadows[1],
+          transition: theme.transitions.create(
+            ["transform", "box-shadow", "border-color"],
+            { duration: theme.transitions.duration.short }
+          ),
+
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: theme.shadows[3],
+            borderColor: accent,
+          },
+
+          "&:focus-visible": {
+            borderColor: accent,
+          },
+
+          "& .asset-count": {
+            color: accent,
+          },
+
+          "& .asset-accent-bar": {
+            bgcolor: accent,
+          },
+        };
+      }}
+    >
+      <CardContent
+        sx={{
+          height: "100%",
+          p: 1.15,
+          "&:last-child": {
+            pb: 1.15,
+          },
+        }}
+      >
+        <Stack
+          spacing={0.75}
+          sx={{
+            height: "100%",
+            justifyContent: "space-between",
+          }}
+        >
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="flex-start"
+            sx={{ width: "100%" }}
+          >
+            <Box>{icon}</Box>
+
+            <IconButton
+              size="small"
+              tabIndex={-1}
+              sx={(theme) => ({
+                width: 26,
+                height: 26,
+                ml: "auto",
+                border: `1px solid ${theme.palette.divider}`,
+                color: theme.palette.primary.main,
+                bgcolor: theme.palette.background.paper,
+                flexShrink: 0,
+              })}
+            >
+              <ArrowForwardRoundedIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Stack>
+
+          <Box>
+            <Typography fontSize={14.5} fontWeight={850} noWrap>
+              {title}
+            </Typography>
+
+            <Typography className="asset-count" fontSize={18} fontWeight={900}>
+              {assetCount}
+            </Typography>
+          </Box>
+
+          {stats}
+
+          <Box className="asset-accent-bar" sx={{ height: 3, borderRadius: 2 }} />
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AssetCard;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\base\AssetCardIcon.jsx
+LINES: 37
+============================================================
+// ============================================
+// Enterprise IT Asset Card Icon
+// Arab Unity School Operations Platform
+//
+// Purpose:
+// - Shared themed icon container for IT Asset cards.
+// - Prevents duplicate icon-circle styling.
+// ============================================
+
+import { Box, alpha } from "@mui/material";
+
+const AssetCardIcon = ({ children, accentKey = "primary" }) => {
+  return (
+    <Box
+      sx={(theme) => {
+        const color =
+          theme.palette[accentKey]?.main || theme.palette.text.secondary;
+
+        return {
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          bgcolor: alpha(color, 0.12),
+          color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        };
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
+
+export default AssetCardIcon;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\cards\base\AssetCardStats.jsx
+LINES: 60
+============================================================
+// ============================================
+// Enterprise IT Asset Card Stats
+// Arab Unity School Operations Platform
+//
+// Purpose:
+// - Shared compact stats row for IT Asset cards.
+// - Used for Available, Assigned, and Maintenance totals.
+// ============================================
+
+import { Box, Stack, Typography, alpha } from "@mui/material";
+
+const AssetCardStats = ({ items = [] }) => {
+  return (
+    <Box
+      sx={(theme) => ({
+        borderRadius: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: alpha(theme.palette.background.default, 0.75),
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        overflow: "hidden",
+      })}
+    >
+      {items.map((item) => (
+        <StatItem key={item.label} {...item} />
+      ))}
+    </Box>
+  );
+};
+
+const StatItem = ({ label, value, colorKey }) => (
+  <Stack
+    alignItems="center"
+    spacing={0.05}
+    sx={(theme) => ({
+      py: 0.35,
+      px: 0.25,
+      borderRight: `1px solid ${theme.palette.divider}`,
+      "&:last-of-type": {
+        borderRight: "none",
+      },
+    })}
+  >
+    <Typography
+      fontSize={10.5}
+      fontWeight={900}
+      sx={(theme) => ({
+        color: theme.palette[colorKey]?.main || theme.palette.text.secondary,
+      })}
+    >
+      {value || 0}
+    </Typography>
+
+    <Typography fontSize={8.5} color="text.secondary" fontWeight={700} noWrap>
+      {label}
+    </Typography>
+  </Stack>
+);
+
+export default AssetCardStats;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\common\EmptyState.jsx
+LINES: 51
+============================================================
+// ============================================
+// IT Assets Empty State
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Box, Paper, Typography } from "@mui/material";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+
+const EmptyState = ({
+  title = "No records found",
+  message = "There is no data available for the selected view.",
+}) => {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 5,
+        borderRadius: 4,
+        border: "1px dashed",
+        borderColor: "divider",
+        textAlign: "center",
+      }}
+    >
+      <Box
+        sx={{
+          width: 72,
+          height: 72,
+          mx: "auto",
+          mb: 2,
+          borderRadius: "50%",
+          bgcolor: "grey.100",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Inventory2RoundedIcon sx={{ fontSize: 36, color: "text.secondary" }} />
+      </Box>
+
+      <Typography variant="h6" fontWeight={800}>
+        {title}
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {message}
+      </Typography>
+    </Paper>
+  );
+};
+
+export default EmptyState;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\filters\AssetExplorerFilters.jsx
+LINES: 139
+============================================================
+// ============================================
+// Asset Explorer Filters
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Button, MenuItem, Stack, TextField } from "@mui/material";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+
+const getId = (item, keys) => {
+  for (const key of keys) {
+    if (item?.[key] !== undefined && item?.[key] !== null) return item[key];
+  }
+  return "";
+};
+
+const getLabel = (item, keys) => {
+  for (const key of keys) {
+    if (item?.[key]) return item[key];
+  }
+  return "Unnamed";
+};
+
+const selectMenuProps = {
+  MenuProps: {
+    PaperProps: {
+      sx: {
+        zIndex: (theme) => theme.zIndex.modal + 20,
+      },
+    },
+  },
+};
+
+const AssetExplorerFilters = ({
+  filters,
+  statusOptions = [],
+  locationOptions = [],
+  conditionOptions = [],
+  onChange,
+  onClear,
+}) => {
+  const handleChange = (field) => (event) => {
+    onChange?.({
+      ...filters,
+      [field]: event.target.value,
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <TextField
+        select
+        size="small"
+        label="Status"
+        value={filters.statusId}
+        onChange={handleChange("statusId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Status</MenuItem>
+
+        {statusOptions.map((status) => (
+          <MenuItem
+            key={getId(status, ["ITAssetStatusId", "statusId", "id"])}
+            value={getId(status, ["ITAssetStatusId", "statusId", "id"])}
+          >
+            {getLabel(status, ["StatusName", "statusName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Location"
+        value={filters.locationId}
+        onChange={handleChange("locationId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Locations</MenuItem>
+
+        {locationOptions.map((location) => (
+          <MenuItem
+            key={getId(location, ["LocationId", "locationId", "id"])}
+            value={getId(location, ["LocationId", "locationId", "id"])}
+          >
+            {getLabel(location, ["LocationName", "locationName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Condition"
+        value={filters.conditionId}
+        onChange={handleChange("conditionId")}
+        SelectProps={selectMenuProps}
+        sx={selectSx}
+      >
+        <MenuItem value="">All Conditions</MenuItem>
+
+        {conditionOptions.map((condition) => (
+          <MenuItem
+            key={getId(condition, ["ITAssetConditionId", "conditionId", "id"])}
+            value={getId(condition, ["ITAssetConditionId", "conditionId", "id"])}
+          >
+            {getLabel(condition, ["ConditionName", "conditionName", "name"])}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ClearRoundedIcon />}
+        onClick={onClear}
+        sx={{
+          height: 38,
+          borderRadius: 2.5,
+          fontWeight: 800,
+          whiteSpace: "nowrap",
+        }}
+      >
+        Clear
+      </Button>
+    </Stack>
+  );
+};
+
+const selectSx = {
+  minWidth: 160,
+  "& .MuiOutlinedInput-root": {
+    height: 38,
+    borderRadius: 2.5,
+  },
+};
+
+export default AssetExplorerFilters;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\navigation\AssetBreadcrumb.jsx
+LINES: 43
+============================================================
+// ============================================
+// Asset Breadcrumb
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Breadcrumbs, Button, Typography } from "@mui/material";
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+
+const AssetBreadcrumb = ({
+  selectedCategory,
+  selectedBrand,
+  selectedModel,
+  onRoot,
+  onCategory,
+}) => {
+  return (
+    <Breadcrumbs separator={<NavigateNextRoundedIcon fontSize="small" />} sx={{ mb: 2 }}>
+      <Button size="small" onClick={onRoot}>
+        Asset Management
+      </Button>
+
+      {selectedCategory && (
+        <Button size="small" onClick={onCategory}>
+          {selectedCategory.CategoryName}
+        </Button>
+      )}
+
+      {selectedBrand && (
+        <Typography variant="body2" color="text.primary" fontWeight={700}>
+          {selectedBrand.BrandName}
+        </Typography>
+      )}
+
+      {selectedModel && (
+        <Typography variant="body2" color="text.primary" fontWeight={700}>
+          {selectedModel.ModelName}
+        </Typography>
+      )}
+    </Breadcrumbs>
+  );
+};
+
+export default AssetBreadcrumb;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\overview\AssetOverviewBar.jsx
+LINES: 111
+============================================================
+// ============================================
+// Asset Overview Bar
+// Arab Unity School Operations Platform
+// ============================================
+
+import { Box, Paper, Stack, Typography, alpha } from "@mui/material";
+
+import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+
+const AssetOverviewBar = ({ categories = [] }) => {
+  const totals = categories.reduce(
+    (acc, item) => {
+      acc.total += Number(item.TotalAssets || 0);
+      acc.available += Number(item.AvailableCount || 0);
+      acc.assigned += Number(item.AssignedCount || 0);
+      acc.maintenance += Number(item.MaintenanceCount || 0);
+      return acc;
+    },
+    { total: 0, available: 0, assigned: 0, maintenance: 0 }
+  );
+
+  return (
+    <Paper
+      elevation={0}
+      sx={(theme) => ({
+        mt: 3,
+        p: 2.5,
+        borderRadius: 4,
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: theme.palette.background.paper,
+        boxShadow: theme.shadows[1],
+      })}
+    >
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={2.5}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 280 }}>
+          <IconCircle colorKey="success">
+            <BarChartRoundedIcon />
+          </IconCircle>
+
+          <Box>
+            <Typography fontWeight={900}>Asset Overview</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Real-time overview across visible categories.
+            </Typography>
+          </Box>
+        </Stack>
+
+        <OverviewItem icon={<Inventory2RoundedIcon />} label="Total Assets" value={totals.total} colorKey="secondary" />
+        <OverviewItem icon={<CheckCircleOutlineRoundedIcon />} label="Available" value={totals.available} colorKey="success" />
+        <OverviewItem icon={<PersonOutlineRoundedIcon />} label="Assigned" value={totals.assigned} colorKey="primary" />
+        <OverviewItem icon={<BuildRoundedIcon />} label="In Maintenance" value={totals.maintenance} colorKey="warning" />
+      </Stack>
+    </Paper>
+  );
+};
+
+const OverviewItem = ({ icon, label, value, colorKey }) => (
+  <Stack
+    direction="row"
+    alignItems="center"
+    spacing={1.2}
+    sx={(theme) => ({
+      flex: 1,
+      minWidth: 160,
+      borderLeft: { md: `1px solid ${theme.palette.divider}` },
+      pl: { md: 2.5 },
+    })}
+  >
+    <IconCircle colorKey={colorKey}>{icon}</IconCircle>
+
+    <Box>
+      <Typography variant="body2" color="text.secondary" fontWeight={700}>
+        {label}
+      </Typography>
+      <Typography fontSize={24} lineHeight={1.1} fontWeight={900}>
+        {value}
+      </Typography>
+    </Box>
+  </Stack>
+);
+
+const IconCircle = ({ children, colorKey }) => (
+  <Box
+    sx={(theme) => {
+      const color = theme.palette[colorKey]?.main || theme.palette.primary.main;
+      return {
+        width: 46,
+        height: 46,
+        borderRadius: "50%",
+        bgcolor: alpha(color, 0.1),
+        color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      };
+    }}
+  >
+    {children}
+  </Box>
+);
+
+export default AssetOverviewBar;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\tables\AssetTable.jsx
+LINES: 131
+============================================================
+// ============================================
+// IT Asset Table
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Chip,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TablePagination,
+  TableRow,
+  Typography,
+} from "@mui/material";
+
+const getStatusColor = (statusKey = "") => {
+  const key = statusKey.toUpperCase();
+
+  if (key === "AVAILABLE") return "success";
+  if (key === "ASSIGNED" || key === "IN_USE") return "primary";
+  if (key === "MAINTENANCE") return "warning";
+
+  return "default";
+};
+
+/**
+ * Reusable IT Asset table.
+ */
+const AssetTable = ({
+  rows = [],
+  loading = false,
+  page = 1,
+  limit = 10,
+  total = 0,
+  onPageChange,
+  onLimitChange,
+  onRowClick,
+}) => {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        border: "1px solid",
+        borderColor: "divider",
+        overflow: "hidden",
+      }}
+    >
+      <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider" }}>
+        <Typography variant="h6" fontWeight={900}>
+          Assets
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Showing assets for the selected hierarchy level.
+        </Typography>
+      </Box>
+
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Asset Tag</TableCell>
+            <TableCell>Category</TableCell>
+            <TableCell>Brand</TableCell>
+            <TableCell>Model</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Assigned To</TableCell>
+            <TableCell>Location</TableCell>
+            <TableCell>Room</TableCell>
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {rows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={8}>
+                <Typography textAlign="center" color="text.secondary" sx={{ py: 4 }}>
+                  {loading ? "Loading assets..." : "No assets found."}
+                </Typography>
+              </TableCell>
+            </TableRow>
+          )}
+
+          {rows.map((asset) => (
+            <TableRow
+              key={asset.AssetId}
+              hover
+              onClick={() => onRowClick?.(asset)}
+              sx={{ cursor: onRowClick ? "pointer" : "default" }}
+            >
+              <TableCell>
+                <Typography fontWeight={800}>{asset.AssetTag}</Typography>
+              </TableCell>
+              <TableCell>{asset.CategoryName || "—"}</TableCell>
+              <TableCell>{asset.BrandName || "—"}</TableCell>
+              <TableCell>{asset.ModelName || "—"}</TableCell>
+              <TableCell>
+                <Chip
+                  size="small"
+                  label={asset.StatusName || "Unknown"}
+                  color={getStatusColor(asset.StatusKey)}
+                />
+              </TableCell>
+              <TableCell>
+                {asset.CurrentAssignedName ||
+                  asset.CurrentAssignedEmployeeCode ||
+                  "—"}
+              </TableCell>
+              <TableCell>{asset.LocationName || "—"}</TableCell>
+              <TableCell>{asset.RoomName || "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <TablePagination
+        component="div"
+        count={total}
+        page={Math.max(page - 1, 0)}
+        rowsPerPage={limit}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        onPageChange={(_, newPage) => onPageChange?.(newPage + 1)}
+        onRowsPerPageChange={(event) => onLimitChange?.(Number(event.target.value))}
+      />
+    </Paper>
+  );
+};
+
+export default AssetTable;
+
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\components\itAssets\toolbars\AssetExplorerToolbar.jsx
+LINES: 140
+============================================================
+// ============================================
+// Compact Asset Explorer Toolbar
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Box,
+  Button,
+  InputAdornment,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+
+const AssetExplorerToolbar = ({
+  title = "Asset Management",
+  subtitle = "Manage and organize all IT assets across the school.",
+  search,
+  searchPlaceholder = "Search assets...",
+  filtersContent,
+  onSearchChange,
+  onRefresh,
+  onImport,
+  onAddAsset,
+}) => {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", md: "center" }}
+        spacing={1.5}
+        sx={{ mb: 1.5 }}
+      >
+        <Box>
+          <Typography
+            sx={{
+              fontSize: { xs: 26, md: 32 },
+              fontWeight: 900,
+              lineHeight: 1.05,
+            }}
+          >
+            {title}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
+            {subtitle}
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshRoundedIcon />}
+            onClick={onRefresh}
+            sx={actionButtonSx}
+          >
+            Refresh
+          </Button>
+
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<UploadFileRoundedIcon />}
+            onClick={onImport}
+            sx={actionButtonSx}
+          >
+            Import
+          </Button>
+
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={onAddAsset}
+            sx={actionButtonSx}
+          >
+            Add Asset
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Paper
+        elevation={0}
+        sx={(theme) => ({
+          p: 1,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: theme.palette.background.paper,
+        })}
+      >
+        <Stack
+          direction={{ xs: "column", xl: "row" }}
+          spacing={1}
+          alignItems={{ xs: "stretch", xl: "center" }}
+        >
+          <TextField
+            fullWidth
+            size="small"
+            value={search}
+            onChange={(event) => onSearchChange?.(event.target.value)}
+            placeholder={searchPlaceholder}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon color="action" fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              maxWidth: { xl: 560 },
+              "& .MuiOutlinedInput-root": {
+                height: 38,
+                borderRadius: 2.5,
+              },
+            }}
+          />
+
+          {filtersContent}
+        </Stack>
+      </Paper>
+    </Box>
+  );
+};
+
+const actionButtonSx = {
+  minHeight: 38,
+  px: 2,
+  borderRadius: 2.5,
+  fontWeight: 800,
+};
+
+export default AssetExplorerToolbar;
+
+

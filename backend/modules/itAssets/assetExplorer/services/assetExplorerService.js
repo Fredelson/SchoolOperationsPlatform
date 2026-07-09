@@ -1,25 +1,14 @@
 /* =========================================================
    ARAB UNITY SCHOOL OPERATIONS PLATFORM
    IT Asset Explorer Service
-
-   Purpose:
-   - Service layer for Asset Management hierarchy.
-   - Keeps controller clean.
-   - Keeps SQL inside repository only.
 ========================================================= */
 
 const repository = require("../repositories/assetExplorerRepository");
 
-/**
- * Get category cards.
- */
 const getCategories = async ({ search }) => {
   return repository.getCategories({ search });
 };
 
-/**
- * Get brand cards under selected category.
- */
 const getBrandsByCategory = async ({ categoryId, search }) => {
   if (!categoryId) {
     throw Object.assign(new Error("Category ID is required."), {
@@ -30,9 +19,6 @@ const getBrandsByCategory = async ({ categoryId, search }) => {
   return repository.getBrandsByCategory({ categoryId, search });
 };
 
-/**
- * Get model cards under selected category and brand.
- */
 const getModelsByBrand = async ({ categoryId, brandId, search }) => {
   if (!categoryId) {
     throw Object.assign(new Error("Category ID is required."), {
@@ -49,17 +35,6 @@ const getModelsByBrand = async ({ categoryId, brandId, search }) => {
   return repository.getModelsByBrand({ categoryId, brandId, search });
 };
 
-/**
- * Get explorer asset table rows.
- *
- * Filters apply only to the asset table:
- * - category
- * - brand
- * - model
- * - status
- * - location
- * - condition
- */
 const getExplorerAssets = async ({
   search = "",
   categoryId = null,
@@ -68,6 +43,7 @@ const getExplorerAssets = async ({
   statusId = null,
   locationId = null,
   conditionId = null,
+  noBrandModel = false,
   page = 1,
   limit = 10,
 }) => {
@@ -79,14 +55,12 @@ const getExplorerAssets = async ({
     statusId,
     locationId,
     conditionId,
+    noBrandModel,
     page,
     limit,
   });
 };
 
-/**
- * Find exact asset hierarchy path by AssetTag.
- */
 const findAssetPathByTag = async ({ assetTag }) => {
   if (!assetTag) {
     throw Object.assign(new Error("Asset tag is required."), {
