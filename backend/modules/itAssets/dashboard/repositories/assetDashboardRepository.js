@@ -17,10 +17,11 @@ async function getDashboardSummary() {
   const result = await executeQuery(`
     SELECT
       COUNT(*) AS TotalAssets,
-      SUM(CASE WHEN s.StatusName = 'Available' THEN 1 ELSE 0 END) AS AvailableAssets,
-      SUM(CASE WHEN s.StatusName = 'Assigned' THEN 1 ELSE 0 END) AS AssignedAssets,
+      SUM(CASE WHEN a.IsActive = 1 AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED' THEN 1 ELSE 0 END) AS ActiveAssets,
+      SUM(CASE WHEN a.CurrentAssignedUserId IS NOT NULL OR NULLIF(LTRIM(RTRIM(a.CurrentAssignedName)), '') IS NOT NULL THEN 1 ELSE 0 END) AS AssignedAssets,
+      SUM(CASE WHEN a.CurrentAssignedUserId IS NULL AND NULLIF(LTRIM(RTRIM(a.CurrentAssignedName)), '') IS NULL THEN 1 ELSE 0 END) AS UnassignedAssets,
       SUM(CASE WHEN s.StatusName = 'Borrowed' THEN 1 ELSE 0 END) AS BorrowedAssets,
-      SUM(CASE WHEN s.StatusName IN ('Maintenance', 'Under Maintenance') THEN 1 ELSE 0 END) AS UnderMaintenanceAssets,
+      SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'MAINTENANCE', 'UNDERMAINTENANCE') THEN 1 ELSE 0 END) AS UnderMaintenanceAssets,
       SUM(CASE WHEN s.StatusName = 'Disposed' THEN 1 ELSE 0 END) AS DisposedAssets
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetStatuses s
@@ -29,6 +30,107 @@ async function getDashboardSummary() {
   `);
 
   return firstOrNull(result);
+}
+
+async function getAssetsByCondition() {
+  const result = await executeQuery(`
+    SELECT ISNULL(c.ConditionName, 'Not Recorded') AS ConditionName, COUNT(*) AS Total
+    FROM dbo.ITAssets a
+    LEFT JOIN dbo.ITAssetConditions c ON a.ITAssetConditionId = c.ITAssetConditionId
+    WHERE a.IsDeleted = 0
+    GROUP BY c.ConditionName
+    ORDER BY Total DESC;
+  `);
+  return rows(result);
+}
+
+async function getAssignmentOverview() {
+  const result = await executeQuery(`
+    SELECT
+      CASE
+        WHEN a.CurrentAssignedUserId IS NOT NULL THEN ISNULL(r.DisplayName, r.RoleName)
+        WHEN NULLIF(LTRIM(RTRIM(a.CurrentAssignedName)), '') IS NOT NULL THEN 'External / Named Assignee'
+        ELSE 'Unassigned'
+      END AS AssignmentType,
+      COUNT(*) AS Total
+    FROM dbo.ITAssets a
+    LEFT JOIN dbo.Users u ON a.CurrentAssignedUserId = u.UserId
+    LEFT JOIN dbo.Roles r ON u.RoleId = r.RoleId
+    WHERE a.IsDeleted = 0
+    GROUP BY
+      CASE
+        WHEN a.CurrentAssignedUserId IS NOT NULL THEN ISNULL(r.DisplayName, r.RoleName)
+        WHEN NULLIF(LTRIM(RTRIM(a.CurrentAssignedName)), '') IS NOT NULL THEN 'External / Named Assignee'
+        ELSE 'Unassigned'
+      END
+    ORDER BY Total DESC;
+  `);
+  return rows(result);
+}
+
+async function getMaintenanceSummary() {
+  const result = await executeQuery(`
+    SELECT TOP 6
+      a.AssetId,
+      a.AssetTag,
+      ISNULL(m.ModelName, a.ModelDescription) AS AssetName,
+      l.LocationName,
+      s.StatusName,
+      latest.MaintenanceType,
+      latest.PerformedAt,
+      latest.NextDueAt
+    FROM dbo.ITAssets a
+    INNER JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetModels m ON a.ITAssetModelId = m.ITAssetModelId
+    LEFT JOIN dbo.Locations l ON a.CurrentLocationId = l.LocationId
+    OUTER APPLY (
+      SELECT TOP 1 MaintenanceType, PerformedAt, NextDueAt
+      FROM dbo.ITAssetMaintenanceLogs ml
+      WHERE ml.AssetId = a.AssetId
+      ORDER BY ml.PerformedAt DESC
+    ) latest
+    WHERE a.IsDeleted = 0
+      AND UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'MAINTENANCE', 'UNDERMAINTENANCE')
+    ORDER BY ISNULL(latest.PerformedAt, a.UpdatedAt) DESC;
+  `);
+  return rows(result);
+}
+
+async function getTransferSummary() {
+  const result = await executeQuery(`
+    SELECT UPPER(TransferStatus) AS StatusName, COUNT(*) AS Total
+    FROM dbo.ITAssetTransferRequests
+    GROUP BY UPPER(TransferStatus)
+    ORDER BY Total DESC;
+  `);
+  return rows(result);
+}
+
+async function getDisposalSummary() {
+  const result = await executeQuery(`
+    SELECT UPPER(DisposalStatus) AS StatusName, COUNT(*) AS Total
+    FROM dbo.ITAssetDisposals
+    GROUP BY UPPER(DisposalStatus)
+    ORDER BY Total DESC;
+  `);
+  return rows(result);
+}
+
+async function getProcurementRequirements() {
+  const result = await executeQuery(`
+    SELECT
+      ISNULL(NULLIF(LTRIM(RTRIM(LaptopModel)), ''), 'Laptop - Model Not Specified') AS ItemName,
+      'Laptop' AS CategoryName,
+      COUNT(*) AS RequestedQuantity,
+      0 AS AvailableQuantity,
+      COUNT(*) AS ShortageQuantity,
+      Status
+    FROM dbo.ITAssetNeededLaptops
+    WHERE UPPER(ISNULL(Status, 'PENDING REVIEW')) NOT IN ('FULFILLED', 'COMPLETED', 'CANCELLED')
+    GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(LaptopModel)), ''), 'Laptop - Model Not Specified'), Status
+    ORDER BY ShortageQuantity DESC, ItemName;
+  `);
+  return rows(result);
 }
 
 async function getOpenIssueCount() {
@@ -112,19 +214,25 @@ async function getAssetsByLocation() {
 async function getRecentActivity() {
   const result = await executeQuery(`
     SELECT TOP 10
-      ActivityTimelineId,
-      UserId,
-      ModuleKey,
-      EntityType,
-      EntityId,
-      ActivityType,
-      ActivityTitle,
-      ActivityDescription,
-      CreatedAt
-    FROM dbo.ActivityTimeline
-    WHERE ModuleKey = 'itAssets'
-       OR EntityType IN ('ITAsset', 'ITAssets')
-    ORDER BY CreatedAt DESC;
+      activity.ActivityTimelineId,
+      activity.UserId,
+      activity.ModuleKey,
+      activity.EntityType,
+      activity.EntityId,
+      activity.ActivityType,
+      activity.ActivityTitle,
+      activity.ActivityDescription,
+      activity.CreatedAt,
+      u.FullName AS PerformedByName,
+      asset.AssetTag
+    FROM dbo.ActivityTimeline activity
+    LEFT JOIN dbo.Users u ON activity.UserId = u.UserId
+    LEFT JOIN dbo.ITAssets asset
+      ON activity.EntityType IN ('ITAsset', 'ITAssets')
+      AND TRY_CONVERT(INT, activity.EntityId) = asset.AssetId
+    WHERE UPPER(activity.ModuleKey) IN ('ITASSETS', 'IT_ASSETS')
+       OR activity.EntityType IN ('ITAsset', 'ITAssets')
+    ORDER BY activity.CreatedAt DESC;
   `);
 
   return rows(result);
@@ -138,5 +246,11 @@ module.exports = {
   getAssetsByCategory,
   getAssetsByStatus,
   getAssetsByLocation,
+  getAssetsByCondition,
+  getAssignmentOverview,
+  getMaintenanceSummary,
+  getTransferSummary,
+  getDisposalSummary,
+  getProcurementRequirements,
   getRecentActivity,
 };

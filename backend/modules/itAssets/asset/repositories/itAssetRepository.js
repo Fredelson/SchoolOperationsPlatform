@@ -236,13 +236,13 @@ const getAssetById = async (assetId) => {
         l.LocationName,
         sch.SchoolName
       FROM dbo.ITAssets a
-      INNER JOIN dbo.ITAssetCategories c
+      LEFT JOIN dbo.ITAssetCategories c
         ON a.ITAssetCategoryId = c.ITAssetCategoryId
       LEFT JOIN dbo.ITAssetModels m
         ON a.ITAssetModelId = m.ITAssetModelId
       LEFT JOIN dbo.ITAssetBrands b
         ON m.ITAssetBrandId = b.ITAssetBrandId
-      INNER JOIN dbo.ITAssetStatuses s
+      LEFT JOIN dbo.ITAssetStatuses s
         ON a.ITAssetStatusId = s.ITAssetStatusId
       LEFT JOIN dbo.ITAssetConditions con
         ON a.ITAssetConditionId = con.ITAssetConditionId

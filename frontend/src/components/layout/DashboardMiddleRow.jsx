@@ -22,11 +22,15 @@ import SystemHealth from "../dashboard/SystemHealth";
 import RecentActivity from "../dashboard/RecentActivity";
 
 export default function DashboardMiddleRow({
+  children,
+  columns,
   platformActivityData = [],
   moduleStatusData = [],
   systemHealthData = [],
   recentActivityData = [],
 }) {
+  const hasCustomContent = Boolean(children);
+
   return (
     <Box
       sx={{
@@ -35,24 +39,23 @@ export default function DashboardMiddleRow({
           xs: "1fr",
           sm: "1fr",
           md: "repeat(2, minmax(0, 1fr))",
-          lg: "2fr 1.15fr 1.15fr 1.35fr",
+          lg: columns || "2fr 1.15fr 1.15fr 1.35fr",
         },
-        gap: 0.5,
+        gap: hasCustomContent ? 2 : 0.5,
         alignItems: "stretch",
         mb: 1,
       }}
     >
-      {/* System Overview / Platform Activity */}
-      <PlatformActivityChart data={platformActivityData} />
-
-      {/* Module Status */}
-      <ModuleStatusChart data={moduleStatusData} />
-
-      {/* System Health */}
-      <SystemHealth items={systemHealthData} />
-
-      {/* Recent Activities */}
-      <RecentActivity items={recentActivityData} />
+      {hasCustomContent ? (
+        children
+      ) : (
+        <>
+          <PlatformActivityChart data={platformActivityData} />
+          <ModuleStatusChart data={moduleStatusData} />
+          <SystemHealth items={systemHealthData} />
+          <RecentActivity items={recentActivityData} />
+        </>
+      )}
     </Box>
   );
 }

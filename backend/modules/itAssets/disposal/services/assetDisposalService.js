@@ -13,6 +13,14 @@ const requestDisposal = async ({ payload, user }) => {
     throw Object.assign(new Error("IT asset not found."), { statusCode: 404 });
   }
 
+  const existingDisposal = await repository.getOpenDisposalForAsset(payload.assetId);
+  if (existingDisposal) {
+    throw Object.assign(
+      new Error("This asset already has a pending or approved disposal request."),
+      { statusCode: 409 }
+    );
+  }
+
   return repository.requestDisposal({
     payload,
     requestedBy: userId(user),

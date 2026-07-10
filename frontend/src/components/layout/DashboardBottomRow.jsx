@@ -21,10 +21,14 @@ import TicketsByStatus from "../charts/TicketsByStatus";
 import PendingApprovals from "../dashboard/PendingApprovals";
 
 export default function DashboardBottomRow({
+  children,
+  columns,
   topPrintRequests = [],
   ticketStatus = [],
   pendingApprovals = [],
 }) {
+  const hasCustomContent = Boolean(children);
+
   return (
     <Box
       sx={{
@@ -34,7 +38,7 @@ export default function DashboardBottomRow({
           xs: "1fr",
           sm: "1fr",
           md: "repeat(2, minmax(0, 1fr))",
-          xl: "repeat(3, minmax(0, 1fr))",
+          xl: columns || "repeat(3, minmax(0, 1fr))",
         },
         gap: 1.5,
         alignItems: "stretch",
@@ -43,9 +47,15 @@ export default function DashboardBottomRow({
         },
       }}
     >
-      <TopPrintRequests items={topPrintRequests} />
-      <TicketsByStatus data={ticketStatus} />
-      <PendingApprovals subtitle="Awaiting action" items={pendingApprovals} />
+      {hasCustomContent ? (
+        children
+      ) : (
+        <>
+          <TopPrintRequests items={topPrintRequests} />
+          <TicketsByStatus data={ticketStatus} />
+          <PendingApprovals subtitle="Awaiting action" items={pendingApprovals} />
+        </>
+      )}
     </Box>
   );
 }

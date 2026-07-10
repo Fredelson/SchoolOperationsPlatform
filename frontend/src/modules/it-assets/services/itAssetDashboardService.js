@@ -15,6 +15,12 @@ export const getItAssetDashboardService = async () => {
   return {
     kpis: data.kpis || {},
     charts: data.charts || {},
+    procurement: data.procurement || [],
+    operations: data.operations || {
+      maintenance: [],
+      transfers: [],
+      disposals: [],
+    },
     recentActivity: data.recentActivity || [],
     recentlyAssignedAssets: data.recentlyAssignedAssets || [],
     openIssues: data.openIssues || [],

@@ -35,6 +35,21 @@ const getDisposalById = async (disposalId) => {
   return firstOrNull(result);
 };
 
+const getOpenDisposalForAsset = async (assetId) => {
+  const result = await executeQuery(
+    `
+      SELECT TOP 1 *
+      FROM dbo.ITAssetDisposals
+      WHERE AssetId = @AssetId
+        AND UPPER(DisposalStatus) IN ('PENDING', 'APPROVED')
+      ORDER BY RequestedAt DESC;
+    `,
+    [{ name: "AssetId", type: sql.Int, value: Number(assetId) }]
+  );
+
+  return firstOrNull(result);
+};
+
 const getStatusByKey = async (statusKey) => {
   const result = await executeQuery(
     `
@@ -285,13 +300,16 @@ const getDisposals = async ({ status = null, assetId = null }) => {
 
         a.AssetId,
         a.AssetTag,
-        a.AssetCode,
         a.ModelDescription,
         a.ITAssetStatusId,
         a.IsActive,
 
         assetStatus.StatusKey,
         assetStatus.StatusName,
+
+        category.CategoryName,
+        model.ModelName,
+        location.LocationName,
 
         requestedBy.FullName AS RequestedByName,
         approvedBy.FullName AS ApprovedByName
@@ -300,6 +318,12 @@ const getDisposals = async ({ status = null, assetId = null }) => {
         ON d.AssetId = a.AssetId
       LEFT JOIN dbo.ITAssetStatuses assetStatus
         ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+      LEFT JOIN dbo.ITAssetCategories category
+        ON a.ITAssetCategoryId = category.ITAssetCategoryId
+      LEFT JOIN dbo.ITAssetModels model
+        ON a.ITAssetModelId = model.ITAssetModelId
+      LEFT JOIN dbo.Locations location
+        ON a.CurrentLocationId = location.LocationId
       LEFT JOIN dbo.Users requestedBy
         ON d.RequestedBy = requestedBy.UserId
       LEFT JOIN dbo.Users approvedBy
@@ -321,6 +345,7 @@ const getDisposals = async ({ status = null, assetId = null }) => {
 module.exports = {
   getAssetById,
   getDisposalById,
+  getOpenDisposalForAsset,
   getStatusByKey,
   requestDisposal,
   approveDisposal,

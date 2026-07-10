@@ -7,6 +7,9 @@ const router = express.Router();
 
 const controller = require("../controllers/assetMaintenanceController");
 const validator = require("../validators/assetMaintenanceValidator");
+const { protect, authorizeRoles } = require("../../../../middleware/authMiddleware");
+
+router.use(protect, authorizeRoles("SuperAdmin", "PlatformAdmin"));
 
 router.post("/", validator.validateCreateMaintenance, controller.createMaintenanceLog);
 

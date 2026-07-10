@@ -7,7 +7,6 @@
 // ============================================
 
 import { Box, Typography } from "@mui/material";
-import { dashboardColors } from "../../theme/dashboardColors";
 
 export default function DashboardSection({
   title,
@@ -34,7 +33,7 @@ export default function DashboardSection({
                 sx={{
                   fontSize: 18,
                   fontWeight: 900,
-                  color: dashboardColors.textPrimary,
+                  color: "text.primary",
                 }}
               >
                 {title}
@@ -46,7 +45,7 @@ export default function DashboardSection({
                 sx={{
                   mt: 0.3,
                   fontSize: 13,
-                  color: dashboardColors.textSecondary,
+                  color: "text.secondary",
                 }}
               >
                 {subtitle}

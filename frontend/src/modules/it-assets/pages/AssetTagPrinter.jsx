@@ -16,6 +16,7 @@
 // ============================================================
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   Box,
@@ -179,6 +180,8 @@ const buildAssetSearchText = (asset) => {
 
 function AssetTagPrinter() {
   usePageTitle("Asset Tag Printer");
+  const [searchParams] = useSearchParams();
+  const requestedAssetId = searchParams.get("assetId") || "";
 
   // ==========================================================
   // State
@@ -226,11 +229,19 @@ function AssetTagPrinter() {
           .filter(Boolean)
       );
 
-      setSelectedAssets((current) =>
-        current.filter((asset) =>
+      setSelectedAssets((current) => {
+        const retained = current.filter((asset) =>
           availableAssetIds.has(getAssetId(asset))
-        )
-      );
+        );
+
+        if (retained.length || !requestedAssetId) return retained;
+
+        const requestedAsset = loadedAssets.find(
+          (asset) => getAssetId(asset) === String(requestedAssetId)
+        );
+
+        return requestedAsset ? [requestedAsset] : retained;
+      });
     } catch (err) {
       console.error(
         "Failed to load assets for label printing:",
@@ -248,9 +259,11 @@ function AssetTagPrinter() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [requestedAssetId]);
 
   useEffect(() => {
+    // Initial synchronization with the asset list API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAssets();
   }, [loadAssets]);
 

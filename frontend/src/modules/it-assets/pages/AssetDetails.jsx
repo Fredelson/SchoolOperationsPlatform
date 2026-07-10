@@ -1,131 +1,141 @@
-// ============================================
-// Asset Details Page
-// Arab Unity School Operations Platform
-// ============================================
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Box, Grid, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Paper,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
 
-import usePageTitle from "../../../platform/hooks/usePageTitle";
+import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
+import KeyboardReturnOutlinedIcon from "@mui/icons-material/KeyboardReturnOutlined";
+import LocalPrintshopOutlinedIcon from "@mui/icons-material/LocalPrintshopOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+
 import { useAuth } from "../../../context/AuthContext";
+import usePageTitle from "../../../platform/hooks/usePageTitle";
 import {
   AppBreadcrumbs,
+  AppButton,
+  AppCard,
+  AppChip,
   AppEmptyState,
   AppLoadingState,
   AppPageHeader,
 } from "../../../platform/ui";
 
+import AssetAuditPanel from "../components/AssetAuditPanel";
+import AssetInformationPanel from "../components/AssetInformationPanel";
+import AssetTimelinePanel from "../components/AssetTimelinePanel";
+import AssignAssetDialog from "../dialogs/AssignAssetDialog";
+import DisposalDialog from "../dialogs/DisposalDialog";
+import MaintenanceDialog from "../dialogs/MaintenanceDialog";
+import ReturnAssetDialog from "../dialogs/ReturnAssetDialog";
+import TransferAssetDialog from "../dialogs/TransferAssetDialog";
 import {
-  getItAssetByIdService,
-  getItAssetTimelineService,
-  getItAssetAuditService,
-  getItAssetLookupsService,
   assignItAssetService,
+  createItAssetMaintenanceService,
+  getItAssetAuditService,
+  getItAssetByIdService,
+  getItAssetLookupsService,
+  getItAssetTimelineService,
+  requestItAssetDisposalService,
   returnItAssetService,
   transferItAssetService,
 } from "../services/itAssetService";
+import resolveAssetLookups from "../utils/resolveAssetLookups";
 
-import AssetInformationPanel from "../components/AssetInformationPanel";
-import AssetTimelinePanel from "../components/AssetTimelinePanel";
-import AssetAuditPanel from "../components/AssetAuditPanel";
-import AssignAssetDialog from "../dialogs/AssignAssetDialog";
-import ReturnAssetDialog from "../dialogs/ReturnAssetDialog";
-import TransferAssetDialog from "../dialogs/TransferAssetDialog";
+const isAssigned = (asset) =>
+  Boolean(asset?.CurrentAssignedUserId || asset?.CurrentAssignedName);
+
+const Detail = ({ label, value }) => (
+  <Stack spacing={0.35}>
+    <Typography variant="caption" color="text.secondary" fontWeight={700}>
+      {label}
+    </Typography>
+    <Typography variant="body2" fontWeight={800}>
+      {value || "—"}
+    </Typography>
+  </Stack>
+);
 
 const AssetDetails = () => {
-  usePageTitle("AUS | Asset Details");
+  usePageTitle("Asset Details");
 
   const { assetId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canTransfer = ["SuperAdmin", "PlatformAdmin"].includes(
-    user?.roleKey || user?.role
-  );
+  const role = user?.roleKey || user?.role;
+  const canManageLifecycle = ["SuperAdmin", "PlatformAdmin"].includes(role);
 
   const [asset, setAsset] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [lookups, setLookups] = useState({});
-  const [tab, setTab] = useState(0);
-
+  const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
-  const [timelineLoading, setTimelineLoading] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
-
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [returnOpen, setReturnOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   const loadAsset = useCallback(async () => {
     try {
       setLoading(true);
-      setTimelineLoading(true);
-      setAuditLoading(true);
       setError("");
 
-      const assetData = await getItAssetByIdService(assetId);
-      setAsset(assetData);
+      const [assetData, lookupData, timelineData, auditData] = await Promise.all([
+        getItAssetByIdService(assetId),
+        getItAssetLookupsService(),
+        getItAssetTimelineService(assetId),
+        getItAssetAuditService(assetId),
+      ]);
 
-      const timelineData = await getItAssetTimelineService(assetId);
-      setTimeline(timelineData?.timeline || []);
-
-      const auditData = await getItAssetAuditService(assetId);
-      setAuditLogs(auditData || []);
-
-      const lookupData = await getItAssetLookupsService();
       setLookups(lookupData || {});
+      setAsset(resolveAssetLookups(assetData, lookupData || {}));
+      setTimeline(timelineData?.timeline || []);
+      setAuditLogs(auditData || []);
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to load asset details.");
     } finally {
       setLoading(false);
-      setTimelineLoading(false);
-      setAuditLoading(false);
     }
   }, [assetId]);
 
   useEffect(() => {
+    // Initial synchronization with asset, lookup, timeline, and audit APIs.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAsset();
   }, [loadAsset]);
 
-  const handleAssignSubmit = async (payload) => {
+  const runAction = async (action, closeDialog = true) => {
     try {
       setActionSaving(true);
       setActionError("");
-
-      await assignItAssetService(payload);
-
-      setAssignOpen(false);
+      await action();
+      if (closeDialog) setDialog(null);
       await loadAsset();
-      setTab(0);
+      setTab("overview");
     } catch (err) {
-      setActionError(err?.response?.data?.message || "Failed to assign asset.");
+      setActionError(err?.response?.data?.message || "Unable to complete this action.");
     } finally {
       setActionSaving(false);
     }
   };
 
-  if (loading) {
-    return <AppLoadingState title="Loading asset details..." />;
-  }
+  const disposed = useMemo(
+    () => String(asset?.StatusKey || asset?.StatusName || "").toUpperCase() === "DISPOSED",
+    [asset]
+  );
 
-  if (error) {
+  if (loading && !asset) return <AppLoadingState title="Loading asset details..." />;
+
+  if (error && !asset) {
     return (
       <AppEmptyState
         title="Unable to load asset"
-        description={error}
-        action={<Button onClick={loadAsset}>Retry</Button>}
+        message={error}
+        actionLabel="Retry"
+        onAction={loadAsset}
       />
     );
   }
@@ -134,188 +144,274 @@ const AssetDetails = () => {
     return (
       <AppEmptyState
         title="Asset not found"
-        description="The selected IT asset could not be found."
-        action={
-          <Button onClick={() => navigate("/it-assets/assets")}>Back</Button>
-        }
+        message="The selected IT asset could not be found."
+        actionLabel="Back to Asset Explorer"
+        onAction={() => navigate("/it-assets/assets")}
       />
     );
   }
 
-  const handleReturnSubmit = async (payload) => {
-    try {
-      setActionSaving(true);
-      setActionError("");
-
-      await returnItAssetService(asset.AssetId, payload);
-
-      setReturnOpen(false);
-      await loadAsset();
-      setTab(0);
-    } catch (err) {
-      setActionError(err?.response?.data?.message || "Failed to return asset.");
-    } finally {
-      setActionSaving(false);
-    }
-  };
-
-  const handleTransferSubmit = async (payload) => {
-    try {
-      setActionSaving(true);
-      setActionError("");
-      await transferItAssetService(payload);
-      setTransferOpen(false);
-      await loadAsset();
-      setTab(0);
-    } catch (err) {
-      setActionError(err?.response?.data?.message || "Failed to transfer asset.");
-    } finally {
-      setActionSaving(false);
-    }
+  const openDialog = (name) => {
+    setActionError("");
+    setDialog(name);
   };
 
   return (
     <Box>
       <AppBreadcrumbs
         items={[
-          { label: "IT Assets", path: "/it-assets/dashboard" },
-          { label: "Asset Explorer", path: "/it-assets/assets" },
+          { label: "IT Assets", to: "/it-assets/dashboard" },
+          { label: "Asset Explorer", to: "/it-assets/assets" },
           { label: asset.AssetTag },
         ]}
       />
 
       <AppPageHeader
         title="Asset Details"
-        subtitle="View asset information, timeline, audit history, and available actions."
+        subtitle="Asset profile, assignment, location, lifecycle history, and administrative actions."
         actions={
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={() => navigate("/it-assets/assets")}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <AppButton variant="outlined" onClick={() => navigate("/it-assets/assets")}>
               Back
-            </Button>
-
-            <Button variant="contained" onClick={loadAsset}>
+            </AppButton>
+            <AppButton
+              variant="outlined"
+              startIcon={<LocalPrintshopOutlinedIcon />}
+              onClick={() =>
+                navigate(`/it-assets/asset-tag-printer?assetId=${encodeURIComponent(asset.AssetId)}`)
+              }
+            >
+              Print Label
+            </AppButton>
+            <AppButton startIcon={<RefreshOutlinedIcon />} onClick={loadAsset} disabled={loading}>
               Refresh
-            </Button>
+            </AppButton>
           </Stack>
         }
       />
 
-      <Stack spacing={3}>
-        <AssetInformationPanel asset={asset} />
-
-        <Paper
-          elevation={0}
-          sx={(theme) => ({
-            borderRadius: 4,
-            border: `1px solid ${theme.palette.divider}`,
-            overflow: "hidden",
-          })}
-        >
-          <Tabs value={tab} onChange={(_, value) => setTab(value)}>
-            <Tab label="Timeline" />
-            <Tab label="Audit" />
-            <Tab label="Actions" />
-          </Tabs>
-
-          <Box sx={{ p: 3 }}>
-            {tab === 0 &&
-              (timelineLoading ? (
-                <Typography color="text.secondary">Loading timeline...</Typography>
-              ) : (
-                <AssetTimelinePanel timeline={timeline} />
-              ))}
-
-            {tab === 1 &&
-              (auditLoading ? (
-                <Typography color="text.secondary">
-                  Loading audit history...
+      <Stack spacing={2.5}>
+        <AppCard>
+          <Grid container spacing={3} alignItems="center">
+            <Grid size={{ xs: 12, md: 2 }}>
+              <Box
+                sx={{
+                  minHeight: 132,
+                  borderRadius: 4,
+                  bgcolor: "action.hover",
+                  color: "primary.main",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <DevicesOutlinedIcon sx={{ fontSize: 72 }} />
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 5 }}>
+              <Stack spacing={1.25}>
+                <Typography variant="h4" fontWeight={900}>
+                  {asset.AssetTag}
                 </Typography>
-              ) : (
-                <AssetAuditPanel auditLogs={auditLogs} />
-              ))}
-
-            {tab === 2 && (
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    setActionError("");
-                    setAssignOpen(true);
-                  }}
-                  disabled={Boolean(asset.CurrentAssignedUserId || asset.CurrentAssignedName)}
-                >
-                  Assign
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setActionError("");
-                    setReturnOpen(true);
-                  }}
-                  disabled={!asset.CurrentAssignedUserId && !asset.CurrentAssignedName}
-                >
-                  Return
-                </Button>
-
-                {canTransfer && (
-                  <Button
-                    variant="outlined"
-                    onClick={() => {
-                      setActionError("");
-                      setTransferOpen(true);
-                    }}
-                  >
-                    Transfer
-                  </Button>
-                )}
-
-                <Button variant="outlined" disabled>
-                  Maintenance
-                </Button>
-
-                <Button variant="outlined" color="error" disabled>
-                  Dispose
-                </Button>
+                <Typography variant="h6" color="text.secondary" fontWeight={700}>
+                  {[asset.BrandName, asset.ModelName || asset.ModelDescription]
+                    .filter(Boolean)
+                    .join(" ") || "Asset model not recorded"}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <AppChip label={asset.StatusName || "Status unknown"} status={asset.StatusName} />
+                  <AppChip label={asset.ConditionName || "Condition unknown"} status={asset.ConditionName} />
+                </Stack>
               </Stack>
-            )}
-          </Box>
-        </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 5 }}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6 }}><Detail label="Category" value={asset.CategoryName} /></Grid>
+                <Grid size={{ xs: 6 }}><Detail label="Department" value={asset.DepartmentName} /></Grid>
+                <Grid size={{ xs: 6 }}><Detail label="Location" value={asset.LocationName} /></Grid>
+                <Grid size={{ xs: 6 }}><Detail label="Room" value={asset.RoomName} /></Grid>
+                <Grid size={{ xs: 6 }}><Detail label="Serial / IP / MAC" value={asset.SerialIpMac} /></Grid>
+                <Grid size={{ xs: 6 }}><Detail label="School" value={asset.SchoolName} /></Grid>
+              </Grid>
+            </Grid>
+          </Grid>
+        </AppCard>
+
+        <AppCard noPadding>
+          <Tabs
+            value={tab}
+            onChange={(_, value) => setTab(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ px: { xs: 1, md: 2 }, borderBottom: "1px solid", borderColor: "divider" }}
+          >
+            <Tab value="overview" label="Overview" />
+            <Tab value="timeline" label="History & Timeline" />
+            <Tab value="audit" label="Audit" />
+          </Tabs>
+        </AppCard>
+
+        {tab === "overview" && (
+          <Grid container spacing={2} alignItems="flex-start">
+            <Grid size={{ xs: 12, lg: 8 }}>
+              <Stack spacing={2}>
+                <AssetInformationPanel asset={asset} />
+                <AppCard>
+                  <Typography variant="subtitle1" fontWeight={900} sx={{ mb: 2 }}>
+                    Recent Asset Timeline
+                  </Typography>
+                  <AssetTimelinePanel timeline={timeline.slice(0, 5)} />
+                </AppCard>
+              </Stack>
+            </Grid>
+
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Stack spacing={2}>
+                <AppCard>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" fontWeight={900}>Current Assignment</Typography>
+                    <AppChip
+                      label={isAssigned(asset) ? "Assigned" : "Unassigned"}
+                      status={isAssigned(asset) ? "Active" : "Pending"}
+                    />
+                  </Stack>
+                  <Stack spacing={1.25}>
+                    <Detail
+                      label="Assigned To"
+                      value={asset.CurrentAssignedUserName || asset.CurrentAssignedName}
+                    />
+                    <Detail label="Employee Code" value={asset.CurrentAssignedEmployeeCode} />
+                    <Detail label="Email" value={asset.CurrentAssignedEmail} />
+                    <Detail label="Department" value={asset.DepartmentName} />
+                  </Stack>
+                </AppCard>
+
+                <AppCard>
+                  <Typography variant="subtitle1" fontWeight={900} sx={{ mb: 2 }}>
+                    Quick Actions
+                  </Typography>
+                  <Stack spacing={1}>
+                    <AppButton
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<AssignmentIndOutlinedIcon />}
+                      disabled={isAssigned(asset) || disposed}
+                      onClick={() => openDialog("assign")}
+                      sx={{ justifyContent: "flex-start" }}
+                    >
+                      Assign Asset
+                    </AppButton>
+                    <AppButton
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<KeyboardReturnOutlinedIcon />}
+                      disabled={!isAssigned(asset) || disposed}
+                      onClick={() => openDialog("return")}
+                      sx={{ justifyContent: "flex-start" }}
+                    >
+                      Return Asset
+                    </AppButton>
+                    {canManageLifecycle && (
+                      <>
+                        <AppButton
+                          fullWidth
+                          variant="outlined"
+                          startIcon={<SwapHorizOutlinedIcon />}
+                          disabled={disposed}
+                          onClick={() => openDialog("transfer")}
+                          sx={{ justifyContent: "flex-start" }}
+                        >
+                          Transfer Asset
+                        </AppButton>
+                        <AppButton
+                          fullWidth
+                          variant="outlined"
+                          color="warning"
+                          startIcon={<BuildOutlinedIcon />}
+                          disabled={disposed}
+                          onClick={() => openDialog("maintenance")}
+                          sx={{ justifyContent: "flex-start" }}
+                        >
+                          Record Maintenance
+                        </AppButton>
+                        <AppButton
+                          fullWidth
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteOutlineOutlinedIcon />}
+                          disabled={disposed}
+                          onClick={() => openDialog("disposal")}
+                          sx={{ justifyContent: "flex-start" }}
+                        >
+                          Request Disposal
+                        </AppButton>
+                      </>
+                    )}
+                  </Stack>
+                </AppCard>
+              </Stack>
+            </Grid>
+          </Grid>
+        )}
+
+        {tab === "timeline" && (
+          <AppCard><AssetTimelinePanel timeline={timeline} /></AppCard>
+        )}
+        {tab === "audit" && (
+          <AppCard><AssetAuditPanel auditLogs={auditLogs} /></AppCard>
+        )}
       </Stack>
 
-      <AssignAssetDialog
-        open={assignOpen}
-        asset={asset}
-        lookups={lookups}
-        saving={actionSaving}
-        error={actionError}
-        onClose={() => {
-          if (!actionSaving) setAssignOpen(false);
-        }}
-        onSubmit={handleAssignSubmit}
-      />
-      <ReturnAssetDialog
-        open={returnOpen}
-        asset={asset}
-        lookups={lookups}
-        saving={actionSaving}
-        error={actionError}
-        onClose={() => {
-          if (!actionSaving) setReturnOpen(false);
-        }}
-        onSubmit={handleReturnSubmit}
-      />
-      {transferOpen && (
+      {dialog === "assign" && (
+        <AssignAssetDialog
+          open
+          asset={asset}
+          lookups={lookups}
+          saving={actionSaving}
+          error={actionError}
+          onClose={() => !actionSaving && setDialog(null)}
+          onSubmit={(payload) => runAction(() => assignItAssetService(payload))}
+        />
+      )}
+      {dialog === "return" && (
+        <ReturnAssetDialog
+          open
+          asset={asset}
+          lookups={lookups}
+          saving={actionSaving}
+          error={actionError}
+          onClose={() => !actionSaving && setDialog(null)}
+          onSubmit={(payload) => runAction(() => returnItAssetService(asset.AssetId, payload))}
+        />
+      )}
+      {dialog === "transfer" && (
         <TransferAssetDialog
           open
           asset={asset}
           lookups={lookups}
           saving={actionSaving}
           error={actionError}
-          onClose={() => {
-            if (!actionSaving) setTransferOpen(false);
-          }}
-          onSubmit={handleTransferSubmit}
+          onClose={() => !actionSaving && setDialog(null)}
+          onSubmit={(payload) => runAction(() => transferItAssetService(payload))}
+        />
+      )}
+      {dialog === "maintenance" && (
+        <MaintenanceDialog
+          open
+          asset={asset}
+          saving={actionSaving}
+          error={actionError}
+          onClose={() => !actionSaving && setDialog(null)}
+          onSubmit={(payload) => runAction(() => createItAssetMaintenanceService(payload))}
+        />
+      )}
+      {dialog === "disposal" && (
+        <DisposalDialog
+          open
+          asset={asset}
+          saving={actionSaving}
+          error={actionError}
+          onClose={() => !actionSaving && setDialog(null)}
+          onSubmit={(payload) => runAction(() => requestItAssetDisposalService(payload))}
         />
       )}
     </Box>

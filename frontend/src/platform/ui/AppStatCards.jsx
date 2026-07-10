@@ -18,6 +18,8 @@ export default function AppStatCards({ items = [], spacing = 2 }) {
             xs: 12,
             sm: 6,
             md: item.md || 3,
+            lg: item.lg || item.md || 3,
+            xl: item.xl || item.lg || item.md || 3,
           }}
         >
           <AppStatCard

@@ -11,6 +11,7 @@ import PlatformLayout from "@layouts/PlatformLayout";
 import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetDetails from "../pages/AssetDetails";
 import AssetTagPrinter from "../pages/AssetTagPrinter";
+import Disposals from "../pages/Disposals";
 
 import { AssetExplorer } from "../assetExplorer";
 
@@ -76,7 +77,7 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "disposals",
-        element: <div>Disposals - Coming Soon</div>,
+        element: <Disposals />,
       },
 
       {

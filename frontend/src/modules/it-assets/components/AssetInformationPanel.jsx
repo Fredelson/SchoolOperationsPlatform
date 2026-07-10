@@ -1,185 +1,106 @@
-// ============================================
-// Asset Information Panel
-// Arab Unity School Operations Platform
-// ============================================
+import { Box, Grid, Stack, Typography } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 
-import {
-  Grid,
-  Paper,
-  Stack,
-  Typography,
-  Divider,
-} from "@mui/material";
+import { AppCard, AppChip } from "../../../platform/ui";
+import AssetQrCode from "./qrcode/AssetQrCode";
 
-import AssetStatusChip from "./AssetStatusChip";
+const safeText = (value) =>
+  value === undefined || value === null || String(value).trim() === "" ? "—" : value;
 
-const safeText = (value) => value || "—";
+const formatDate = (value) =>
+  value ? new Intl.DateTimeFormat("en-AE", { dateStyle: "medium" }).format(new Date(value)) : "—";
 
-const InfoItem = ({ label, value }) => (
-  <Stack spacing={0.4}>
+const InfoItem = ({ label, value, children }) => (
+  <Stack spacing={0.45}>
     <Typography variant="caption" color="text.secondary" fontWeight={700}>
       {label}
     </Typography>
-
-    <Typography variant="body2" fontWeight={700}>
-      {safeText(value)}
-    </Typography>
+    {children || (
+      <Typography variant="body2" fontWeight={800}>
+        {safeText(value)}
+      </Typography>
+    )}
   </Stack>
 );
 
-const SectionTitle = ({ children }) => (
-  <Typography variant="subtitle1" fontWeight={900} sx={{ mb: 1 }}>
-    {children}
-  </Typography>
+const SectionTitle = ({ icon, children }) => (
+  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.5 }}>
+    <Box sx={{ color: "primary.main", display: "flex" }}>{icon}</Box>
+    <Typography variant="subtitle1" fontWeight={900}>
+      {children}
+    </Typography>
+  </Stack>
 );
 
 const AssetInformationPanel = ({ asset }) => {
   if (!asset) return null;
 
   return (
-    <Paper
-      elevation={0}
-      sx={(theme) => ({
-        p: 3,
-        borderRadius: 4,
-        border: `1px solid ${theme.palette.divider}`,
-        bgcolor: theme.palette.background.paper,
-      })}
-    >
-      <Stack spacing={3}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", md: "center" }}
-          spacing={2}
-        >
-          <Stack>
-            <Typography variant="h4" fontWeight={900}>
-              {asset.AssetTag}
-            </Typography>
-
-            <Typography variant="body2" color="text.secondary">
-              {safeText(asset.CategoryName)} ·{" "}
-              {safeText(asset.BrandName)} ·{" "}
-              {safeText(asset.ModelName || asset.ModelDescription)}
-            </Typography>
-          </Stack>
-
-          <AssetStatusChip status={asset.StatusName} />
-        </Stack>
-
-        <Divider />
-
-        <Stack>
-          <SectionTitle>Asset Information</SectionTitle>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Asset Tag" value={asset.AssetTag} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Category" value={asset.CategoryName} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Brand" value={asset.BrandName} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem
-                label="Model"
-                value={asset.ModelName || asset.ModelDescription}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Serial / IP / MAC" value={asset.SerialIpMac} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Condition" value={asset.ConditionName} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="Status" value={asset.StatusName} />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <InfoItem label="School" value={asset.SchoolName} />
-            </Grid>
+    <Stack spacing={2}>
+      <AppCard>
+        <SectionTitle icon={<InfoOutlinedIcon />}>Asset Information</SectionTitle>
+        <Grid container spacing={{ xs: 2, md: 2.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Asset Tag" value={asset.AssetTag} />
           </Grid>
-        </Stack>
-
-        <Divider />
-
-        <Stack>
-          <SectionTitle>Current Assignment</SectionTitle>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <InfoItem
-                label="Assigned To"
-                value={
-                  asset.CurrentAssignedUserName || asset.CurrentAssignedName
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem
-                label="Employee Code"
-                value={asset.CurrentAssignedEmployeeCode}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Email" value={asset.CurrentAssignedEmail} />
-            </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Category" value={asset.CategoryName} />
           </Grid>
-        </Stack>
-
-        <Divider />
-
-        <Stack>
-          <SectionTitle>Current Location</SectionTitle>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Department" value={asset.DepartmentName} />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Location" value={asset.LocationName} />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Room" value={asset.RoomName} />
-            </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Brand" value={asset.BrandName} />
           </Grid>
-        </Stack>
-
-        <Divider />
-
-        <Stack>
-          <SectionTitle>System Information</SectionTitle>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Previous Owner" value={asset.PreviousOwner} />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Created At" value={asset.CreatedAt} />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <InfoItem label="Updated At" value={asset.UpdatedAt} />
-            </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Model" value={asset.ModelName || asset.ModelDescription} />
           </Grid>
-        </Stack>
-      </Stack>
-    </Paper>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Serial / IP / MAC" value={asset.SerialIpMac} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Status">
+              <AppChip label={safeText(asset.StatusName)} status={asset.StatusName} />
+            </InfoItem>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Condition">
+              <AppChip label={safeText(asset.ConditionName)} status={asset.ConditionName} />
+            </InfoItem>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Acquired / Changed Date" value={formatDate(asset.AcquiredChangedDate)} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <InfoItem label="Previous Owner" value={asset.PreviousOwner} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <InfoItem label="Model Description" value={asset.ModelDescription} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <InfoItem label="Asset QR Code">
+              <AssetQrCode assetId={asset.AssetId} size={72} />
+            </InfoItem>
+          </Grid>
+        </Grid>
+      </AppCard>
+
+      <AppCard>
+        <SectionTitle icon={<LocationOnOutlinedIcon />}>Location Details</SectionTitle>
+        <Grid container spacing={{ xs: 2, md: 2.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <InfoItem label="School" value={asset.SchoolName} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <InfoItem label="Department" value={asset.DepartmentName} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <InfoItem label="Location" value={asset.LocationName} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <InfoItem label="Room" value={asset.RoomName} />
+          </Grid>
+        </Grid>
+      </AppCard>
+    </Stack>
   );
 };
 

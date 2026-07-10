@@ -34,8 +34,9 @@ const ItAssetDashboard = () => {
     return (
       <AppEmptyState
         title="Unable to load dashboard"
-        description={error}
-        action={<AppButton onClick={refetch}>Retry</AppButton>}
+        message={error}
+        actionLabel="Retry"
+        onAction={refetch}
       />
     );
   }
@@ -46,14 +47,14 @@ const ItAssetDashboard = () => {
     <Box>
       <AppBreadcrumbs
         items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "IT Assets", path: "/it-assets/dashboard" },
+          { label: "Dashboard", to: "/dashboard" },
+          { label: "IT Assets" },
         ]}
       />
 
       <AppPageHeader
         title="IT Asset Dashboard"
-        subtitle="Power BI-style overview of school IT assets, assignments, issues, transfers, maintenance, and disposals."
+        subtitle="Live operational view of assets, assignments, maintenance, transfers, disposals, and procurement requirements."
       />
 
       <AppToolbar
@@ -62,7 +63,7 @@ const ItAssetDashboard = () => {
       />
 
       <Stack spacing={3}>
-        <AppStatCards cards={cards} />
+        <AppStatCards items={cards} spacing={1.5} />
 
         <DashboardCharts charts={dashboard?.charts} />
 

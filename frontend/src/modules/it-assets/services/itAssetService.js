@@ -12,6 +12,12 @@ import {
   returnItAssetApi,
   transferItAssetApi,
   getItAssetLookupsApi,
+  getItAssetDisposalsApi,
+  approveItAssetDisposalApi,
+  rejectItAssetDisposalApi,
+  completeItAssetDisposalApi,
+  createItAssetMaintenanceApi,
+  requestItAssetDisposalApi,
 } from "../api/itAssetApi";
 
 /**
@@ -81,5 +87,35 @@ export const getItAssetLookupsService = async () => {
 
 export const transferItAssetService = async (payload) => {
   const response = await transferItAssetApi(payload);
+  return response?.data || null;
+};
+
+export const getItAssetDisposalsService = async () => {
+  const response = await getItAssetDisposalsApi();
+  return response?.data || [];
+};
+
+export const approveItAssetDisposalService = async (disposalId) => {
+  const response = await approveItAssetDisposalApi(disposalId);
+  return response?.data || null;
+};
+
+export const rejectItAssetDisposalService = async (disposalId) => {
+  const response = await rejectItAssetDisposalApi(disposalId);
+  return response?.data || null;
+};
+
+export const completeItAssetDisposalService = async (disposalId) => {
+  const response = await completeItAssetDisposalApi(disposalId);
+  return response?.data || null;
+};
+
+export const createItAssetMaintenanceService = async (payload) => {
+  const response = await createItAssetMaintenanceApi(payload);
+  return response?.data || null;
+};
+
+export const requestItAssetDisposalService = async (payload) => {
+  const response = await requestItAssetDisposalApi(payload);
   return response?.data || null;
 };

@@ -71,3 +71,33 @@ export const transferItAssetApi = async (payload) => {
   const response = await api.post("/it-assets/transfer", payload);
   return response.data;
 };
+
+export const getItAssetDisposalsApi = async () => {
+  const response = await api.get("/it-assets/disposals");
+  return response.data;
+};
+
+export const approveItAssetDisposalApi = async (disposalId) => {
+  const response = await api.put("/it-assets/disposals/approve", { disposalId });
+  return response.data;
+};
+
+export const rejectItAssetDisposalApi = async (disposalId) => {
+  const response = await api.put("/it-assets/disposals/reject", { disposalId });
+  return response.data;
+};
+
+export const completeItAssetDisposalApi = async (disposalId) => {
+  const response = await api.put("/it-assets/disposals/complete", { disposalId });
+  return response.data;
+};
+
+export const createItAssetMaintenanceApi = async (payload) => {
+  const response = await api.post("/it-assets/maintenance", payload);
+  return response.data;
+};
+
+export const requestItAssetDisposalApi = async (payload) => {
+  const response = await api.post("/it-assets/disposals/request", payload);
+  return response.data;
+};
