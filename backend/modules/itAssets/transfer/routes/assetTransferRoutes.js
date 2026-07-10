@@ -3,13 +3,12 @@ const router = express.Router();
 
 const controller = require("../controllers/assetTransferController");
 const validator = require("../validators/assetTransferValidator");
+const { protect, authorizeRoles } = require("../../../../middleware/authMiddleware");
+
+router.use(protect, authorizeRoles("SuperAdmin", "PlatformAdmin"));
 
 router.get("/", controller.getTransfers);
 router.get("/asset/:assetId", controller.getTransfersByAssetId);
-
-router.post("/request", validator.validateTransferRequest, controller.createTransferRequest);
-router.post("/approve", validator.validateTransferAction, controller.approveTransfer);
-router.post("/reject", validator.validateTransferAction, controller.rejectTransfer);
-router.post("/complete", validator.validateTransferAction, controller.completeTransfer);
+router.post("/", validator.validateDirectTransfer, controller.transferAsset);
 
 module.exports = router;

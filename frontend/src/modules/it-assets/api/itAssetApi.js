@@ -63,3 +63,11 @@ export const getItAssetLookupsApi = async () => {
   const response = await api.get("/it-assets/lookups");
   return response.data;
 };
+
+/**
+ * Immediately transfer an asset. Backend restricts this to platform admins.
+ */
+export const transferItAssetApi = async (payload) => {
+  const response = await api.post("/it-assets/transfer", payload);
+  return response.data;
+};

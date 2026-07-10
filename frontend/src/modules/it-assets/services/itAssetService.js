@@ -10,6 +10,7 @@ import {
   getItAssetAuditApi,
   assignItAssetApi,
   returnItAssetApi,
+  transferItAssetApi,
   getItAssetLookupsApi,
 } from "../api/itAssetApi";
 
@@ -76,4 +77,9 @@ export const returnItAssetService = async (assetId, payload = {}) => {
 export const getItAssetLookupsService = async () => {
   const response = await getItAssetLookupsApi();
   return response?.data || {};
+};
+
+export const transferItAssetService = async (payload) => {
+  const response = await transferItAssetApi(payload);
+  return response?.data || null;
 };

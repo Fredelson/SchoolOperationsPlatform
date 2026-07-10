@@ -13,6 +13,10 @@ const handle = (fn) => async (req, res) => {
 };
 
 module.exports = {
+  transferAsset: handle((req) =>
+    service.transferAsset({ payload: req.body, user: req.user, ipAddress: req.ip })
+  ),
+
   createTransferRequest: handle((req) =>
     service.createTransferRequest({ payload: req.body, user: req.user })
   ),

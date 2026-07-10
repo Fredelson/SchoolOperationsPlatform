@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Alert,
   Box,
   Button,
   Paper,
@@ -17,6 +16,7 @@ import {
 } from "@mui/material";
 
 import usePageTitle from "../../../platform/hooks/usePageTitle";
+import { useAuth } from "../../../context/AuthContext";
 import {
   AppBreadcrumbs,
   AppEmptyState,
@@ -31,6 +31,7 @@ import {
   getItAssetLookupsService,
   assignItAssetService,
   returnItAssetService,
+  transferItAssetService,
 } from "../services/itAssetService";
 
 import AssetInformationPanel from "../components/AssetInformationPanel";
@@ -38,12 +39,17 @@ import AssetTimelinePanel from "../components/AssetTimelinePanel";
 import AssetAuditPanel from "../components/AssetAuditPanel";
 import AssignAssetDialog from "../dialogs/AssignAssetDialog";
 import ReturnAssetDialog from "../dialogs/ReturnAssetDialog";
+import TransferAssetDialog from "../dialogs/TransferAssetDialog";
 
 const AssetDetails = () => {
   usePageTitle("AUS | Asset Details");
 
   const { assetId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canTransfer = ["SuperAdmin", "PlatformAdmin"].includes(
+    user?.roleKey || user?.role
+  );
 
   const [asset, setAsset] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -60,6 +66,7 @@ const AssetDetails = () => {
   const [actionError, setActionError] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const loadAsset = useCallback(async () => {
     try {
@@ -152,6 +159,21 @@ const AssetDetails = () => {
     }
   };
 
+  const handleTransferSubmit = async (payload) => {
+    try {
+      setActionSaving(true);
+      setActionError("");
+      await transferItAssetService(payload);
+      setTransferOpen(false);
+      await loadAsset();
+      setTab(0);
+    } catch (err) {
+      setActionError(err?.response?.data?.message || "Failed to transfer asset.");
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
   return (
     <Box>
       <AppBreadcrumbs
@@ -236,9 +258,17 @@ const AssetDetails = () => {
                   Return
                 </Button>
 
-                <Button variant="outlined" disabled>
-                  Transfer
-                </Button>
+                {canTransfer && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setActionError("");
+                      setTransferOpen(true);
+                    }}
+                  >
+                    Transfer
+                  </Button>
+                )}
 
                 <Button variant="outlined" disabled>
                   Maintenance
@@ -275,6 +305,19 @@ const AssetDetails = () => {
         }}
         onSubmit={handleReturnSubmit}
       />
+      {transferOpen && (
+        <TransferAssetDialog
+          open
+          asset={asset}
+          lookups={lookups}
+          saving={actionSaving}
+          error={actionError}
+          onClose={() => {
+            if (!actionSaving) setTransferOpen(false);
+          }}
+          onSubmit={handleTransferSubmit}
+        />
+      )}
     </Box>
   );
 };

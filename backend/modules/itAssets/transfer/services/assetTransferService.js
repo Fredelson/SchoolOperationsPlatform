@@ -16,6 +16,32 @@ const userId = (user) =>
   user?.UserID ||
   null;
 
+const transferAsset = async ({ payload, user, ipAddress }) => {
+  const asset = await repository.getAssetById(payload.assetId);
+  if (!asset) {
+    throw Object.assign(new Error("IT asset not found."), { statusCode: 404 });
+  }
+
+  const actionByUserId = userId(user);
+  if (!actionByUserId) {
+    throw Object.assign(new Error("Authenticated user is required."), { statusCode: 401 });
+  }
+
+  const unchanged =
+    Number(payload.toUserId || 0) === Number(asset.CurrentAssignedUserId || 0) &&
+    Number(payload.toRoomId || 0) === Number(asset.CurrentRoomId || 0) &&
+    Number(payload.toDepartmentId || 0) === Number(asset.CurrentDepartmentId || 0) &&
+    Number(payload.toLocationId || 0) === Number(asset.CurrentLocationId || 0);
+
+  if (unchanged) {
+    throw Object.assign(new Error("Choose a different user, room, department, or location."), {
+      statusCode: 400,
+    });
+  }
+
+  return repository.transferAsset({ asset, payload, actionByUserId, ipAddress });
+};
+
 const createTransferRequest = async ({ payload, user }) => {
   const asset = await repository.getAssetById(payload.assetId);
 
@@ -115,6 +141,7 @@ const completeTransfer = async ({ payload, user, ipAddress }) => {
 };
 
 module.exports = {
+  transferAsset,
   createTransferRequest,
   approveTransfer,
   rejectTransfer,

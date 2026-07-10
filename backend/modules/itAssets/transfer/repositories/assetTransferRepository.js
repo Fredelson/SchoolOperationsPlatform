@@ -92,6 +92,137 @@ const createTransferRequest = async ({ payload, requestedBy }) => {
   return firstOrNull(result);
 };
 
+const transferAsset = async ({ asset, payload, actionByUserId, ipAddress = null }) => {
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    const transferResult = await new sql.Request(transaction)
+      .input("AssetId", sql.Int, asset.AssetId)
+      .input("ActionByUserId", sql.Int, actionByUserId)
+      .input("FromUserId", sql.Int, asset.CurrentAssignedUserId || null)
+      .input("ToUserId", sql.Int, payload.toUserId || null)
+      .input("FromRoomId", sql.Int, asset.CurrentRoomId || null)
+      .input("ToRoomId", sql.Int, payload.toRoomId || null)
+      .input("FromDepartmentId", sql.Int, asset.CurrentDepartmentId || null)
+      .input("ToDepartmentId", sql.Int, payload.toDepartmentId || null)
+      .input("FromLocationId", sql.Int, asset.CurrentLocationId || null)
+      .input("ToLocationId", sql.Int, payload.toLocationId || null)
+      .input("TransferReason", sql.NVarChar(sql.MAX), payload.transferReason || null)
+      .query(`
+        INSERT INTO dbo.ITAssetTransferRequests
+        (
+          TransferRequestNumber, AssetId, RequestedBy, ApprovedBy,
+          FromUserId, ToUserId, FromRoomId, ToRoomId,
+          FromDepartmentId, ToDepartmentId, FromLocationId, ToLocationId,
+          TransferReason, TransferStatus, RequestedAt, ApprovedAt, CompletedAt
+        )
+        OUTPUT INSERTED.*
+        VALUES
+        (
+          CONCAT('TRF-', FORMAT(SYSDATETIME(), 'yyyyMMddHHmmssfff')),
+          @AssetId, @ActionByUserId, @ActionByUserId,
+          @FromUserId, @ToUserId, @FromRoomId, @ToRoomId,
+          @FromDepartmentId, @ToDepartmentId, @FromLocationId, @ToLocationId,
+          @TransferReason, 'COMPLETED', GETDATE(), GETDATE(), GETDATE()
+        );
+      `);
+
+    const assetResult = await new sql.Request(transaction)
+      .input("AssetId", sql.Int, asset.AssetId)
+      .input("ToUserId", sql.Int, payload.toUserId || null)
+      .input("ToRoomId", sql.Int, payload.toRoomId || null)
+      .input("ToDepartmentId", sql.Int, payload.toDepartmentId || null)
+      .input("ToLocationId", sql.Int, payload.toLocationId || null)
+      .query(`
+        UPDATE dbo.ITAssets
+        SET CurrentAssignedUserId = @ToUserId,
+            CurrentAssignedName = (
+              SELECT FullName FROM dbo.Users WHERE UserId = @ToUserId
+            ),
+            CurrentAssignedEmployeeCode = (
+              SELECT EmployeeId FROM dbo.Users WHERE UserId = @ToUserId
+            ),
+            CurrentAssignedEmail = (
+              SELECT SchoolEmail FROM dbo.Users WHERE UserId = @ToUserId
+            ),
+            CurrentRoomId = @ToRoomId,
+            CurrentDepartmentId = @ToDepartmentId,
+            CurrentLocationId = @ToLocationId,
+            UpdatedAt = GETDATE()
+        OUTPUT INSERTED.*
+        WHERE AssetId = @AssetId AND IsDeleted = 0;
+      `);
+
+    const updatedTransfer = transferResult.recordset[0];
+    const updatedAsset = assetResult.recordset[0];
+
+    const labelResult = await new sql.Request(transaction)
+      .input("AssetId", sql.Int, asset.AssetId)
+      .input("ToUserId", sql.Int, payload.toUserId || null)
+      .input("ToRoomId", sql.Int, payload.toRoomId || null)
+      .input("ToDepartmentId", sql.Int, payload.toDepartmentId || null)
+      .input("ToLocationId", sql.Int, payload.toLocationId || null)
+      .query(`
+        SELECT TOP 1
+          ISNULL(category.CategoryName, 'Asset') AS CategoryName,
+          COALESCE(
+            destinationUser.FullName,
+            destinationRoom.RoomName,
+            destinationDepartment.DepartmentName,
+            destinationLocation.LocationName,
+            'Unspecified Destination'
+          ) AS DestinationName
+        FROM dbo.ITAssets currentAsset
+        LEFT JOIN dbo.ITAssetCategories category
+          ON currentAsset.ITAssetCategoryId = category.ITAssetCategoryId
+        LEFT JOIN dbo.Users destinationUser
+          ON destinationUser.UserId = @ToUserId
+        LEFT JOIN dbo.Rooms destinationRoom
+          ON destinationRoom.RoomId = @ToRoomId
+        LEFT JOIN dbo.Departments destinationDepartment
+          ON destinationDepartment.DepartmentId = @ToDepartmentId
+        LEFT JOIN dbo.Locations destinationLocation
+          ON destinationLocation.LocationId = @ToLocationId
+        WHERE currentAsset.AssetId = @AssetId;
+      `);
+
+    const labels = labelResult.recordset[0] || {};
+    const transferDescription = `${labels.CategoryName || "Asset"} ${asset.AssetTag} Transferred To ${
+      labels.DestinationName || "Unspecified Destination"
+    }`;
+
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, actionByUserId)
+      .input("EntityId", sql.NVarChar(200), String(asset.AssetId))
+      .input("Description", sql.NVarChar(sql.MAX), transferDescription)
+      .input("OldValue", sql.NVarChar(sql.MAX), JSON.stringify(asset))
+      .input("NewValue", sql.NVarChar(sql.MAX), JSON.stringify(updatedAsset))
+      .input("IpAddress", sql.NVarChar(100), ipAddress || null)
+      .query(`
+        INSERT INTO dbo.AuditLogs
+          (UserId, ActionType, EntityType, EntityId, Description, OldValue, NewValue, IpAddress, CreatedAt)
+        VALUES
+          (@UserId, 'ASSET_TRANSFER_COMPLETED', 'ITAsset', @EntityId, @Description,
+           @OldValue, @NewValue, @IpAddress, GETDATE());
+
+        INSERT INTO dbo.ActivityTimeline
+          (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
+        VALUES
+          (@UserId, 'IT_ASSETS', 'ITAsset', @EntityId, 'ASSET_TRANSFER_COMPLETED',
+           'Asset Transfer Completed', @Description, GETDATE());
+      `);
+
+    await transaction.commit();
+    return { transfer: updatedTransfer, asset: updatedAsset };
+  } catch (error) {
+    if (transaction._aborted !== true) await transaction.rollback();
+    throw error;
+  }
+};
+
 const approveTransfer = async ({ transferRequestId, approvedBy }) => {
   const result = await executeQuery(
     `
@@ -286,6 +417,7 @@ module.exports = {
   getAssetById,
   getTransferById,
   createTransferRequest,
+  transferAsset,
   approveTransfer,
   rejectTransfer,
   completeTransfer,

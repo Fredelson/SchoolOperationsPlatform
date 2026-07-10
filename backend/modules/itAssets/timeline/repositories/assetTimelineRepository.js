@@ -128,51 +128,58 @@ const getTransferEvents = async (assetId) => {
     `
       SELECT
         tr.AssetTransferRequestId AS ReferenceId,
-        tr.RequestedAt AS EventDate,
+        CASE
+          WHEN UPPER(tr.TransferStatus) = 'COMPLETED' THEN COALESCE(tr.CompletedAt, tr.ApprovedAt, tr.RequestedAt)
+          WHEN UPPER(tr.TransferStatus) IN ('APPROVED', 'REJECTED') THEN COALESCE(tr.ApprovedAt, tr.RequestedAt)
+          ELSE tr.RequestedAt
+        END AS EventDate,
         'TRANSFER' AS EventGroup,
-        'ASSET_TRANSFER_REQUESTED' AS EventType,
-        'Transfer Requested' AS Title,
-        ISNULL(tr.TransferReason, 'Asset transfer requested.') AS Description,
-        requestedBy.FullName AS PerformedBy,
+        CASE UPPER(tr.TransferStatus)
+          WHEN 'COMPLETED' THEN 'ASSET_TRANSFER_COMPLETED'
+          WHEN 'APPROVED' THEN 'ASSET_TRANSFER_APPROVED'
+          WHEN 'REJECTED' THEN 'ASSET_TRANSFER_REJECTED'
+          ELSE 'ASSET_TRANSFER_REQUESTED'
+        END AS EventType,
+        CASE UPPER(tr.TransferStatus)
+          WHEN 'COMPLETED' THEN CONCAT(
+            ISNULL(category.CategoryName, 'Asset'),
+            ' ',
+            asset.AssetTag,
+            ' Transferred To ',
+            COALESCE(
+              toUser.FullName,
+              toRoom.RoomName,
+              toDepartment.DepartmentName,
+              toLocation.LocationName,
+              'Unspecified Destination'
+            )
+          )
+          WHEN 'APPROVED' THEN 'Transfer Approved'
+          WHEN 'REJECTED' THEN 'Transfer Rejected'
+          ELSE 'Transfer Requested'
+        END AS Title,
+        ISNULL(tr.TransferReason, 'Asset transfer recorded.') AS Description,
+        CASE
+          WHEN UPPER(tr.TransferStatus) IN ('COMPLETED', 'APPROVED', 'REJECTED')
+            THEN COALESCE(approvedBy.FullName, requestedBy.FullName)
+          ELSE requestedBy.FullName
+        END AS PerformedBy,
         'ITAssetTransferRequests' AS SourceTable,
         tr.TransferStatus AS Notes
       FROM dbo.ITAssetTransferRequests tr
+      INNER JOIN dbo.ITAssets asset ON tr.AssetId = asset.AssetId
+      LEFT JOIN dbo.ITAssetCategories category
+        ON asset.ITAssetCategoryId = category.ITAssetCategoryId
       LEFT JOIN dbo.Users requestedBy ON tr.RequestedBy = requestedBy.UserId
-      WHERE tr.AssetId = @AssetId
-
-      UNION ALL
-
-      SELECT
-        tr.AssetTransferRequestId AS ReferenceId,
-        tr.ApprovedAt AS EventDate,
-        'TRANSFER' AS EventGroup,
-        'ASSET_TRANSFER_APPROVED' AS EventType,
-        'Transfer Approved' AS Title,
-        ISNULL(tr.TransferReason, 'Asset transfer approved.') AS Description,
-        approvedBy.FullName AS PerformedBy,
-        'ITAssetTransferRequests' AS SourceTable,
-        tr.TransferStatus AS Notes
-      FROM dbo.ITAssetTransferRequests tr
       LEFT JOIN dbo.Users approvedBy ON tr.ApprovedBy = approvedBy.UserId
+      LEFT JOIN dbo.Users toUser ON tr.ToUserId = toUser.UserId
+      LEFT JOIN dbo.Rooms toRoom ON tr.ToRoomId = toRoom.RoomId
+      LEFT JOIN dbo.Departments toDepartment
+        ON tr.ToDepartmentId = toDepartment.DepartmentId
+      LEFT JOIN dbo.Locations toLocation
+        ON tr.ToLocationId = toLocation.LocationId
       WHERE tr.AssetId = @AssetId
-        AND tr.ApprovedAt IS NOT NULL
-
-      UNION ALL
-
-      SELECT
-        tr.AssetTransferRequestId AS ReferenceId,
-        tr.CompletedAt AS EventDate,
-        'TRANSFER' AS EventGroup,
-        'ASSET_TRANSFER_COMPLETED' AS EventType,
-        'Transfer Completed' AS Title,
-        ISNULL(tr.TransferReason, 'Asset transfer completed.') AS Description,
-        approvedBy.FullName AS PerformedBy,
-        'ITAssetTransferRequests' AS SourceTable,
-        tr.TransferStatus AS Notes
-      FROM dbo.ITAssetTransferRequests tr
-      LEFT JOIN dbo.Users approvedBy ON tr.ApprovedBy = approvedBy.UserId
-      WHERE tr.AssetId = @AssetId
-        AND tr.CompletedAt IS NOT NULL;
+      ;
     `,
     [{ name: "AssetId", type: sql.Int, value: Number(assetId) }]
   );

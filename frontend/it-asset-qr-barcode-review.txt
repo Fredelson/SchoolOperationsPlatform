@@ -1,0 +1,3417 @@
+============================================================
+IT ASSET QR / BARCODE FRONTEND REVIEW
+============================================================
+
+============================================================
+FILE: package.json
+============================================================
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.1.1",
+    "@mui/material": "^9.1.1",
+    "axios": "^1.17.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.17.0",
+    "recharts": "^3.9.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "vite": "^8.0.12"
+  }
+}
+
+============================================================
+FILE: src\App.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Main App Routes
+// ============================================
+//
+// Purpose:
+// Registers public, protected, role-based,
+// and layout-based application routes.
+// ============================================
+
+import { Routes, Route, Navigate } from "react-router-dom";
+
+// ============================================
+// Auth
+// ============================================
+
+import { LoginPage } from "./modules/auth/pages";
+import ProtectedRoute from "./routes/ProtectedRoute";
+
+// ============================================
+// Platform Foundation
+// ============================================
+
+import OrganizationBranding from "./modules/system/pages/OrganizationBranding";
+
+// ============================================
+// Teacher
+// ============================================
+
+import {
+  TeacherDashboard,
+  MyRequests,
+  CreateRequest,
+  RequestDetails,
+  TeacherReports,
+  Attachments,
+} from "./modules/teacher/pages";
+
+// ============================================
+// HOD / HOS
+// ============================================
+
+import { HodDashboard, HodRequestsPage } from "./modules/hod/pages";
+import { HosDashboard, SubjectAllocationPage } from "./modules/hos/pages";
+
+// ============================================
+// Printing / Platform Admin
+// ============================================
+
+import {
+  DepartmentLimitsPage,
+  PaperStockPage,
+  PaperPurchases,
+  PaperDistributions,
+  InventoryTransactions,
+  MasterData,
+  AccessLevelsPage,
+} from "./modules/printing-admin/pages";
+
+import PrintingAdminDashboard from "./modules/printing-admin/pages/PrintingAdminDashboard";
+import printingAdminLayoutRoutes from "./modules/printing-admin/routes/PrintingAdminLayoutRoutes";
+
+// ============================================
+// Admin
+// ============================================
+
+import { UserManagement } from "./modules/admin/pages";
+
+// ============================================
+// Super Admin
+// ============================================
+
+import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
+import itOperationsLayoutRoutes from "./modules/it-assets/routes/ItOperationsLayoutRoutes";
+
+// ============================================
+// Shared
+// ============================================
+
+import { Profile } from "./modules/shared/pages";
+
+// ============================================
+// Role Groups
+// ============================================
+
+const teacherRoles = ["Teacher", "TeachingAssistant", "SuperAdmin"];
+const hodRoles = ["HOD", "SuperAdmin"];
+const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
+
+const printingRoles = ["PrintingAdmin", "SuperAdmin"];
+const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
+
+const platformAdminRoles = [
+  "SuperAdmin",
+  "Super Admin",
+  "super-admin",
+  "PrintingAdmin",
+  "PlatformAdmin",
+];
+
+const superAdminRoles = [
+  "SuperAdmin",
+  "Super Admin",
+  "super-admin",
+];
+
+// ============================================
+// Helper: Protected Layout Routes
+// ============================================
+
+const renderProtectedLayoutRoutes = (routes, allowedRoles) =>
+  routes.map((route) => (
+    <Route
+      key={route.path}
+      path={route.path}
+      element={
+        <ProtectedRoute allowedRoles={allowedRoles}>
+          {route.element}
+        </ProtectedRoute>
+      }
+    >
+      {route.children?.map((child) => (
+        <Route
+          key={child.path || "index"}
+          index={child.index}
+          path={child.path}
+          element={child.element}
+        />
+      ))}
+    </Route>
+  ));
+
+// ============================================
+// App Routes
+// ============================================
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Super Admin Layout Routes */}
+      {renderProtectedLayoutRoutes(
+        superAdminLayoutRoutes,
+        superAdminRoles
+      )}
+
+      {/* Printing Admin Layout Routes */}
+      {renderProtectedLayoutRoutes(
+        printingAdminLayoutRoutes,
+        printingRoles
+      )}
+
+      {/* IT Operations Layout Routes */}
+      {renderProtectedLayoutRoutes(
+          itOperationsLayoutRoutes,
+          printingRoles
+      )}
+
+      {/* Platform Foundation */}
+      <Route
+        path="/system/branding"
+        element={
+          <ProtectedRoute allowedRoles={platformAdminRoles}>
+            <OrganizationBranding />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Teacher */}
+      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+
+      <Route
+        path="/teacher/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/profile"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/my-requests"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <MyRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/create-request"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/attachments"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <Attachments />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/reports"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <TeacherReports />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/request-details/:id"
+        element={
+          <ProtectedRoute allowedRoles={teacherRoles}>
+            <RequestDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOD */}
+      <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
+
+      <Route
+        path="/hod/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/profile"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/pending-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="pending" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/approved-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="approved" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/rejected-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="rejected" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/returned-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="returned" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/my-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <MyRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/create-request"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/attachments"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <Attachments />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/request-details/:id"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <RequestDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOS */}
+      <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
+
+      <Route
+        path="/hos/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={hosRoles}>
+            <HosDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hos/profile"
+        element={
+          <ProtectedRoute allowedRoles={hosRoles}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hos/subject-allocation"
+        element={
+          <ProtectedRoute allowedRoles={hosRoles}>
+            <SubjectAllocationPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Printing Legacy Direct Routes */}
+      <Route path="/printing" element={<Navigate to="/printing/dashboard" replace />} />
+
+      <Route
+        path="/printing/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <PrintingAdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/department-limits"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <DepartmentLimitsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/paper-stock"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <PaperStockPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/inventory-transactions"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <InventoryTransactions />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/distributions"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <PaperDistributions />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/purchases"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <PaperPurchases />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/user-management"
+        element={
+          <ProtectedRoute allowedRoles={printingAdminRoles}>
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/access-levels"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <AccessLevelsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/master-data"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <MasterData />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Default */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+============================================================
+FILE: src\main.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Main React Entry Point
+// ============================================
+//
+// Purpose:
+// Application bootstrap and global providers.
+//
+// Provider Order:
+// BrowserRouter
+// AuthProvider
+// PermissionProvider
+// FeatureFlagProvider
+// BrandingProvider
+// PlatformThemeProvider
+// ============================================
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+import { BrowserRouter } from "react-router-dom";
+
+import App from "./App";
+
+import { AuthProvider } from "./context/AuthContext";
+import { PermissionProvider } from "./context/PermissionContext";
+import { FeatureFlagProvider } from "./providers/FeatureFlagProvider";
+import { BrandingProvider } from "./modules/system/context/BrandingContext";
+import PlatformThemeProvider from "./theme/provider/PlatformThemeProvider";
+import { AppNotificationProvider } from "./platform/ui/feedback/AppNotificationProvider";
+
+
+import "./index.css";
+
+// ============================================
+// Render Application
+// ============================================
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <PermissionProvider>
+          <FeatureFlagProvider>
+            <BrandingProvider>
+              <PlatformThemeProvider>
+                <AppNotificationProvider>
+                  <App />
+                </AppNotificationProvider>
+              </PlatformThemeProvider>
+            </BrandingProvider>
+          </FeatureFlagProvider>
+        </PermissionProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\buttons\ActionButton.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Action Button
+//
+// Purpose:
+// Centralized button component used across
+// the AUS Operations Platform.
+//
+// Why:
+// Later, Super Admin Button Manager can control
+// which buttons are visible/enabled without
+// editing every page.
+//
+// Future Integration:
+// - Button Manager
+// - Permission Engine
+// - Feature Flags
+//
+// Current Behavior:
+// Works like a normal MUI Button.
+// ============================================
+
+import { Button } from "@mui/material";
+
+export default function ActionButton({
+  children,
+  actionKey,
+  disabled = false,
+  ...props
+}) {
+  // ============================================
+  // Future Permission Hook
+  //
+  // Later:
+  // const allowed = useButtonPermission(actionKey);
+  // if (!allowed) return null;
+  //
+  // For now:
+  // All buttons are allowed.
+  // ============================================
+
+  return (
+    <Button
+      disabled={disabled}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\crud\CrudDeleteDialog.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// CRUD Delete Dialog
+// ============================================
+//
+// Purpose:
+// Reusable confirmation dialog for deleting
+// records across Super Admin manager pages.
+// ============================================
+
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+} from "@mui/material";
+
+import AppButton from "@platform/ui/AppButton";
+
+export default function CrudDeleteDialog({
+  open,
+  title = "Delete Record",
+  message,
+  itemName = "this record",
+  loading = false,
+  onCancel,
+  onConfirm,
+}) {
+  const fallbackMessage = `Are you sure you want to delete ${itemName}? This action cannot be undone.`;
+
+  return (
+    <Dialog open={open} onClose={loading ? undefined : onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 900 }}>
+        {title}
+      </DialogTitle>
+
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary">
+          {message || fallbackMessage}
+        </Typography>
+      </DialogContent>
+
+      <DialogActions>
+        <AppButton variant="outlined" onClick={onCancel} disabled={loading}>
+          Cancel
+        </AppButton>
+
+        <AppButton
+          variant="contained"
+          color="error"
+          onClick={onConfirm}
+          disabled={loading}
+        >
+          {loading ? "Deleting..." : "Delete"}
+        </AppButton>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\import\ImportDialog.jsx
+============================================================
+// ============================================
+// Reusable Import Dialog
+// Arab Unity School Operations Platform
+// ============================================
+
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
+
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
+
+const ImportDialog = ({
+  open,
+  title = "Import",
+  requiredColumns = "",
+  file,
+  loading = false,
+  preview,
+  commitResult,
+  error = "",
+  accept = ".csv,.xlsx,.xls",
+  csvTemplateUrl = "",
+  excelTemplateUrl = "",
+  onClose,
+  onFileChange,
+  onPreview,
+  onCommit,
+}) => {
+  const totalRows =
+    preview?.totalRows || preview?.summary?.totalRows || preview?.rows?.length || 0;
+
+  const validRows = preview?.validRows || preview?.summary?.validRows || 0;
+  const invalidRows = preview?.invalidRows || preview?.summary?.invalidRows || 0;
+
+  const importedRows =
+    commitResult?.importedRows || commitResult?.summary?.importedRows || 0;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ fontWeight: 900 }}>{title}</DialogTitle>
+
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Required columns: {requiredColumns}
+        </Typography>
+
+        <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+          {csvTemplateUrl && (
+            <Button variant="outlined" component="a" href={csvTemplateUrl} download>
+              Download CSV Template
+            </Button>
+          )}
+
+          {excelTemplateUrl && (
+            <Button variant="outlined" component="a" href={excelTemplateUrl} download>
+              Download Excel Template
+            </Button>
+          )}
+        </Stack>
+
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+          <Button variant="outlined" component="label" startIcon={<UploadFileRoundedIcon />}>
+            Select File
+            <input
+              hidden
+              type="file"
+              accept={accept}
+              onChange={(event) => onFileChange?.(event.target.files?.[0] || null)}
+            />
+          </Button>
+
+          <Typography variant="body2">
+            {file ? file.name : "No file selected"}
+          </Typography>
+
+          <Button variant="contained" disabled={!file || loading} onClick={onPreview}>
+            {loading ? "Processing..." : "Preview Import"}
+          </Button>
+
+          <Button
+            variant="contained"
+            color="success"
+            disabled={!preview?.batchId || loading}
+            onClick={onCommit}
+          >
+            Commit Import
+          </Button>
+        </Stack>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {preview && (
+          <Alert severity={invalidRows > 0 ? "warning" : "success"} sx={{ mt: 2 }}>
+            Preview ready. Total: {totalRows}, Valid: {validRows}, Invalid:{" "}
+            {invalidRows}
+          </Alert>
+        )}
+
+        {commitResult && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Import committed. Imported rows: {importedRows}
+          </Alert>
+        )}
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+          <Button onClick={onClose}>Close</Button>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ImportDialog;
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\layout\PlatformLayout.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform Layout
+// ============================================
+//
+// Purpose:
+// Shared responsive layout for platform pages.
+// Uses dynamic theme colors from System Branding.
+// ============================================
+
+import { useState } from "react";
+import { Box, Drawer, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { Outlet } from "react-router-dom";
+
+import PlatformSidebar from "./PlatformSidebar";
+import PlatformTopbar from "./PlatformTopbar";
+
+// ============================================
+// Layout Constants
+// ============================================
+
+const SIDEBAR_WIDTH = 340;
+const MOBILE_SIDEBAR_WIDTH = 300;
+const TOPBAR_HEIGHT = 78;
+
+// ============================================
+// Component
+// ============================================
+
+export default function PlatformLayout() {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleCloseMobileSidebar = () => {
+    setMobileOpen(false);
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: theme.palette.background.default,
+        overflowX: "hidden",
+      }}
+    >
+      <PlatformTopbar
+        height={TOPBAR_HEIGHT}
+        onMenuClick={() => setMobileOpen((prev) => !prev)}
+      />
+
+      {isDesktop && (
+        <PlatformSidebar
+          width={SIDEBAR_WIDTH}
+          topOffset={TOPBAR_HEIGHT}
+        />
+      )}
+
+      {!isDesktop && (
+        <Drawer
+          open={mobileOpen}
+          onClose={handleCloseMobileSidebar}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: MOBILE_SIDEBAR_WIDTH,
+                maxWidth: "85vw",
+                bgcolor:
+                  theme.palette.platform?.sidebar ||
+                  theme.palette.primary.dark,
+                overflowX: "hidden",
+              },
+            },
+          }}
+        >
+          <PlatformSidebar
+            width={MOBILE_SIDEBAR_WIDTH}
+            topOffset={0}
+            isMobile
+            onNavigate={handleCloseMobileSidebar}
+          />
+        </Drawer>
+      )}
+
+      <Box
+        component="main"
+        sx={{
+          ml: {
+            xs: 0,
+            lg: `${SIDEBAR_WIDTH}px`,
+          },
+          pt: `calc(${TOPBAR_HEIGHT}px + 15px)`,
+          px: { xs: 2, md: 3 },
+          pb: { xs: 2, md: 3 },
+          width: {
+            xs: "100%",
+            lg: `calc(100% - ${SIDEBAR_WIDTH}px)`,
+          },
+          bgcolor: theme.palette.background.default,
+          minHeight: "100vh",
+          maxWidth: "100%",
+          overflowX: "hidden",
+        }}
+      >
+        <Outlet />
+      </Box>
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\layout\PlatformSidebar.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform Sidebar
+// ============================================
+//
+// Purpose:
+// Shared sidebar container for platform role layouts.
+// Sidebar menu data now comes from backend.
+// ============================================
+
+import { useEffect, useState } from "react";
+import { Box, alpha, useTheme } from "@mui/material";
+
+import PlatformSidebarTree from "../navigation/sidebar/components/PlatformSidebarTree";
+import { getMySidebar } from "../navigation/sidebar/services/sidebarService";
+
+// ============================================
+// Component
+// ============================================
+
+export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
+  const theme = useTheme();
+
+  const [sidebarSections, setSidebarSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const platform = theme.palette.platform || {};
+
+  const sidebarBg =
+    platform.sidebarBackground || platform.sidebar || theme.palette.primary.dark;
+
+  const sidebarText = theme.palette.primary.contrastText;
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSidebar() {
+      try {
+        const sections = await getMySidebar();
+
+        if (mounted) {
+          setSidebarSections(Array.isArray(sections) ? sections : []);
+        }
+      } catch (error) {
+        console.error("Failed to load sidebar:", error);
+
+        if (mounted) {
+          setSidebarSections([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSidebar();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <Box
+      sx={{
+        width,
+        height: `calc(100vh - ${topOffset}px)`,
+        position: "fixed",
+        left: 0,
+        top: `${topOffset}px`,
+        background: sidebarBg,
+        color: sidebarText,
+        borderRight: `1px solid ${alpha(sidebarText, 0.08)}`,
+        overflowY: "auto",
+        overflowX: "hidden",
+        zIndex: 1200,
+      }}
+    >
+      {!loading && <PlatformSidebarTree sections={sidebarSections} />}
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\layout\PlatformTopbar.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform Topbar
+// ============================================
+//
+// Purpose:
+// Shared responsive topbar for platform layouts.
+// Supports branding, gradients, search, actions,
+// mobile menu, and user identity.
+// ============================================
+
+import {
+  Avatar,
+  Badge,
+  Box,
+  IconButton,
+  InputBase,
+  Typography,
+  alpha,
+  useTheme,
+} from "@mui/material";
+
+import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
+import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+
+import { useAuth } from "../../context/AuthContext";
+import useBranding from "../../modules/system/hooks/useBranding";
+import buildFileUrl from "../utils/buildFileUrl";
+
+// ============================================
+// Role Context
+// ============================================
+
+const getTopbarContext = (role) => {
+  switch (role) {
+    case "SuperAdmin":
+      return {
+        title: "Dashboard",
+        subtitle: "Platform Control Center",
+      };
+
+    case "PlatformAdmin":
+      return {
+        title: "Platform Admin",
+        subtitle: "Operations Control Center",
+      };
+
+    case "PrintingAdmin":
+      return {
+        title: "Printing Management",
+        subtitle: "Operations Control Center",
+      };
+
+    default:
+      return {
+        title: "Dashboard",
+        subtitle: "Operations Platform",
+      };
+  }
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function PlatformTopbar({ height = 78, onMenuClick }) {
+  const theme = useTheme();
+
+  const { user } = useAuth();
+  const { branding } = useBranding();
+
+  const school = branding?.school || {};
+  const brand = branding?.branding || {};
+
+  const role = user?.role || user?.Role;
+  const context = getTopbarContext(role);
+
+  const displayName = user?.fullName || user?.FullName || "User";
+  const displayRole = user?.displayRole || user?.DisplayRole || role || "User";
+  const initial = displayName?.charAt(0)?.toUpperCase() || "U";
+
+  const logoPath = buildFileUrl(
+    brand.logoPath ||
+      brand.smallLogoPath ||
+      brand.darkLogoPath ||
+      ""
+  );
+
+  // ============================================
+  // Theme Values
+  // ============================================
+
+  const platform = theme.palette.platform || {};
+
+ const topbarBackground =
+  platform.topbarBackground || platform.topbar || theme.palette.primary.dark;
+
+  const topbarText = theme.palette.primary.contrastText;
+  const accent = platform.accent || theme.palette.success.main;
+
+  // ============================================
+  // UI
+  // ============================================
+
+  return (
+    <Box
+      sx={{
+        height,
+        px: { xs: 2, md: 4 },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: { xs: 1, md: 2 },
+        color: topbarText,
+        background: topbarBackground,
+        borderBottom: `1px solid ${alpha(topbarText, 0.1)}`,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1300,
+        overflow: "hidden",
+      }}
+    >
+      {/* ===================================== */}
+      {/* LEFT: MENU, LOGO, TITLE */}
+      {/* ===================================== */}
+
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 1.5, md: 2.5 },
+          minWidth: 0,
+          flexShrink: 1,
+        }}
+      >
+        <IconButton
+          onClick={onMenuClick}
+          sx={{
+            color: topbarText,
+            display: { xs: "inline-flex", lg: "none" },
+            flexShrink: 0,
+            "&:hover": {
+              bgcolor: alpha(topbarText, 0.1),
+            },
+          }}
+        >
+          <MenuOutlinedIcon />
+        </IconButton>
+
+        <Box
+          sx={{
+            width: { xs: 64, sm: 76, md: 88 },
+            height: { xs: 48, sm: 54, md: 60 },
+            bgcolor: theme.palette.background.paper,
+            borderRadius: 3,
+            p: 0.7,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            border: `1px solid ${alpha(topbarText, 0.16)}`,
+            boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.12)}`,
+          }}
+        >
+          {logoPath ? (
+            <Box
+              component="img"
+              src={logoPath}
+              alt={school.schoolName || "School Logo"}
+              sx={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          ) : (
+            <Typography
+              sx={{
+                fontWeight: 900,
+                color: theme.palette.primary.main,
+                fontSize: { xs: 13, md: 16 },
+              }}
+            >
+              {school.schoolCode || "AUS"}
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontWeight: 900,
+              fontSize: { xs: 16, sm: 19, md: 22 },
+              lineHeight: 1.05,
+              color: accent,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {context.title}
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.35,
+              fontSize: { xs: 11, sm: 12.5, md: 14 },
+              fontWeight: 700,
+              color: alpha(topbarText, 0.82),
+              display: { xs: "none", sm: "block" },
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {context.subtitle}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* ===================================== */}
+      {/* CENTER: SEARCH */}
+      {/* ===================================== */}
+
+      <Box
+        sx={{
+          width: { md: 320, xl: 460 },
+          height: 46,
+          px: 2,
+          display: { xs: "none", md: "flex" },
+          alignItems: "center",
+          gap: 1.2,
+          borderRadius: 999,
+          bgcolor: alpha(topbarText, 0.1),
+          border: `1px solid ${alpha(topbarText, 0.24)}`,
+          backdropFilter: "blur(10px)",
+          flexShrink: 1,
+        }}
+      >
+        <SearchOutlinedIcon sx={{ color: alpha(topbarText, 0.9) }} />
+
+        <InputBase
+          fullWidth
+          placeholder="Search anything..."
+          sx={{
+            color: topbarText,
+            fontSize: 14,
+            "& input::placeholder": {
+              color: alpha(topbarText, 0.72),
+              opacity: 1,
+            },
+          }}
+        />
+      </Box>
+
+      {/* ===================================== */}
+      {/* RIGHT: ACTIONS + USER */}
+      {/* ===================================== */}
+
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 0.3, sm: 0.7, md: 1 },
+          flexShrink: 0,
+        }}
+      >
+        <IconButton
+          sx={{
+            color: topbarText,
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
+          }}
+        >
+          <Badge badgeContent={12} color="error">
+            <NotificationsNoneOutlinedIcon />
+          </Badge>
+        </IconButton>
+
+        <IconButton
+          sx={{
+            color: topbarText,
+            display: { xs: "none", sm: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
+          }}
+        >
+          <Badge badgeContent={5} color="error">
+            <MailOutlineOutlinedIcon />
+          </Badge>
+        </IconButton>
+
+        <IconButton
+          sx={{
+            color: topbarText,
+            display: { xs: "none", md: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
+          }}
+        >
+          <SettingsOutlinedIcon />
+        </IconButton>
+
+        <IconButton
+          sx={{
+            color: topbarText,
+            display: { xs: "none", md: "inline-flex" },
+            "&:hover": { bgcolor: alpha(topbarText, 0.1) },
+          }}
+        >
+          <HelpOutlineOutlinedIcon />
+        </IconButton>
+
+        <Box
+          sx={{
+            ml: { xs: 0.3, md: 1 },
+            pl: { xs: 0, md: 1.6 },
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            borderLeft: {
+              xs: "none",
+              md: `1px solid ${alpha(topbarText, 0.2)}`,
+            },
+          }}
+        >
+          <Avatar
+            sx={{
+              width: { xs: 40, md: 46 },
+              height: { xs: 40, md: 46 },
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.primary.main,
+              fontWeight: 900,
+              border: `2px solid ${accent}`,
+            }}
+          >
+            {initial}
+          </Avatar>
+
+          <Box sx={{ display: { xs: "none", lg: "block" } }}>
+            <Typography sx={{ fontWeight: 900, fontSize: 13.5 }}>
+              {displayName}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: alpha(topbarText, 0.75),
+              }}
+            >
+              {displayRole}
+            </Typography>
+          </Box>
+
+          <KeyboardArrowDownOutlinedIcon
+            sx={{
+              opacity: 0.85,
+              display: { xs: "none", sm: "block" },
+            }}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\menus\MenuGate.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Platform Menu Gate
+//
+// Purpose:
+// Controls sidebar/menu visibility.
+//
+// Future:
+// Will connect to:
+// - Super Admin Menu Manager
+// - Permission Engine
+// - Feature Flags
+//
+// Current:
+// Allows all menus.
+// ============================================
+
+export default function MenuGate({ menuKey, children }) {
+  return children;
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\permissions\PermissionGate.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Platform Permission Gate
+//
+// Purpose:
+// Controls permission-based access.
+//
+// Future:
+// Will connect to:
+// - Super Admin Permission Engine
+// - Role Manager
+// - Access Levels
+//
+// Current:
+// Allows all content.
+// ============================================
+
+export default function PermissionGate({ permissionKey, children }) {
+  return children;
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppActionMenu.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// App Action Menu
+// ============================================
+//
+// Purpose:
+// Reusable row action menu for tables.
+//
+// Used by:
+// - Module Manager
+// - Menu Manager
+// - Button Manager
+// - Widget Manager
+// - Users
+// - Roles
+// - Assets
+// - Inventory
+// - Students
+// - Staff
+// ============================================
+
+import { useState } from "react";
+
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+} from "@mui/material";
+
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppActionMenu({
+  items = [],
+  iconSize = "small",
+  tooltip = "Actions",
+}) {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const open = Boolean(anchorEl);
+
+  const handleOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleClick = (item) => {
+    handleClose();
+
+    if (!item.disabled && item.onClick) {
+      item.onClick();
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title={tooltip}>
+        <IconButton
+          size={iconSize}
+          onClick={handleOpen}
+        >
+          <MoreVertIcon fontSize={iconSize} />
+        </IconButton>
+      </Tooltip>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        disableScrollLock
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            minWidth: 140,
+            borderRadius: 2,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+          },
+        }}
+      >
+        {items.map((item, index) => (
+          <MenuItem
+            key={index}
+            disabled={item.disabled}
+            onClick={() => handleClick(item)}
+            sx={{
+              color: item.color || "inherit",
+            }}
+          >
+            {item.icon && (
+              <ListItemIcon
+                sx={{
+                  color: item.color || "inherit",
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+            )}
+
+            <ListItemText>
+              {item.label}
+            </ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppBreadcrumbs.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppBreadcrumbs
+// ============================================
+//
+// Purpose:
+// Reusable breadcrumb navigation for deep
+// platform pages and module sub-pages.
+// ============================================
+
+import { Breadcrumbs, Link, Typography } from "@mui/material";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import { Link as RouterLink } from "react-router-dom";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppBreadcrumbs({
+  items = [],
+  sx = {},
+}) {
+  if (!items.length) return null;
+
+  return (
+    <Breadcrumbs
+      separator={<NavigateNextIcon fontSize="small" />}
+      sx={{ mb: 2, ...sx }}
+    >
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+
+        if (isLast || !item.to) {
+          return (
+            <Typography
+              key={item.label}
+              color="text.primary"
+              fontWeight={800}
+              fontSize={14}
+            >
+              {item.label}
+            </Typography>
+          );
+        }
+
+        return (
+          <Link
+            key={item.label}
+            component={RouterLink}
+            to={item.to}
+            underline="hover"
+            color="text.secondary"
+            fontWeight={700}
+            fontSize={14}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </Breadcrumbs>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppButton.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppButton
+// ============================================
+//
+// Purpose:
+// Reusable platform button with consistent
+// spacing, radius, weight, and theme behavior.
+// ============================================
+
+import { Button } from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppButton({
+  children,
+  variant = "contained",
+  size = "medium",
+  sx = {},
+  ...props
+}) {
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      sx={{
+        borderRadius: 3,
+        fontWeight: 900,
+        textTransform: "none",
+        px: 3,
+        minHeight: size === "large" ? 48 : 40,
+        ...sx,
+      }}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppCard.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppCard
+// ============================================
+//
+// Purpose:
+// Reusable card wrapper for dashboards, forms,
+// reports, tables, and module pages.
+// ============================================
+
+import { Card, CardContent, useTheme } from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppCard({
+  children,
+  sx = {},
+  contentSx = {},
+  noPadding = false,
+  ...props
+}) {
+  const theme = useTheme();
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        bgcolor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: theme.shadows[1],
+        overflow: "hidden",
+        ...sx,
+      }}
+      {...props}
+    >
+      {noPadding ? (
+        children
+      ) : (
+        <CardContent
+          sx={{
+            p: { xs: 2, md: 3 },
+            "&:last-child": {
+              pb: { xs: 2, md: 3 },
+            },
+            ...contentSx,
+          }}
+        >
+          {children}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppChip.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppChip
+// ============================================
+//
+// Purpose:
+// Reusable status chip for roles, modules,
+// tickets, requests, approvals, and inventory.
+// ============================================
+
+import { Chip, alpha, useTheme } from "@mui/material";
+
+// ============================================
+// Status Color Helper
+// ============================================
+
+const getStatusColor = (theme, status) => {
+  const value = String(status || "").toLowerCase();
+
+  if (value.includes("active") || value.includes("approved") || value.includes("healthy")) {
+    return theme.palette.success.main;
+  }
+
+  if (value.includes("pending") || value.includes("warning") || value.includes("progress")) {
+    return theme.palette.warning.main;
+  }
+
+  if (value.includes("rejected") || value.includes("inactive") || value.includes("error")) {
+    return theme.palette.error.main;
+  }
+
+  return theme.palette.primary.main;
+};
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppChip({ label, status, sx = {}, ...props }) {
+  const theme = useTheme();
+  const color = getStatusColor(theme, status || label);
+
+  return (
+    <Chip
+      label={label}
+      size="small"
+      sx={{
+        fontWeight: 800,
+        borderRadius: 2,
+        color,
+        bgcolor: alpha(color, 0.12),
+        border: `1px solid ${alpha(color, 0.22)}`,
+        ...sx,
+      }}
+      {...props}
+    />
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppConfirmDialog.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppConfirmDialog
+// ============================================
+//
+// Purpose:
+// Reusable confirmation dialog for delete,
+// archive, reset, deactivate, restore, and
+// other sensitive platform actions.
+// ============================================
+
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Stack,
+} from "@mui/material";
+
+import AppButton from "./AppButton";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppConfirmDialog({
+  open,
+  title = "Confirm Action",
+  message = "Are you sure you want to continue?",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  confirmColor = "error",
+  loading = false,
+  onConfirm,
+  onCancel,
+}) {
+  return (
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onCancel}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle fontWeight={900}>
+        {title}
+      </DialogTitle>
+
+      <DialogContent>
+        <Typography color="text.secondary">
+          {message}
+        </Typography>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Stack direction="row" spacing={1.5}>
+          <AppButton
+            variant="outlined"
+            color="inherit"
+            disabled={loading}
+            onClick={onCancel}
+          >
+            {cancelText}
+          </AppButton>
+
+          <AppButton
+            color={confirmColor}
+            disabled={loading}
+            onClick={onConfirm}
+          >
+            {loading ? "Please wait..." : confirmText}
+          </AppButton>
+        </Stack>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppDataTable.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppDataTable
+// ============================================
+//
+// Purpose:
+// Reusable enterprise data table.
+//
+// Features
+// - Consistent styling
+// - Loading state
+// - Empty state
+// - Pagination
+// - Responsive
+// - Custom row ID support
+// - Reusable for every module
+//
+// ============================================
+
+import {
+  Box,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+} from "@mui/material";
+
+import AppCard from "./AppCard";
+import AppEmptyState from "./AppEmptyState";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppDataTable({
+  columns = [],
+  rows = [],
+  loading = false,
+
+  page = 0,
+  rowsPerPage = 10,
+  totalRows = rows.length,
+
+  onPageChange,
+  onRowsPerPageChange,
+
+  getRowId,
+
+  emptyTitle = "No records found",
+  emptyMessage = "There is currently no data available.",
+
+  stickyHeader = false,
+  maxHeight = 650,
+}) {
+  // ==========================================
+  // Loading State
+  // ==========================================
+
+  if (loading) {
+    return (
+      <AppCard>
+        <Box
+          sx={{
+            py: 8,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </AppCard>
+    );
+  }
+
+  // ==========================================
+  // Empty State
+  // ==========================================
+
+  if (!rows.length) {
+    return (
+      <AppCard>
+        <AppEmptyState
+          title={emptyTitle}
+          message={emptyMessage}
+        />
+      </AppCard>
+    );
+  }
+
+  // ==========================================
+  // Render
+  // ==========================================
+
+  return (
+    <AppCard noPadding>
+      <TableContainer
+        sx={{
+          maxHeight: stickyHeader ? maxHeight : "unset",
+        }}
+      >
+        <Table stickyHeader={stickyHeader}>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell
+                  key={column.field}
+                  sx={{
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                  }}
+                  width={column.width}
+                  align={column.align}
+                >
+                  {column.headerName}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {rows.map((row, rowIndex) => {
+              const rowId = getRowId
+                ? getRowId(row)
+                : row.id ?? row.Id ?? rowIndex;
+
+              return (
+                <TableRow hover key={rowId}>
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.field}
+                      align={column.align}
+                    >
+                      {column.render
+                        ? column.render(row)
+                        : row[column.field]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {onPageChange && (
+        <TablePagination
+          component="div"
+          page={page}
+          rowsPerPage={rowsPerPage}
+          count={totalRows}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={onRowsPerPageChange}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+        />
+      )}
+    </AppCard>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppEmptyState.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppEmptyState
+// ============================================
+//
+// Purpose:
+// Reusable empty state for tables, reports, and dashboards.
+// ============================================
+
+import { Box, Typography, Button } from "@mui/material";
+
+export default function AppEmptyState({
+  icon = null,
+  title = "No records found",
+  message = "There is no data to display right now.",
+  actionLabel = "",
+  onAction = null,
+  sx = {},
+}) {
+  return (
+    <Box
+      sx={{
+        py: 7,
+        px: 3,
+        textAlign: "center",
+        borderRadius: 3,
+        bgcolor: "background.paper",
+        border: "1px dashed",
+        borderColor: "divider",
+        ...sx,
+      }}
+    >
+      {icon && <Box sx={{ mb: 2 }}>{icon}</Box>}
+
+      <Typography variant="h6" fontWeight={800}>
+        {title}
+      </Typography>
+
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mt: 1, maxWidth: 420, mx: "auto" }}
+      >
+        {message}
+      </Typography>
+
+      {actionLabel && onAction && (
+        <Button variant="contained" sx={{ mt: 3 }} onClick={onAction}>
+          {actionLabel}
+        </Button>
+      )}
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppLoadingState.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppLoadingState
+// ============================================
+//
+// Purpose:
+// Reusable loading state while API data is being fetched.
+// ============================================
+
+import { Box, CircularProgress, Typography } from "@mui/material";
+
+export default function AppLoadingState({
+  message = "Loading data...",
+  minHeight = 240,
+}) {
+  return (
+    <Box
+      sx={{
+        minHeight,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      <CircularProgress size={34} />
+
+      <Typography variant="body2" color="text.secondary">
+        {message}
+      </Typography>
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppPageHeader.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppPageHeader
+// ============================================
+//
+// Purpose:
+// Reusable page header for platform modules.
+// Supports title, subtitle, and right actions.
+// ============================================
+
+import { Box, Stack, Typography } from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppPageHeader({
+  title,
+  subtitle,
+  actions = null,
+  sx = {},
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 3,
+        display: "flex",
+        alignItems: { xs: "flex-start", md: "center" },
+        justifyContent: "space-between",
+        gap: 2,
+        flexDirection: { xs: "column", md: "row" },
+        ...sx,
+      }}
+    >
+      <Stack spacing={0.5}>
+        <Typography variant="h4" fontWeight={900}>
+          {title}
+        </Typography>
+
+        {subtitle && (
+          <Typography color="text.secondary">
+            {subtitle}
+          </Typography>
+        )}
+      </Stack>
+
+      {actions && <Box>{actions}</Box>}
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppSearch.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppSearch
+// ============================================
+//
+// Purpose:
+// Reusable search input for tables, dashboards,
+// reports, and module pages.
+// ============================================
+
+import {
+  InputAdornment,
+  TextField,
+} from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppSearch({
+  value,
+  onChange,
+  placeholder = "Search...",
+  sx = {},
+  ...props
+}) {
+  return (
+    <TextField
+      fullWidth
+      size="small"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      sx={{
+        maxWidth: 420,
+        ...sx,
+      }}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon color="action" />
+            </InputAdornment>
+          ),
+        },
+      }}
+      {...props}
+    />
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppSection.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppSection
+// ============================================
+//
+// Purpose:
+// Reusable section wrapper for grouped page
+// content such as forms, tables, and reports.
+// ============================================
+
+import { Box, Divider, Stack, Typography } from "@mui/material";
+
+import AppCard from "./AppCard";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppSection({
+  title,
+  subtitle,
+  actions = null,
+  children,
+  sx = {},
+  contentSx = {},
+}) {
+  return (
+    <AppCard sx={sx} contentSx={contentSx}>
+      {(title || subtitle || actions) && (
+        <>
+          <Box
+            sx={{
+              mb: 2,
+              display: "flex",
+              alignItems: { xs: "flex-start", md: "center" },
+              justifyContent: "space-between",
+              gap: 2,
+              flexDirection: { xs: "column", md: "row" },
+            }}
+          >
+            <Stack spacing={0.4}>
+              {title && (
+                <Typography variant="h6" fontWeight={900}>
+                  {title}
+                </Typography>
+              )}
+
+              {subtitle && (
+                <Typography fontSize={14} color="text.secondary">
+                  {subtitle}
+                </Typography>
+              )}
+            </Stack>
+
+            {actions && <Box>{actions}</Box>}
+          </Box>
+
+          <Divider sx={{ mb: 2 }} />
+        </>
+      )}
+
+      {children}
+    </AppCard>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppStatCard.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// App Stat Card
+// ============================================
+//
+// Purpose:
+// Single reusable KPI/stat card for platform pages.
+// Used by dashboards, module manager, menu manager,
+// user management, assets, reports, and future modules.
+// ============================================
+
+import {
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  Box,
+} from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppStatCard({
+  title,
+  value,
+  helperText,
+  icon = null,
+  color = "primary.main",
+}) {
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        height: "100%",
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <CardContent>
+        <Stack
+          direction="row"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Box>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              fontWeight={600}
+            >
+              {title}
+            </Typography>
+
+            <Typography
+              variant="h4"
+              fontWeight={800}
+              sx={{ mt: 1 }}
+            >
+              {value ?? 0}
+            </Typography>
+
+            {helperText && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {helperText}
+              </Typography>
+            )}
+          </Box>
+
+          {icon && (
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: 2,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: "action.hover",
+                color,
+              }}
+            >
+              {icon}
+            </Box>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppStatCards.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// App Stat Cards
+// ============================================
+
+import { Grid } from "@mui/material";
+
+import AppStatCard from "./AppStatCard";
+
+export default function AppStatCards({ items = [], spacing = 2 }) {
+  return (
+    <Grid container spacing={spacing}>
+      {items.map((item, index) => (
+        <Grid
+          key={item.key || item.title || index}
+          size={{
+            xs: 12,
+            sm: 6,
+            md: item.md || 3,
+          }}
+        >
+          <AppStatCard
+            title={item.title}
+            value={item.value}
+            helperText={item.helperText}
+            icon={item.icon}
+            color={item.color}
+          />
+        </Grid>
+      ))}
+    </Grid>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\AppToolbar.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// AppToolbar
+// ============================================
+//
+// Purpose:
+// Reusable toolbar for tables, filters,
+// search, exports, and page actions.
+// ============================================
+
+import { Box, Stack } from "@mui/material";
+
+// ============================================
+// Component
+// ============================================
+
+export default function AppToolbar({
+  left = null,
+  right = null,
+  children = null,
+  card = false,
+  sx = {},
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        display: "flex",
+        alignItems: { xs: "stretch", md: "center" },
+        justifyContent: "space-between",
+        gap: 2,
+        flexDirection: { xs: "column", md: "row" },
+
+        ...(card && {
+          p: 2,
+          borderRadius: 3,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+        }),
+
+        ...sx,
+      }}
+    >
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        sx={{ flex: 1 }}
+      >
+        {left || children}
+      </Stack>
+
+      {right && (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          justifyContent={{ xs: "flex-start", md: "flex-end" }}
+          flexWrap="wrap"
+        >
+          {right}
+        </Stack>
+      )}
+    </Box>
+  );
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\widgets\WidgetGate.jsx
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Platform Widget Gate
+//
+// Purpose:
+// Controls dashboard/widget visibility.
+//
+// Future:
+// Will connect to Super Admin Widget Manager.
+//
+// Current:
+// Allows all widgets.
+// ============================================
+
+export default function WidgetGate({ widgetKey, children }) {
+  return children;
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\crud\index.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform CRUD Exports
+// ============================================
+
+export { useCrudManager } from "./useCrudManager";
+export { default as CrudDeleteDialog } from "./CrudDeleteDialog";
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\crud\useCrudManager.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// useCrudManager
+// ============================================
+//
+// Purpose:
+// Shared CRUD state manager for enterprise
+// Super Admin management pages.
+//
+// Used by:
+// - Menu Manager
+// - Button Manager
+// - Widget Manager
+// - Future CRUD modules
+//
+// Rules:
+// - No business-specific logic here.
+// - Business modules provide API functions,
+//   mappers, filters, and notification labels.
+// ============================================
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import useAppNotification from "@platform/ui/feedback/useAppNotification";
+
+// ============================================
+// Default Pagination
+// ============================================
+
+const DEFAULT_PAGINATION = {
+  page: 0,
+  rowsPerPage: 10,
+  totalRows: 0,
+};
+
+// ============================================
+// Helpers
+// ============================================
+
+function getErrorMessage(error, fallback) {
+  return (
+    error?.response?.data?.message ||
+    error?.message ||
+    fallback ||
+    "Something went wrong."
+  );
+}
+
+function normalizeRows(payload, rowsKey) {
+  return (
+    payload?.items ||
+    payload?.data?.items ||
+    payload?.[rowsKey] ||
+    payload?.data?.[rowsKey] ||
+    payload?.result ||
+    payload?.recordset ||
+    []
+  );
+}
+
+function normalizeTotalRows(payload, rows) {
+  return (
+    payload?.totalRows ??
+    payload?.data?.totalRows ??
+    payload?.total ??
+    payload?.data?.total ??
+    rows.length ??
+    0
+  );
+}
+
+// ============================================
+// Hook
+// ============================================
+
+export function useCrudManager({
+  api,
+  rowsKey = "items",
+  defaultFilters = {},
+  defaultPagination = DEFAULT_PAGINATION,
+  buildQueryParams,
+  getItemId,
+  labels = {},
+  deriveKpis,
+} = {}) {
+  const notification = useAppNotification();
+
+  const [rows, setRows] = useState([]);
+  const [filters, setFiltersState] = useState(defaultFilters);
+  const [pagination, setPagination] = useState(defaultPagination);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const entityLabel = labels.entity || "Record";
+  const entityPluralLabel = labels.entityPlural || "Records";
+
+  // ==========================================
+  // Load Rows
+  // ==========================================
+
+  const fetchRows = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const queryParams =
+        typeof buildQueryParams === "function"
+          ? buildQueryParams({ filters, pagination })
+          : {
+              page: pagination.page + 1,
+              pageSize: pagination.rowsPerPage,
+              ...filters,
+            };
+
+      const response = await api.getAll(queryParams);
+      const payload = response?.data || response;
+
+      const nextRows = normalizeRows(payload, rowsKey);
+
+      setRows(Array.isArray(nextRows) ? nextRows : []);
+
+      setPagination((previous) => ({
+        ...previous,
+        totalRows: normalizeTotalRows(payload, nextRows),
+      }));
+    } catch (err) {
+      console.error(`Failed to load ${entityPluralLabel}:`, err);
+
+      setError(err);
+      setRows([]);
+
+      notification.showError(
+        getErrorMessage(err, `Failed to load ${entityPluralLabel}.`)
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    api,
+    buildQueryParams,
+    entityPluralLabel,
+    filters,
+    notification,
+    pagination.page,
+    pagination.rowsPerPage,
+    rowsKey,
+  ]);
+
+  // ==========================================
+  // Filters
+  // ==========================================
+
+  const setFilters = useCallback((updater) => {
+    setFiltersState((previous) => {
+      const nextFilters =
+        typeof updater === "function" ? updater(previous) : updater;
+
+      return nextFilters;
+    });
+
+    setPagination((previous) => ({
+      ...previous,
+      page: 0,
+    }));
+  }, []);
+
+  // ==========================================
+  // Pagination
+  // ==========================================
+
+  const handlePageChange = useCallback((event, newPage) => {
+    setPagination((previous) => ({
+      ...previous,
+      page: newPage,
+    }));
+  }, []);
+
+  const handleRowsPerPageChange = useCallback((event) => {
+    setPagination((previous) => ({
+      ...previous,
+      page: 0,
+      rowsPerPage: Number(event.target.value),
+    }));
+  }, []);
+
+  // ==========================================
+  // Create
+  // ==========================================
+
+  const createItem = useCallback(
+    async (payload) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        await api.create(payload);
+        await fetchRows();
+
+        notification.showSuccess(`${entityLabel} created successfully.`);
+
+        return { success: true };
+      } catch (err) {
+        console.error(`Failed to create ${entityLabel}:`, err);
+        setError(err);
+
+        notification.showError(
+          getErrorMessage(err, `Failed to create ${entityLabel}.`)
+        );
+
+        return { success: false, error: err };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [api, entityLabel, fetchRows, notification]
+  );
+
+  // ==========================================
+  // Update
+  // ==========================================
+
+  const updateItem = useCallback(
+    async (itemOrId, payload) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const itemId =
+          typeof getItemId === "function" ? getItemId(itemOrId) : itemOrId;
+
+        if (!itemId) {
+          throw new Error(`${entityLabel} ID is missing.`);
+        }
+
+        await api.update(itemId, payload);
+        await fetchRows();
+
+        notification.showSuccess(`${entityLabel} updated successfully.`);
+
+        return { success: true };
+      } catch (err) {
+        console.error(`Failed to update ${entityLabel}:`, err);
+        setError(err);
+
+        notification.showError(
+          getErrorMessage(err, `Failed to update ${entityLabel}.`)
+        );
+
+        return { success: false, error: err };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [api, entityLabel, fetchRows, getItemId, notification]
+  );
+
+  // ==========================================
+  // Delete
+  // ==========================================
+
+  const deleteItem = useCallback(
+    async (itemOrId) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const itemId =
+          typeof getItemId === "function" ? getItemId(itemOrId) : itemOrId;
+
+        if (!itemId) {
+          throw new Error(`${entityLabel} ID is missing.`);
+        }
+
+        await api.remove(itemId);
+        await fetchRows();
+
+        notification.showSuccess(`${entityLabel} deleted successfully.`);
+
+        return { success: true };
+      } catch (err) {
+        console.error(`Failed to delete ${entityLabel}:`, err);
+        setError(err);
+
+        notification.showError(
+          getErrorMessage(err, `Failed to delete ${entityLabel}.`)
+        );
+
+        return { success: false, error: err };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [api, entityLabel, fetchRows, getItemId, notification]
+  );
+
+  // ==========================================
+  // Custom Action
+  // ==========================================
+
+  const runAction = useCallback(
+    async ({
+      item,
+      action,
+      successMessage,
+      errorMessage,
+      getId = getItemId,
+    }) => {
+      try {
+        setSaving(true);
+        setError(null);
+
+        const itemId =
+          typeof getId === "function" ? getId(item) : item;
+
+        if (!itemId) {
+          throw new Error(`${entityLabel} ID is missing.`);
+        }
+
+        await action(itemId);
+        await fetchRows();
+
+        notification.showSuccess(
+          successMessage || `${entityLabel} updated successfully.`
+        );
+
+        return { success: true };
+      } catch (err) {
+        console.error(`Failed to update ${entityLabel}:`, err);
+        setError(err);
+
+        notification.showError(
+          getErrorMessage(err, errorMessage || `Failed to update ${entityLabel}.`)
+        );
+
+        return { success: false, error: err };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [entityLabel, fetchRows, getItemId, notification]
+  );
+
+  // ==========================================
+  // Initial Load
+  // ==========================================
+
+  useEffect(() => {
+    fetchRows();
+  }, [fetchRows]);
+
+  // ==========================================
+  // KPI Calculation
+  // ==========================================
+
+  const kpis = useMemo(() => {
+    if (typeof deriveKpis === "function") {
+      return deriveKpis({
+        rows,
+        filters,
+        pagination,
+      });
+    }
+
+    return {
+      total: pagination.totalRows,
+    };
+  }, [deriveKpis, filters, pagination, rows]);
+
+  // ==========================================
+  // Return API
+  // ==========================================
+
+  return {
+    rows,
+    filteredRows: rows,
+    kpis,
+
+    loading,
+    saving,
+    error,
+
+    filters,
+    setFilters,
+
+    pagination,
+    handlePageChange,
+    handleRowsPerPageChange,
+
+    fetchRows,
+    refreshRows: fetchRows,
+
+    createItem,
+    updateItem,
+    deleteItem,
+    runAction,
+  };
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\hooks\usePageTitle.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Page Title Hook
+// ============================================
+//
+// Purpose:
+// Sets browser tab title consistently across
+// all platform pages.
+// ============================================
+
+import { useEffect } from "react";
+
+import useBranding from "../../modules/system/hooks/useBranding";
+
+export default function usePageTitle(pageTitle) {
+  const { branding } = useBranding();
+
+  useEffect(() => {
+    const schoolCode =
+      branding?.school?.schoolCode ||
+      branding?.school?.schoolName ||
+      "AUS";
+
+    document.title = pageTitle
+      ? `${schoolCode} | ${pageTitle}`
+      : `${schoolCode} | Operations Platform`;
+  }, [branding, pageTitle]);
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\lookups\index.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform Lookups Export
+// ============================================
+
+export { lookupApi, LOOKUP_ENDPOINTS } from "./lookupApi";
+export {
+  getCachedLookup,
+  setCachedLookup,
+  clearLookupCache,
+  hasCachedLookup,
+} from "./lookupCache";
+export { useLookups } from "./useLookups";
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\lookups\lookupApi.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Platform Lookup API
+// ============================================
+//
+// Purpose:
+// Central API layer for all reusable lookup data.
+//
+// Enterprise Rules:
+// - No duplicated axios calls inside modules.
+// - All dropdown values must come from SQL Server.
+// - This file only handles HTTP communication.
+// - Components should consume useLookups(), not axios directly.
+// ============================================
+
+import api from "../../services/api";
+
+// ============================================
+// Lookup Endpoint Map
+// ============================================
+//
+// Purpose:
+// One central place for all reusable lookup endpoints.
+// Add future SQL-backed dropdowns here.
+// ============================================
+
+export const LOOKUP_ENDPOINTS = {
+  departments: "/lookups/departments",
+  sections: "/lookups/sections",
+  subjects: "/lookups/subjects",
+  purposes: "/lookups/purposes",
+
+  workspaces: "/lookups/workspaces",
+  modules: "/lookups/modules",
+  menus: "/lookups/menus",
+  permissions: "/lookups/permissions",
+  featureFlags: "/lookups/feature-flags",
+  visibilityStatuses: "/lookups/visibility-statuses",
+};
+
+// ============================================
+// Response Normalizer
+// ============================================
+//
+// Purpose:
+// Backend responses may use different wrappers such as:
+// - { data: [...] }
+// - { rows: [...] }
+// - { items: [...] }
+// - { result: [...] }
+// - [...]
+//
+// This keeps the lookup hook stable.
+// ============================================
+
+function normalizeLookupResponse(response) {
+  const payload = response?.data;
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
+  if (Array.isArray(payload?.result)) {
+    return payload.result;
+  }
+
+  return [];
+}
+
+// ============================================
+// Lookup API
+// ============================================
+
+export const lookupApi = {
+  // ==========================================
+  // Get Single Lookup
+  // ==========================================
+
+  async getLookup(key) {
+    const endpoint = LOOKUP_ENDPOINTS[key];
+
+    if (!endpoint) {
+      throw new Error(`Unknown lookup key: ${key}`);
+    }
+
+    const response = await api.get(endpoint);
+    return normalizeLookupResponse(response);
+  },
+
+  // ==========================================
+  // Get Multiple Lookups
+  // ==========================================
+
+  async getMany(keys = []) {
+    const results = await Promise.all(
+      keys.map(async (key) => {
+        const data = await this.getLookup(key);
+        return [key, data];
+      })
+    );
+
+    return Object.fromEntries(results);
+  },
+};
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\lookups\lookupCache.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Lookup Cache
+// ============================================
+//
+// Purpose:
+// Simple in-memory cache for platform lookups.
+//
+// This prevents repeated API calls when multiple modules
+// need the same dropdown data.
+// ============================================
+
+const lookupCache = new Map();
+
+export function getCachedLookup(key) {
+  return lookupCache.get(key);
+}
+
+export function setCachedLookup(key, value) {
+  lookupCache.set(key, value);
+}
+
+export function clearLookupCache(key) {
+  if (key) {
+    lookupCache.delete(key);
+    return;
+  }
+
+  lookupCache.clear();
+}
+
+export function hasCachedLookup(key) {
+  return lookupCache.has(key);
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\lookups\useLookups.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// useLookups Hook
+// ============================================
+//
+// Purpose:
+// Reusable platform lookup hook with caching.
+//
+// Fix:
+// Prevents repeated refresh/blinking when lookup keys
+// are passed as an inline array from components.
+// ============================================
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { lookupApi, LOOKUP_ENDPOINTS } from "./lookupApi";
+import {
+  clearLookupCache,
+  getCachedLookup,
+  hasCachedLookup,
+  setCachedLookup,
+} from "./lookupCache";
+
+// ============================================
+// Default Lookup Keys
+// ============================================
+
+const DEFAULT_LOOKUPS = Object.keys(LOOKUP_ENDPOINTS);
+
+// ============================================
+// Hook
+// ============================================
+
+export function useLookups(keys = DEFAULT_LOOKUPS, options = {}) {
+  const { useCache = true, autoLoad = true } = options;
+
+  // ==========================================
+  // Stable Lookup Key Signature
+  // ==========================================
+  //
+  // Important:
+  // Components may pass inline arrays to useLookups().
+  // Without this stable signature, React sees a new array
+  // every render and reloads lookups repeatedly.
+  // ==========================================
+
+  const lookupKeySignature = useMemo(() => keys.join("|"), [keys]);
+
+  const lookupKeys = useMemo(
+    () => lookupKeySignature.split("|").filter(Boolean),
+    [lookupKeySignature]
+  );
+
+  // ==========================================
+  // State
+  // ==========================================
+
+  const [lookups, setLookups] = useState({});
+  const [loading, setLoading] = useState(Boolean(autoLoad));
+  const [error, setError] = useState(null);
+
+  // ==========================================
+  // Load Lookups
+  // ==========================================
+
+  const loadLookups = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const nextLookups = {};
+        const missingKeys = [];
+
+        lookupKeys.forEach((key) => {
+          if (useCache && !forceRefresh && hasCachedLookup(key)) {
+            nextLookups[key] = getCachedLookup(key);
+          } else {
+            missingKeys.push(key);
+          }
+        });
+
+        if (missingKeys.length > 0) {
+          const freshLookups = await lookupApi.getMany(missingKeys);
+
+          Object.entries(freshLookups).forEach(([key, value]) => {
+            nextLookups[key] = value;
+
+            if (useCache) {
+              setCachedLookup(key, value);
+            }
+          });
+        }
+
+        setLookups(nextLookups);
+      } catch (err) {
+        console.error("Failed to load platform lookups:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [lookupKeySignature, useCache]
+  );
+
+  // ==========================================
+  // Refresh Lookups
+  // ==========================================
+
+  const refreshLookups = useCallback(() => {
+    return loadLookups(true);
+  }, [loadLookups]);
+
+  // ==========================================
+  // Clear Cache
+  // ==========================================
+
+  const resetLookupCache = useCallback((key) => {
+    clearLookupCache(key);
+  }, []);
+
+  // ==========================================
+  // Auto Load
+  // ==========================================
+
+  useEffect(() => {
+    if (autoLoad) {
+      loadLookups();
+    }
+  }, [autoLoad, loadLookups]);
+
+  // ==========================================
+  // Public API
+  // ==========================================
+
+  return {
+    ...lookups,
+
+    lookups,
+    loading,
+    error,
+
+    loadLookups,
+    refreshLookups,
+    resetLookupCache,
+  };
+}
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\ui\index.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// Shared UI Components
+// ============================================
+//
+// Purpose:
+// Central export file for reusable platform UI
+// components used across all platform modules.
+// ============================================
+
+// Core Components
+export { default as AppButton } from "./AppButton";
+export { default as AppCard } from "./AppCard";
+export { default as AppChip } from "./AppChip";
+export { default as AppPageHeader } from "./AppPageHeader";
+export { default as AppSearch } from "./AppSearch";
+export { default as AppSection } from "./AppSection";
+export { default as AppStatCard } from "./AppStatCard";
+export { default as AppToolbar } from "./AppToolbar";
+export { default as AppActionMenu } from "./AppActionMenu";
+export { default as AppStatCards } from "./AppStatCards";
+export * from "./form";
+export * from "./dialog";
+
+// Navigation
+export { default as AppBreadcrumbs } from "./AppBreadcrumbs";
+
+// Tables
+export { default as AppDataTable } from "./AppDataTable";
+
+// Dialogs
+export { default as AppConfirmDialog } from "./AppConfirmDialog";
+
+// States
+export { default as AppEmptyState } from "./AppEmptyState";
+export { default as AppLoadingState } from "./AppLoadingState";
+
+============================================================
+FILE: C:\Users\NAIS\Desktop\OperationsPlatform\frontend\src\platform\utils\buildFileUrl.js
+============================================================
+// ============================================
+// ARAB UNITY SCHOOL
+// Operations Platform
+// File URL Builder
+// ============================================
+//
+// Purpose:
+// Converts backend file paths into full URLs.
+//
+// Example:
+//
+// "/uploads/branding/logo/logo.png"
+//
+// becomes
+//
+// "http://localhost:5000/uploads/branding/logo/logo.png"
+//
+// This helper should be used everywhere files are
+// rendered (branding, assets, helpdesk, HR, etc.)
+// ============================================
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
+
+export default function buildFileUrl(path) {
+  if (!path) return "";
+
+  if (path.startsWith("http")) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
