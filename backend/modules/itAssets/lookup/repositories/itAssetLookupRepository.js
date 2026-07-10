@@ -1,33 +1,19 @@
 /* =========================================================
    IT Asset Lookup Repository
    Repository → Service → Controller → Routes
-
-   Purpose:
-   Provides lookup data needed by IT Asset create/edit forms.
-
-   Notes:
-   - SQL only
-   - No validation
-   - No business logic
-   - Uses current enterprise schema:
-     Users.RoleId → Roles.RoleId
 ========================================================= */
+
 const { poolPromise } = require("../../../../config/db");
 
 const getITAssetLookups = async () => {
   const pool = await poolPromise;
 
   const result = await pool.request().query(`
-    SELECT 
-      ITAssetCategoryId,
-      CategoryKey,
-      CategoryName
+    SELECT ITAssetCategoryId, CategoryKey, CategoryName
     FROM dbo.ITAssetCategories
     ORDER BY SortOrder, CategoryName;
 
-    SELECT 
-      ITAssetBrandId,
-      BrandName
+    SELECT ITAssetBrandId, BrandName
     FROM dbo.ITAssetBrands
     WHERE IsActive = 1
     ORDER BY BrandName;
@@ -41,53 +27,35 @@ const getITAssetLookups = async () => {
       m.ModelName,
       m.ModelDescription
     FROM dbo.ITAssetModels m
-    INNER JOIN dbo.ITAssetCategories c
-      ON m.ITAssetCategoryId = c.ITAssetCategoryId
-    LEFT JOIN dbo.ITAssetBrands b
-      ON m.ITAssetBrandId = b.ITAssetBrandId
+    INNER JOIN dbo.ITAssetCategories c ON m.ITAssetCategoryId = c.ITAssetCategoryId
+    LEFT JOIN dbo.ITAssetBrands b ON m.ITAssetBrandId = b.ITAssetBrandId
     WHERE m.IsActive = 1
     ORDER BY c.CategoryName, b.BrandName, m.ModelName;
 
-    SELECT 
-      ITAssetStatusId,
-      StatusKey,
-      StatusName,
-      IsFinalStatus
+    SELECT ITAssetStatusId, StatusKey, StatusName, IsFinalStatus
     FROM dbo.ITAssetStatuses
     ORDER BY SortOrder, StatusName;
 
-    SELECT 
-      ITAssetConditionId,
-      ConditionKey,
-      ConditionName
+    SELECT ITAssetConditionId, ConditionKey, ConditionName
     FROM dbo.ITAssetConditions
     ORDER BY SortOrder, ConditionName;
 
-    SELECT 
-      DepartmentId,
-      DepartmentName
+    SELECT DepartmentId, DepartmentName
     FROM dbo.Departments
     WHERE IsActive = 1
     ORDER BY DepartmentName;
 
-    SELECT 
-      LocationId,
-      LocationName
+    SELECT LocationId, LocationName
     FROM dbo.Locations
     WHERE IsActive = 1
     ORDER BY LocationName;
 
-    SELECT 
-      RoomId,
-      RoomName,
-      LocationId
+    SELECT RoomId, RoomName, LocationId
     FROM dbo.Rooms
     WHERE IsActive = 1
     ORDER BY RoomName;
 
-    SELECT 
-      SchoolId,
-      SchoolName
+    SELECT SchoolId, SchoolName
     FROM dbo.Schools
     WHERE IsActive = 1
     ORDER BY SchoolName;
@@ -102,12 +70,19 @@ const getITAssetLookups = async () => {
       r.RoleName,
       r.DisplayName AS RoleDisplayName
     FROM dbo.Users u
-    INNER JOIN dbo.Roles r
-      ON u.RoleId = r.RoleId
-    WHERE 
-      u.IsActive = 1
-      AND u.IsDeleted = 0
+    INNER JOIN dbo.Roles r ON u.RoleId = r.RoleId
+    WHERE u.IsActive = 1 AND u.IsDeleted = 0
     ORDER BY u.FullName;
+
+    SELECT
+      IssueTypeId,
+      IssueCategoryId,
+      IssueTypeKey,
+      IssueTypeName,
+      Description
+    FROM dbo.ITAssetIssueTypes
+    WHERE IsActive = 1
+    ORDER BY IssueTypeName;
   `);
 
   return {
@@ -121,6 +96,7 @@ const getITAssetLookups = async () => {
     rooms: result.recordsets[7],
     schools: result.recordsets[8],
     users: result.recordsets[9],
+    issueTypes: result.recordsets[10],
   };
 };
 

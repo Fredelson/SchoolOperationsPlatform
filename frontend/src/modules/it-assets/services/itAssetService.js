@@ -7,6 +7,10 @@ import {
   getItAssetsApi,
   getItAssetByIdApi,
   getItAssetTimelineApi,
+  getItAssetAuditApi,
+  assignItAssetApi,
+  returnItAssetApi,
+  getItAssetLookupsApi,
 } from "../api/itAssetApi";
 
 /**
@@ -33,10 +37,43 @@ export const getItAssetByIdService = async (assetId) => {
   const response = await getItAssetByIdApi(assetId);
   return response?.data || null;
 };
+
 /**
- * Get IT asset lifecycle timeline.
+ * Get asset lifecycle timeline.
  */
 export const getItAssetTimelineService = async (assetId) => {
   const response = await getItAssetTimelineApi(assetId);
   return response?.data || { timeline: [], summary: {} };
+};
+
+/**
+ * Get asset audit history.
+ */
+export const getItAssetAuditService = async (assetId) => {
+  const response = await getItAssetAuditApi(assetId);
+  return response?.data || [];
+};
+
+/**
+ * Assign asset.
+ */
+export const assignItAssetService = async (payload) => {
+  const response = await assignItAssetApi(payload);
+  return response?.data || null;
+};
+
+/**
+ * Return asset.
+ */
+export const returnItAssetService = async (assetId, payload = {}) => {
+  const response = await returnItAssetApi(assetId, payload);
+  return response?.data || null;
+};
+
+/**
+ * Get lookups used by asset actions.
+ */
+export const getItAssetLookupsService = async () => {
+  const response = await getItAssetLookupsApi();
+  return response?.data || {};
 };

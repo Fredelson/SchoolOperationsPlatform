@@ -5,32 +5,26 @@
 const repository = require("../repositories/assetAssignmentRepository");
 
 const validateAssignAsset = async (payload) => {
-  if (!payload.assetId || Number(payload.assetId) <= 0) {
-    const error = new Error("Asset is required.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (!payload.assignedToUserId && !payload.assignedToName) {
-    const error = new Error("Assigned user or assigned name is required.");
-    error.statusCode = 400;
-    throw error;
+  if (!payload.assetId) {
+    throw Object.assign(new Error("Asset ID is required."), {
+      statusCode: 400,
+    });
   }
 
   const asset = await repository.getAssetById(payload.assetId);
 
   if (!asset) {
-    const error = new Error("IT asset not found.");
-    error.statusCode = 404;
-    throw error;
+    throw Object.assign(new Error("IT asset not found."), {
+      statusCode: 404,
+    });
   }
 
-  const activeAssignment = await repository.getActiveAssignment(payload.assetId);
+  const assignedStatus = await repository.getStatusByKey("Assigned");
 
-  if (activeAssignment) {
-    const error = new Error("This asset is already assigned. Return it first before assigning again.");
-    error.statusCode = 409;
-    throw error;
+  if (!assignedStatus) {
+    throw Object.assign(new Error("Assigned status is missing."), {
+      statusCode: 400,
+    });
   }
 
   let assignedToUser = null;
@@ -39,18 +33,10 @@ const validateAssignAsset = async (payload) => {
     assignedToUser = await repository.getUserById(payload.assignedToUserId);
 
     if (!assignedToUser) {
-      const error = new Error("Assigned user not found.");
-      error.statusCode = 404;
-      throw error;
+      throw Object.assign(new Error("Assigned user not found."), {
+        statusCode: 404,
+      });
     }
-  }
-
-  const assignedStatus = await repository.getStatusByKey("ASSIGNED");
-
-  if (!assignedStatus) {
-    const error = new Error("ASSIGNED asset status is missing in ITAssetStatuses.");
-    error.statusCode = 500;
-    throw error;
   }
 
   return {
@@ -60,41 +46,87 @@ const validateAssignAsset = async (payload) => {
   };
 };
 
-const validateReturnAsset = async (assetId) => {
-  if (!assetId || Number(assetId) <= 0) {
-    const error = new Error("Asset is required.");
-    error.statusCode = 400;
-    throw error;
+const validateReturnAsset = async (assetId, payload = {}) => {
+  if (!assetId) {
+    throw Object.assign(new Error("Asset ID is required."), {
+      statusCode: 400,
+    });
+  }
+
+  if (!payload.returnConditionId) {
+    throw Object.assign(new Error("Return condition is required."), {
+      statusCode: 400,
+    });
   }
 
   const asset = await repository.getAssetById(assetId);
 
   if (!asset) {
-    const error = new Error("IT asset not found.");
-    error.statusCode = 404;
-    throw error;
+    throw Object.assign(new Error("IT asset not found."), {
+      statusCode: 404,
+    });
   }
 
   const activeAssignment = await repository.getActiveAssignment(assetId);
 
   if (!activeAssignment) {
-    const error = new Error("This asset has no active assignment to return.");
-    error.statusCode = 409;
-    throw error;
+    throw Object.assign(
+      new Error("This asset has no active assignment to return."),
+      { statusCode: 400 }
+    );
   }
 
-  const availableStatus = await repository.getStatusByKey("AVAILABLE");
+  const returnCondition = await repository.getConditionById(
+    payload.returnConditionId
+  );
 
-  if (!availableStatus) {
-    const error = new Error("AVAILABLE asset status is missing in ITAssetStatuses.");
-    error.statusCode = 500;
-    throw error;
+  if (!returnCondition) {
+    throw Object.assign(new Error("Invalid return condition."), {
+      statusCode: 400,
+    });
+  }
+
+  const conditionName = String(returnCondition.ConditionName || "").toLowerCase();
+
+  const requiresIssue = ["fair", "poor", "damaged", "beyond repair"].includes(
+    conditionName
+  );
+
+  if (
+    requiresIssue &&
+    (!Array.isArray(payload.returnIssueTypeIds) ||
+      payload.returnIssueTypeIds.length === 0)
+  ) {
+    throw Object.assign(
+      new Error("At least one required action / issue is required."),
+      { statusCode: 400 }
+    );
+  }
+
+  let statusKey = "Available";
+
+  if (["fair", "poor", "damaged"].includes(conditionName)) {
+    statusKey = "UnderRepair";
+  }
+
+  if (conditionName === "beyond repair") {
+    statusKey = "ReadyForDisposal";
+  }
+
+  const targetStatus = await repository.getStatusByKey(statusKey);
+
+  if (!targetStatus) {
+    throw Object.assign(
+      new Error(`Asset status '${statusKey}' is missing.`),
+      { statusCode: 400 }
+    );
   }
 
   return {
     asset,
     activeAssignment,
-    availableStatus,
+    returnCondition,
+    targetStatus,
   };
 };
 

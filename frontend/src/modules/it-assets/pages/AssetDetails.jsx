@@ -27,10 +27,17 @@ import {
 import {
   getItAssetByIdService,
   getItAssetTimelineService,
+  getItAssetAuditService,
+  getItAssetLookupsService,
+  assignItAssetService,
+  returnItAssetService,
 } from "../services/itAssetService";
 
 import AssetInformationPanel from "../components/AssetInformationPanel";
 import AssetTimelinePanel from "../components/AssetTimelinePanel";
+import AssetAuditPanel from "../components/AssetAuditPanel";
+import AssignAssetDialog from "../dialogs/AssignAssetDialog";
+import ReturnAssetDialog from "../dialogs/ReturnAssetDialog";
 
 const AssetDetails = () => {
   usePageTitle("AUS | Asset Details");
@@ -40,16 +47,25 @@ const AssetDetails = () => {
 
   const [asset, setAsset] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [lookups, setLookups] = useState({});
   const [tab, setTab] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [actionSaving, setActionSaving] = useState(false);
+
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
 
   const loadAsset = useCallback(async () => {
     try {
       setLoading(true);
       setTimelineLoading(true);
+      setAuditLoading(true);
       setError("");
 
       const assetData = await getItAssetByIdService(assetId);
@@ -57,19 +73,41 @@ const AssetDetails = () => {
 
       const timelineData = await getItAssetTimelineService(assetId);
       setTimeline(timelineData?.timeline || []);
+
+      const auditData = await getItAssetAuditService(assetId);
+      setAuditLogs(auditData || []);
+
+      const lookupData = await getItAssetLookupsService();
+      setLookups(lookupData || {});
     } catch (err) {
-      setError(
-        err?.response?.data?.message || "Unable to load asset details."
-      );
+      setError(err?.response?.data?.message || "Unable to load asset details.");
     } finally {
       setLoading(false);
       setTimelineLoading(false);
+      setAuditLoading(false);
     }
   }, [assetId]);
 
   useEffect(() => {
     loadAsset();
   }, [loadAsset]);
+
+  const handleAssignSubmit = async (payload) => {
+    try {
+      setActionSaving(true);
+      setActionError("");
+
+      await assignItAssetService(payload);
+
+      setAssignOpen(false);
+      await loadAsset();
+      setTab(0);
+    } catch (err) {
+      setActionError(err?.response?.data?.message || "Failed to assign asset.");
+    } finally {
+      setActionSaving(false);
+    }
+  };
 
   if (loading) {
     return <AppLoadingState title="Loading asset details..." />;
@@ -97,6 +135,23 @@ const AssetDetails = () => {
     );
   }
 
+  const handleReturnSubmit = async (payload) => {
+    try {
+      setActionSaving(true);
+      setActionError("");
+
+      await returnItAssetService(asset.AssetId, payload);
+
+      setReturnOpen(false);
+      await loadAsset();
+      setTab(0);
+    } catch (err) {
+      setActionError(err?.response?.data?.message || "Failed to return asset.");
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
   return (
     <Box>
       <AppBreadcrumbs
@@ -112,10 +167,7 @@ const AssetDetails = () => {
         subtitle="View asset information, timeline, audit history, and available actions."
         actions={
           <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate("/it-assets/assets")}
-            >
+            <Button variant="outlined" onClick={() => navigate("/it-assets/assets")}>
               Back
             </Button>
 
@@ -125,12 +177,6 @@ const AssetDetails = () => {
           </Stack>
         }
       />
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 3 }}>
-          {error}
-        </Alert>
-      )}
 
       <Stack spacing={3}>
         <AssetInformationPanel asset={asset} />
@@ -152,26 +198,41 @@ const AssetDetails = () => {
           <Box sx={{ p: 3 }}>
             {tab === 0 &&
               (timelineLoading ? (
-                <Typography color="text.secondary">
-                  Loading timeline...
-                </Typography>
+                <Typography color="text.secondary">Loading timeline...</Typography>
               ) : (
                 <AssetTimelinePanel timeline={timeline} />
               ))}
 
-            {tab === 1 && (
-              <Typography color="text.secondary">
-                Audit history will be connected next.
-              </Typography>
-            )}
+            {tab === 1 &&
+              (auditLoading ? (
+                <Typography color="text.secondary">
+                  Loading audit history...
+                </Typography>
+              ) : (
+                <AssetAuditPanel auditLogs={auditLogs} />
+              ))}
 
             {tab === 2 && (
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Button variant="outlined" disabled>
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setActionError("");
+                    setAssignOpen(true);
+                  }}
+                  disabled={Boolean(asset.CurrentAssignedUserId || asset.CurrentAssignedName)}
+                >
                   Assign
                 </Button>
 
-                <Button variant="outlined" disabled>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setActionError("");
+                    setReturnOpen(true);
+                  }}
+                  disabled={!asset.CurrentAssignedUserId && !asset.CurrentAssignedName}
+                >
                   Return
                 </Button>
 
@@ -191,6 +252,29 @@ const AssetDetails = () => {
           </Box>
         </Paper>
       </Stack>
+
+      <AssignAssetDialog
+        open={assignOpen}
+        asset={asset}
+        lookups={lookups}
+        saving={actionSaving}
+        error={actionError}
+        onClose={() => {
+          if (!actionSaving) setAssignOpen(false);
+        }}
+        onSubmit={handleAssignSubmit}
+      />
+      <ReturnAssetDialog
+        open={returnOpen}
+        asset={asset}
+        lookups={lookups}
+        saving={actionSaving}
+        error={actionError}
+        onClose={() => {
+          if (!actionSaving) setReturnOpen(false);
+        }}
+        onSubmit={handleReturnSubmit}
+      />
     </Box>
   );
 };

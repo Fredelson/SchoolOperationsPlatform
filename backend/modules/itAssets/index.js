@@ -19,6 +19,9 @@ const assetTimelineRoutes = require("./timeline/routes/assetTimelineRoutes");
 const assetDashboardRoutes = require("./dashboard/routes/assetDashboardRoutes");
 const assetExplorerRoutes = require("./assetExplorer/routes/assetExplorerRoutes");
 const assetImportRoutes = require("./import/routes/itAssetImportRoutes");
+const assetAuditRoutes = require("./audit/routes/assetAuditRoutes");
+
+router.use("/audit", assetAuditRoutes);
 
 /* Dashboard Routes */
 router.use("/dashboard", assetDashboardRoutes);

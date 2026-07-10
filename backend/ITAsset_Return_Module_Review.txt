@@ -1,3 +1,200 @@
+
+========================================================
+FILE: .\modules\itAssets\assignment\routes\assetAssignmentRoutes.js
+========================================================
+
+/* =========================================================
+   IT Asset Assignment Routes
+========================================================= */
+
+const express = require("express");
+const router = express.Router();
+
+const controller = require("../controllers/assetAssignmentController");
+
+const {
+  validateAssignPayload,
+  validateReturnPayload,
+} = require("../validators/assetAssignmentValidator");
+
+const { protect } = require("../../../../middleware/authMiddleware");
+
+router.get(
+  "/:assetId/history",
+  protect,
+  controller.getAssignmentHistory
+);
+
+router.post(
+  "/assign",
+  protect,
+  validateAssignPayload,
+  controller.assignAsset
+);
+
+router.put(
+  "/:assetId/return",
+  protect,
+  validateReturnPayload,
+  controller.returnAsset
+);
+
+module.exports = router;
+
+========================================================
+FILE: .\modules\itAssets\assignment\controllers\assetAssignmentController.js
+========================================================
+
+/* =========================================================
+   IT Asset Assignment Controller
+========================================================= */
+
+const service = require("../services/assetAssignmentService");
+
+const getAssignmentHistory = async (req, res) => {
+  try {
+    const data = await service.getAssignmentHistory(req.params.assetId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Asset assignment history loaded successfully.",
+      data,
+    });
+  } catch (error) {
+    console.error("Get Assignment History Error:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to load assignment history.",
+    });
+  }
+};
+
+const assignAsset = async (req, res) => {
+  try {
+    const result = await service.assignAsset(req.body, req.user, req.ip);
+
+    return res.status(201).json({
+      success: true,
+      message: "Asset assigned successfully.",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Assign Asset Error:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to assign asset.",
+    });
+  }
+};
+
+const returnAsset = async (req, res) => {
+  try {
+    const result = await service.returnAsset(
+      req.params.assetId,
+      req.body,
+      req.user,
+      req.ip
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Asset returned successfully.",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Return Asset Error:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to return asset.",
+    });
+  }
+};
+
+module.exports = {
+  getAssignmentHistory,
+  assignAsset,
+  returnAsset,
+};
+
+========================================================
+FILE: .\modules\itAssets\assignment\services\assetAssignmentService.js
+========================================================
+
+/* =========================================================
+   IT Asset Assignment Service Facade
+========================================================= */
+
+const queryService = require("./assetAssignmentQueryService");
+const commandService = require("./assetAssignmentCommandService");
+
+module.exports = {
+  getAssignmentHistory: queryService.getAssignmentHistory,
+  assignAsset: commandService.assignAsset,
+  returnAsset: commandService.returnAsset,
+};
+
+========================================================
+FILE: .\modules\itAssets\assignment\services\assetAssignmentCommandService.js
+========================================================
+
+/* =========================================================
+   IT Asset Assignment Command Service
+========================================================= */
+
+const repository = require("../repositories/assetAssignmentRepository");
+const validationService = require("./assetAssignmentValidationService");
+
+const getCurrentUserId = (user) => {
+  return user?.UserId || user?.userId || user?.id || null;
+};
+
+const assignAsset = async (payload, currentUser, ipAddress = null) => {
+  const { asset, assignedToUser, assignedStatus } =
+    await validationService.validateAssignAsset(payload);
+
+  const assignedByUserId = getCurrentUserId(currentUser);
+
+  return repository.assignAsset({
+    asset,
+    assignedToUser,
+    payload,
+    assignedByUserId,
+    assignedStatusId: assignedStatus.ITAssetStatusId,
+    ipAddress,
+  });
+};
+
+const returnAsset = async (assetId, payload, currentUser, ipAddress = null) => {
+  const { asset, activeAssignment, returnCondition, targetStatus } =
+    await validationService.validateReturnAsset(assetId, payload);
+
+  const changedByUserId = getCurrentUserId(currentUser);
+
+  return repository.returnAsset({
+    asset,
+    activeAssignment,
+    returnedStatusId: targetStatus.ITAssetStatusId,
+    changedByUserId,
+    notes: payload?.notes || null,
+    returnCondition,
+    returnConditionId: payload?.returnConditionId || null,
+    returnIssueTypeIds: payload?.returnIssueTypeIds || [],
+    ipAddress,
+  });
+};
+
+module.exports = {
+  assignAsset,
+  returnAsset,
+};
+
+========================================================
+FILE: .\modules\itAssets\assignment\repositories\assetAssignmentRepository.js
+========================================================
+
 /* =========================================================
    ARAB UNITY SCHOOL OPERATIONS PLATFORM
    IT Asset Assignment Repository
@@ -416,19 +613,14 @@ const returnAsset = async ({
   returnCondition,
   returnConditionId = null,
   returnIssueTypeIds = [],
+  returnIssuePriority = "MEDIUM",
   ipAddress = null,
 }) => {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
   const conditionName = String(returnCondition?.ConditionName || "");
-  const needsIssue = ["Fair", "Poor", "Damaged", "Beyond Repair"].includes(
-    conditionName
-  );
-
-  const issueTypeIds = Array.isArray(returnIssueTypeIds)
-    ? returnIssueTypeIds
-    : [];
+  const needsIssue = ["Fair", "Poor", "Damaged", "Beyond Repair"].includes(conditionName);
 
   try {
     await transaction.begin();
@@ -437,18 +629,16 @@ const returnAsset = async ({
       .input("AssetAssignmentId", sql.Int, activeAssignment.AssetAssignmentId)
       .input("ReturnNotes", sql.NVarChar(sql.MAX), notes || null)
       .input("ReturnConditionId", sql.Int, returnConditionId || null)
-      .input(
-        "ReturnIssueTypeIdsJson",
-        sql.NVarChar(sql.MAX),
-        needsIssue ? JSON.stringify(issueTypeIds) : null
-      )
+      .input("ReturnIssueTypeId", sql.Int, needsIssue ? returnIssueTypeId : null)
+      .input("ReturnIssuePriority", sql.NVarChar(50), needsIssue ? returnIssuePriority || "MEDIUM" : null)
       .query(`
         UPDATE dbo.ITAssetAssignments
         SET
           ReturnedAt = GETDATE(),
           ReturnNotes = @ReturnNotes,
           ReturnConditionId = @ReturnConditionId,
-          ReturnIssueTypeIdsJson = @ReturnIssueTypeIdsJson
+          ReturnIssueTypeId = @ReturnIssueTypeId,
+          ReturnIssuePriority = @ReturnIssuePriority
         OUTPUT INSERTED.*
         WHERE AssetAssignmentId = @AssetAssignmentId;
       `);
@@ -480,11 +670,7 @@ const returnAsset = async ({
       .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
       .input("NewStatusId", sql.Int, returnedStatusId)
       .input("ChangedBy", sql.Int, changedByUserId || null)
-      .input(
-        "Notes",
-        sql.NVarChar(sql.MAX),
-        notes || `Asset returned with condition: ${conditionName}.`
-      )
+      .input("Notes", sql.NVarChar(sql.MAX), notes || `Asset returned with condition: ${conditionName}.`)
       .query(`
         INSERT INTO dbo.ITAssetStatusHistory
         (
@@ -506,56 +692,52 @@ const returnAsset = async ({
         );
       `);
 
-    const issues = [];
+    let issue = null;
 
     if (needsIssue) {
-      for (const issueTypeId of issueTypeIds) {
-        const issueResult = await new sql.Request(transaction)
-          .input("AssetId", sql.Int, asset.AssetId)
-          .input("IssueTypeId", sql.Int, Number(issueTypeId))
-          .input("ReportedByUserId", sql.Int, changedByUserId || null)
-          .input("IssueStatus", sql.NVarChar(50), "OPEN")
-          .input(
-            "Description",
-            sql.NVarChar(sql.MAX),
-            notes || `Asset returned with condition: ${conditionName}.`
+      const issueResult = await new sql.Request(transaction)
+        .input("AssetId", sql.Int, asset.AssetId)
+        .input("IssueTypeId", sql.Int, Number(returnIssueTypeId))
+        .input("ReportedByUserId", sql.Int, changedByUserId || null)
+        .input("IssueStatus", sql.NVarChar(50), "OPEN")
+        .input("Priority", sql.NVarChar(50), returnIssuePriority || "MEDIUM")
+        .input("Description", sql.NVarChar(sql.MAX), notes || `Asset returned with condition: ${conditionName}.`)
+        .query(`
+          INSERT INTO dbo.ITAssetIssueLogs
+          (
+            AssetId,
+            IssueTypeId,
+            ReportedByUserId,
+            IssueStatus,
+            Priority,
+            Description,
+            ReportedAt
           )
-          .query(`
-            INSERT INTO dbo.ITAssetIssueLogs
-            (
-              AssetId,
-              IssueTypeId,
-              ReportedByUserId,
-              IssueStatus,
-              Description,
-              ReportedAt
-            )
-            OUTPUT INSERTED.*
-            VALUES
-            (
-              @AssetId,
-              @IssueTypeId,
-              @ReportedByUserId,
-              @IssueStatus,
-              @Description,
-              GETDATE()
-            );
-          `);
+          OUTPUT INSERTED.*
+          VALUES
+          (
+            @AssetId,
+            @IssueTypeId,
+            @ReportedByUserId,
+            @IssueStatus,
+            @Priority,
+            @Description,
+            GETDATE()
+          );
+        `);
 
-        const issue = issueResult.recordset[0];
-        issues.push(issue);
+      issue = issueResult.recordset[0];
 
-        await insertActivityTimeline({
-          transaction,
-          userId: changedByUserId,
-          moduleKey: "IT_ASSETS",
-          entityType: "ITAssetIssue",
-          entityId: issue.IssueLogId,
-          activityType: "ISSUE_REPORTED",
-          activityTitle: "Issue Reported on Return",
-          activityDescription: `Asset ${asset.AssetTag} was returned with condition ${conditionName}.`,
-        });
-      }
+      await insertActivityTimeline({
+        transaction,
+        userId: changedByUserId,
+        moduleKey: "IT_ASSETS",
+        entityType: "ITAssetIssue",
+        entityId: issue.IssueLogId,
+        activityType: "ISSUE_REPORTED",
+        activityTitle: "Issue Reported on Return",
+        activityDescription: `Asset ${asset.AssetTag} was returned with condition ${conditionName}.`,
+      });
     }
 
     const assignment = assignmentResult.recordset[0];
@@ -575,7 +757,7 @@ const returnAsset = async ({
       newValue: {
         asset: updatedAsset,
         assignment,
-        issues,
+        issue,
       },
       ipAddress,
     });
@@ -596,7 +778,7 @@ const returnAsset = async ({
     return {
       assignment,
       asset: updatedAsset,
-      issues,
+      issue,
     };
   } catch (error) {
     if (transaction._aborted !== true) {
@@ -620,4 +802,85 @@ module.exports = {
   getAssignmentHistory,
   assignAsset,
   returnAsset,
+};
+
+========================================================
+FILE: .\modules\itAssets\assignment\validators\assetAssignmentValidator.js
+========================================================
+
+/* =========================================================
+   IT Asset Assignment Validator
+========================================================= */
+
+const validateAssignPayload = (req, res, next) => {
+  const errors = [];
+
+  const { assetId, assignedToUserId, assignedToName } = req.body;
+
+  if (!assetId || Number(assetId) <= 0) {
+    errors.push("Asset is required.");
+  }
+
+  if (!assignedToUserId && !assignedToName) {
+    errors.push("Assigned user or assigned name is required.");
+  }
+
+  if (
+    assignedToUserId !== undefined &&
+    assignedToUserId !== null &&
+    assignedToUserId !== "" &&
+    Number(assignedToUserId) <= 0
+  ) {
+    errors.push("Assigned user must be a valid ID.");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed.",
+      errors,
+    });
+  }
+
+  return next();
+};
+
+const validateReturnPayload = (req, res, next) => {
+  const errors = [];
+
+  const { returnConditionId, returnIssueTypeIds } = req.body;
+
+  if (!returnConditionId || Number(returnConditionId) <= 0) {
+    errors.push("Return condition is required.");
+  }
+
+  if (
+    returnIssueTypeIds !== undefined &&
+    returnIssueTypeIds !== null &&
+    !Array.isArray(returnIssueTypeIds)
+  ) {
+    errors.push("Return issue types must be an array.");
+  }
+
+  if (
+    Array.isArray(returnIssueTypeIds) &&
+    returnIssueTypeIds.some((id) => Number(id) <= 0)
+  ) {
+    errors.push("Return issue types must contain valid IDs.");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed.",
+      errors,
+    });
+  }
+
+  return next();
+};
+
+module.exports = {
+  validateAssignPayload,
+  validateReturnPayload,
 };

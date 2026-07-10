@@ -40,6 +40,12 @@ const getGroupColor = (group = "") => {
   return "default";
 };
 
+const TimelineMeta = ({ label, value }) => (
+  <Typography variant="caption" color="text.secondary">
+    <strong>{label}:</strong> {safeText(value)}
+  </Typography>
+);
+
 const AssetTimelinePanel = ({ timeline = [] }) => {
   if (!timeline.length) {
     return (
@@ -66,8 +72,8 @@ const AssetTimelinePanel = ({ timeline = [] }) => {
           key={`${event.eventType}-${event.referenceId}-${index}`}
           elevation={0}
           sx={(theme) => ({
-            p: 2,
-            borderRadius: 3,
+            p: 2.5,
+            borderRadius: 4,
             border: `1px solid ${theme.palette.divider}`,
           })}
         >
@@ -83,18 +89,19 @@ const AssetTimelinePanel = ({ timeline = [] }) => {
               })}
             />
 
-            <Stack spacing={1} sx={{ width: "100%" }}>
+            <Stack spacing={1.25} sx={{ width: "100%" }}>
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 justifyContent="space-between"
+                alignItems={{ xs: "flex-start", md: "center" }}
                 spacing={1}
               >
-                <Stack>
+                <Stack spacing={0.4}>
                   <Typography fontWeight={900}>
                     {safeText(event.title)}
                   </Typography>
 
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2">
                     {safeText(event.description)}
                   </Typography>
                 </Stack>
@@ -103,6 +110,7 @@ const AssetTimelinePanel = ({ timeline = [] }) => {
                   size="small"
                   label={event.eventGroup || "EVENT"}
                   color={getGroupColor(event.eventGroup)}
+                  sx={{ fontWeight: 800 }}
                 />
               </Stack>
 
@@ -111,19 +119,13 @@ const AssetTimelinePanel = ({ timeline = [] }) => {
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={{ xs: 0.5, md: 3 }}
+                flexWrap="wrap"
               >
-                <Typography variant="caption" color="text.secondary">
-                  Date: {formatDate(event.eventDate)}
-                </Typography>
-
-                <Typography variant="caption" color="text.secondary">
-                  By: {safeText(event.performedBy)}
-                </Typography>
+                <TimelineMeta label="Date" value={formatDate(event.eventDate)} />
+                <TimelineMeta label="By" value={event.performedBy} />
 
                 {event.notes && (
-                  <Typography variant="caption" color="text.secondary">
-                    Notes: {event.notes}
-                  </Typography>
+                  <TimelineMeta label="Notes" value={event.notes} />
                 )}
               </Stack>
             </Stack>
