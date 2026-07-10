@@ -27,6 +27,7 @@ import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import { NavLink, useLocation } from "react-router-dom";
 
 import PlatformSidebarBadge from "./PlatformSidebarBadge";
+import { getSidebarIcon } from "../utils/sidebarIcons";
 import {
   getSidebarItemKey,
   isSidebarItemActive,
@@ -37,6 +38,7 @@ export default function PlatformSidebarItem({
   level = 0,
   openMenus = {},
   toggleMenu,
+  onNavigate,
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -52,6 +54,7 @@ export default function PlatformSidebarItem({
   const isActive = isSidebarItemActive(item, location.pathname);
 
   const leftPadding = 2 + level * 2.2;
+  const icon = item.icon || getSidebarIcon(item.iconKey, level);
 
   if (hasChildren) {
     return (
@@ -76,7 +79,7 @@ export default function PlatformSidebarItem({
             },
           }}
         >
-          {item.icon && (
+          {icon && (
             <ListItemIcon
               sx={{
                 color: "inherit",
@@ -86,7 +89,7 @@ export default function PlatformSidebarItem({
                 },
               }}
             >
-              {item.icon}
+              {icon}
             </ListItemIcon>
           )}
 
@@ -121,6 +124,7 @@ export default function PlatformSidebarItem({
                 level={level + 1}
                 openMenus={openMenus}
                 toggleMenu={toggleMenu}
+                onNavigate={onNavigate}
               />
             ))}
           </List>
@@ -135,6 +139,7 @@ export default function PlatformSidebarItem({
       component={isComingSoon ? "button" : NavLink}
       to={isComingSoon ? undefined : item.path}
       disabled={isComingSoon}
+      onClick={isComingSoon ? undefined : onNavigate}
       sx={{
         minHeight: 46,
         borderRadius: 2.8,
@@ -167,7 +172,7 @@ export default function PlatformSidebarItem({
         },
       }}
     >
-      {item.icon && (
+      {icon && (
         <ListItemIcon
           sx={{
             color: "inherit",
@@ -177,7 +182,7 @@ export default function PlatformSidebarItem({
             },
           }}
         >
-          {item.icon}
+          {icon}
         </ListItemIcon>
       )}
 

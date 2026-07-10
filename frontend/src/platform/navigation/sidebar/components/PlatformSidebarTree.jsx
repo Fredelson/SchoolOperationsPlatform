@@ -17,7 +17,7 @@ import PlatformSidebarSection from "./PlatformSidebarSection";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { getSidebarItemKey } from "../utils/sidebarHelpers";
 
-export default function PlatformSidebarTree({ sections = [] }) {
+export default function PlatformSidebarTree({ sections = [], onNavigate }) {
   const location = useLocation();
 
   const { openMenus, toggleMenu } = useSidebarState(
@@ -38,6 +38,7 @@ export default function PlatformSidebarTree({ sections = [] }) {
                 item={item}
                 openMenus={openMenus}
                 toggleMenu={toggleMenu}
+                onNavigate={onNavigate}
               />
             ))}
           </List>
