@@ -58,6 +58,7 @@ export default function AppFormField({
   full = false,
   helperText = "",
   multiple = false,
+  inputType = "text",
 }) {
   // Full-width field inside AppDialogForm grid
   const gridColumn = full
@@ -167,6 +168,7 @@ export default function AppFormField({
 
   return (
     <TextField
+      type={inputType}
       fullWidth
       label={label}
       value={value}

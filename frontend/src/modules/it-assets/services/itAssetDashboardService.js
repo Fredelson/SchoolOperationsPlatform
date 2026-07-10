@@ -7,22 +7,25 @@ import { getItAssetDashboardApi } from "../api/itAssetDashboardApi";
 /**
  * Normalizes backend dashboard response for frontend use.
  */
-export const getItAssetDashboardService = async () => {
-  const response = await getItAssetDashboardApi();
+export const getItAssetDashboardService = async (params = {}) => {
+  const response = await getItAssetDashboardApi(params);
 
   const data = response?.data || response || {};
 
   return {
     kpis: data.kpis || {},
     charts: data.charts || {},
-    procurement: data.procurement || [],
+    requiredActions: data.requiredActions || [],
+    filters: data.filters || {},
+    filteredAssets: data.filteredAssets || [],
     operations: data.operations || {
       maintenance: [],
       transfers: [],
       disposals: [],
     },
     recentActivity: data.recentActivity || [],
-    recentlyAssignedAssets: data.recentlyAssignedAssets || [],
+    recentAssignments: data.recentAssignments || [],
+    recentTransfers: data.recentTransfers || [],
     openIssues: data.openIssues || [],
     pendingTransfers: data.pendingTransfers || [],
     pendingDisposals: data.pendingDisposals || [],

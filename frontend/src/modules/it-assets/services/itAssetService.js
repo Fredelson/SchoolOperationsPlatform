@@ -18,6 +18,17 @@ import {
   completeItAssetDisposalApi,
   createItAssetMaintenanceApi,
   requestItAssetDisposalApi,
+  getActiveItAssetAssignmentsApi,
+  getItAssetAssignmentHistoryApi,
+  getItAssetTransfersApi,
+  getItAssetIssuesApi,
+  getItAssetMaintenanceLogsApi,
+  getItAssetMaintenanceDueApi,
+  borrowItAssetApi,
+  returnBorrowedItAssetApi,
+  getActiveItAssetBorrowsApi,
+  getOverdueItAssetBorrowsApi,
+  getItAssetBorrowHistoryApi,
 } from "../api/itAssetApi";
 
 /**
@@ -118,4 +129,59 @@ export const createItAssetMaintenanceService = async (payload) => {
 export const requestItAssetDisposalService = async (payload) => {
   const response = await requestItAssetDisposalApi(payload);
   return response?.data || null;
+};
+
+export const getActiveItAssetAssignmentsService = async (params = {}) => {
+  const response = await getActiveItAssetAssignmentsApi(params);
+  return { rows: response?.data || [], pagination: response?.pagination || {} };
+};
+
+export const getItAssetAssignmentHistoryService = async (params = {}) => {
+  const response = await getItAssetAssignmentHistoryApi(params);
+  return { rows: response?.data || [], pagination: response?.pagination || {} };
+};
+
+export const getItAssetTransfersService = async () => {
+  const response = await getItAssetTransfersApi();
+  return response?.data || [];
+};
+
+export const getItAssetIssuesService = async (params = {}) => {
+  const response = await getItAssetIssuesApi(params);
+  return response?.data || [];
+};
+
+export const getItAssetMaintenanceLogsService = async (params = {}) => {
+  const response = await getItAssetMaintenanceLogsApi(params);
+  return response?.data || [];
+};
+
+export const getItAssetMaintenanceDueService = async () => {
+  const response = await getItAssetMaintenanceDueApi();
+  return response?.data || [];
+};
+
+export const borrowItAssetService = async (payload) => {
+  const response = await borrowItAssetApi(payload);
+  return response?.data || null;
+};
+
+export const returnBorrowedItAssetService = async (payload) => {
+  const response = await returnBorrowedItAssetApi(payload);
+  return response?.data || null;
+};
+
+export const getActiveItAssetBorrowsService = async () => {
+  const response = await getActiveItAssetBorrowsApi();
+  return response?.data || [];
+};
+
+export const getOverdueItAssetBorrowsService = async () => {
+  const response = await getOverdueItAssetBorrowsApi();
+  return response?.data || [];
+};
+
+export const getItAssetBorrowHistoryService = async (params = {}) => {
+  const response = await getItAssetBorrowHistoryApi(params);
+  return response?.data || [];
 };

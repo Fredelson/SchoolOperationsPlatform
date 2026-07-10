@@ -6,7 +6,7 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
-import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 const percent = (value, total) =>
@@ -19,6 +19,7 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     helperText: "100% of registered assets",
     icon: createElement(DevicesOutlinedIcon),
     color: "primary.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
   {
@@ -27,6 +28,7 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     helperText: percent(kpis.activeAssets, kpis.totalAssets),
     icon: createElement(CheckCircleOutlineOutlinedIcon),
     color: "success.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
   {
@@ -35,14 +37,16 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     helperText: percent(kpis.assignedAssets, kpis.totalAssets),
     icon: createElement(AssignmentIndOutlinedIcon),
     color: "secondary.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
   {
-    title: "Unassigned Assets",
-    value: kpis.unassignedAssets || 0,
-    helperText: percent(kpis.unassignedAssets, kpis.totalAssets),
+    title: "Available / Unassigned",
+    value: kpis.availableAssets || 0,
+    helperText: percent(kpis.availableAssets, kpis.totalAssets),
     icon: createElement(PersonOffOutlinedIcon),
     color: "warning.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
   {
@@ -51,6 +55,7 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     helperText: percent(kpis.underMaintenanceAssets, kpis.totalAssets),
     icon: createElement(BuildOutlinedIcon),
     color: "info.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
   {
@@ -67,14 +72,25 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     helperText: "Waiting for completion",
     icon: createElement(DeleteOutlineOutlinedIcon),
     color: "error.main",
+    path: "/it-assets/disposals",
     md: 3, lg: 3, xl: 1.5,
   },
   {
-    title: "Items Needing Purchase",
-    value: kpis.itemsNeedingPurchase || 0,
-    helperText: "Recorded procurement shortage",
-    icon: createElement(ShoppingCartOutlinedIcon),
+    title: "Under Repair",
+    value: kpis.underRepairAssets || 0,
+    helperText: percent(kpis.underRepairAssets, kpis.totalAssets),
+    icon: createElement(BuildOutlinedIcon),
+    color: "warning.main",
+    path: "/it-assets/assets",
+    md: 3, lg: 3, xl: 1.5,
+  },
+  {
+    title: "Items Requiring Attention",
+    value: kpis.itemsRequiringAttention || 0,
+    helperText: "Open structured asset issues",
+    icon: createElement(ReportProblemOutlinedIcon),
     color: "error.main",
+    path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
   },
 ];

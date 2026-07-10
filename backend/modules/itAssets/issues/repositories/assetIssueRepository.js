@@ -265,6 +265,7 @@ const resolveIssue = async ({
 
     const assetResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
+      .input("IssueLogId", sql.Int, issue.IssueLogId)
       .input("AvailableStatusId", sql.Int, availableStatusId)
       .query(`
         UPDATE dbo.ITAssets
@@ -273,38 +274,39 @@ const resolveIssue = async ({
           UpdatedAt = GETDATE()
         OUTPUT INSERTED.*
         WHERE AssetId = @AssetId
-          AND IsDeleted = 0;
-      `);
-
-    await new sql.Request(transaction)
-      .input("AssetId", sql.Int, asset.AssetId)
-      .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
-      .input("NewStatusId", sql.Int, availableStatusId)
-      .input("ChangedBy", sql.Int, actionByUserId || null)
-      .input("Notes", sql.NVarChar(sql.MAX), payload.resolution || "Asset issue resolved.")
-      .query(`
-        INSERT INTO dbo.ITAssetStatusHistory
-        (
-          AssetId,
-          OldStatusId,
-          NewStatusId,
-          ChangedBy,
-          ChangedAt,
-          Notes
-        )
-        VALUES
-        (
-          @AssetId,
-          @OldStatusId,
-          @NewStatusId,
-          @ChangedBy,
-          GETDATE(),
-          @Notes
-        );
+          AND IsDeleted = 0
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.ITAssetIssueLogs remainingIssue
+            WHERE remainingIssue.AssetId = @AssetId
+              AND remainingIssue.IssueLogId <> @IssueLogId
+              AND UPPER(remainingIssue.IssueStatus) NOT IN ('RESOLVED', 'CLOSED')
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.ITAssetAssignments activeAssignment
+            WHERE activeAssignment.AssetId = @AssetId
+              AND activeAssignment.ReturnedAt IS NULL
+          );
       `);
 
     const updatedIssue = issueResult.recordset[0];
-    const updatedAsset = assetResult.recordset[0];
+    const updatedAsset = assetResult.recordset[0] || asset;
+
+    if (assetResult.recordset[0] && Number(asset.ITAssetStatusId) !== Number(availableStatusId)) {
+      await new sql.Request(transaction)
+        .input("AssetId", sql.Int, asset.AssetId)
+        .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
+        .input("NewStatusId", sql.Int, availableStatusId)
+        .input("ChangedBy", sql.Int, actionByUserId || null)
+        .input("Notes", sql.NVarChar(sql.MAX), payload.resolution || "All asset issues resolved.")
+        .query(`
+          INSERT INTO dbo.ITAssetStatusHistory
+            (AssetId, OldStatusId, NewStatusId, ChangedBy, ChangedAt, Notes)
+          VALUES
+            (@AssetId, @OldStatusId, @NewStatusId, @ChangedBy, GETDATE(), @Notes);
+        `);
+    }
 
     await new sql.Request(transaction)
       .input("UserId", sql.Int, actionByUserId || null)

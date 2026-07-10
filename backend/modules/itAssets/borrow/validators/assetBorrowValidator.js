@@ -23,12 +23,19 @@ const validateBorrowAsset = (req, res, next) => {
 };
 
 const validateReturnBorrowedAsset = (req, res, next) => {
-  const { assetId } = req.body;
+  const { assetId, returnConditionId } = req.body;
 
   if (!assetId) {
     return res.status(400).json({
       success: false,
       message: "Asset ID is required.",
+    });
+  }
+
+  if (!returnConditionId) {
+    return res.status(400).json({
+      success: false,
+      message: "Return condition is required.",
     });
   }
 

@@ -28,15 +28,28 @@ export default function AppStatCard({
   helperText,
   icon = null,
   color = "primary.main",
+  onClick,
 }) {
   return (
     <Card
       elevation={0}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === "Enter" || event.key === " ") onClick();
+      } : undefined}
       sx={{
         height: "100%",
         borderRadius: 3,
         border: "1px solid",
         borderColor: "divider",
+        cursor: onClick ? "pointer" : "default",
+        transition: (theme) => theme.transitions.create(["transform", "box-shadow"]),
+        ...(onClick && {
+          "&:hover": { transform: "translateY(-2px)", boxShadow: 2 },
+          "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 },
+        }),
       }}
     >
       <CardContent>

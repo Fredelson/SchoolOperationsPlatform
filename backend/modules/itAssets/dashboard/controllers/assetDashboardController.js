@@ -16,7 +16,7 @@ const dashboardService = require("../services/assetDashboardService");
  * GET /api/it-assets/dashboard
  */
 const getDashboard = asyncHandler(async (req, res) => {
-  const result = await dashboardService.getDashboard();
+  const result = await dashboardService.getDashboard(req.query);
 
   return sendSuccess(
     res,

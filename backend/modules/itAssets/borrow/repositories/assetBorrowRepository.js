@@ -54,6 +54,15 @@ const getStatusByKey = async (statusKey) => {
   return firstOrNull(result);
 };
 
+const getConditionById = async (conditionId) => {
+  const result = await executeQuery(`
+    SELECT TOP 1 ITAssetConditionId, ConditionName
+    FROM dbo.ITAssetConditions
+    WHERE ITAssetConditionId = @ConditionId;
+  `, [{ name: "ConditionId", type: sql.Int, value: Number(conditionId) }]);
+  return firstOrNull(result);
+};
+
 const getActiveBorrowByAssetId = async (assetId) => {
   const result = await executeQuery(
     `
@@ -266,9 +275,12 @@ const borrowAsset = async ({
 const returnBorrowedAsset = async ({
   asset,
   activeBorrow,
-  availableStatusId,
+  targetStatusId,
   actionByUserId,
   returnNotes = null,
+  returnCondition,
+  returnConditionId,
+  returnIssueTypeIds = [],
   ipAddress = null,
 }) => {
   const pool = await poolPromise;
@@ -281,12 +293,16 @@ const returnBorrowedAsset = async ({
       .input("AssetBorrowId", sql.Int, activeBorrow.AssetBorrowId)
       .input("ReturnedByUserId", sql.Int, actionByUserId || null)
       .input("ReturnNotes", sql.NVarChar(sql.MAX), returnNotes || null)
+      .input("ReturnConditionId", sql.Int, returnConditionId)
+      .input("ReturnIssueTypeIdsJson", sql.NVarChar(sql.MAX), JSON.stringify(returnIssueTypeIds))
       .query(`
         UPDATE dbo.ITAssetBorrows
         SET
           ReturnedAt = GETDATE(),
           ReturnedByUserId = @ReturnedByUserId,
           ReturnNotes = @ReturnNotes,
+          ReturnConditionId = @ReturnConditionId,
+          ReturnIssueTypeIdsJson = @ReturnIssueTypeIdsJson,
           UpdatedAt = GETDATE()
         OUTPUT INSERTED.*
         WHERE AssetBorrowId = @AssetBorrowId;
@@ -294,11 +310,13 @@ const returnBorrowedAsset = async ({
 
     const assetResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
-      .input("AvailableStatusId", sql.Int, availableStatusId)
+      .input("TargetStatusId", sql.Int, targetStatusId)
+      .input("ReturnConditionId", sql.Int, returnConditionId)
       .query(`
         UPDATE dbo.ITAssets
         SET
-          ITAssetStatusId = @AvailableStatusId,
+          ITAssetStatusId = @TargetStatusId,
+          ITAssetConditionId = @ReturnConditionId,
           CurrentAssignedUserId = NULL,
           CurrentAssignedName = NULL,
           CurrentAssignedEmployeeCode = NULL,
@@ -312,9 +330,9 @@ const returnBorrowedAsset = async ({
     await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
       .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
-      .input("NewStatusId", sql.Int, availableStatusId)
+      .input("NewStatusId", sql.Int, targetStatusId)
       .input("ChangedBy", sql.Int, actionByUserId || null)
-      .input("Notes", sql.NVarChar(sql.MAX), returnNotes || "Borrowed asset returned.")
+      .input("Notes", sql.NVarChar(sql.MAX), returnNotes || `Borrowed asset returned with condition ${returnCondition.ConditionName}.`)
       .query(`
         INSERT INTO dbo.ITAssetStatusHistory
         (
@@ -338,6 +356,22 @@ const returnBorrowedAsset = async ({
 
     const borrow = borrowResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
+    const issues = [];
+
+    for (const issueTypeId of returnIssueTypeIds) {
+      const issueResult = await new sql.Request(transaction)
+        .input("AssetId", sql.Int, asset.AssetId)
+        .input("IssueTypeId", sql.Int, Number(issueTypeId))
+        .input("ReportedByUserId", sql.Int, actionByUserId || null)
+        .input("Description", sql.NVarChar(sql.MAX), returnNotes || `Borrow return condition: ${returnCondition.ConditionName}.`)
+        .query(`
+          INSERT INTO dbo.ITAssetIssueLogs
+            (AssetId, IssueTypeId, ReportedByUserId, IssueStatus, Description, ReportedAt)
+          OUTPUT INSERTED.*
+          VALUES (@AssetId, @IssueTypeId, @ReportedByUserId, 'OPEN', @Description, GETDATE());
+        `);
+      issues.push(issueResult.recordset[0]);
+    }
 
     await new sql.Request(transaction)
       .input("UserId", sql.Int, actionByUserId || null)
@@ -346,7 +380,7 @@ const returnBorrowedAsset = async ({
       .input("EntityId", sql.NVarChar(200), String(asset.AssetId))
       .input("Description", sql.NVarChar(sql.MAX), `Borrowed asset ${asset.AssetTag} was returned.`)
       .input("OldValue", sql.NVarChar(sql.MAX), JSON.stringify({ asset, borrow: activeBorrow }))
-      .input("NewValue", sql.NVarChar(sql.MAX), JSON.stringify({ asset: updatedAsset, borrow }))
+      .input("NewValue", sql.NVarChar(sql.MAX), JSON.stringify({ asset: updatedAsset, borrow, issues }))
       .input("IpAddress", sql.NVarChar(100), ipAddress || null)
       .query(`
         INSERT INTO dbo.AuditLogs
@@ -410,7 +444,7 @@ const returnBorrowedAsset = async ({
 
     await transaction.commit();
 
-    return { borrow, asset: updatedAsset };
+    return { borrow, asset: updatedAsset, issues };
   } catch (error) {
     if (transaction._aborted !== true) {
       await transaction.rollback();
@@ -489,6 +523,7 @@ module.exports = {
   getAssetById,
   getUserById,
   getStatusByKey,
+  getConditionById,
   getActiveBorrowByAssetId,
   borrowAsset,
   returnBorrowedAsset,

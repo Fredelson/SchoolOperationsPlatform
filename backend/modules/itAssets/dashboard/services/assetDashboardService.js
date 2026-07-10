@@ -16,7 +16,7 @@ const dashboardRepository = require("../repositories/assetDashboardRepository");
 /**
  * Get complete dashboard data.
  */
-async function getDashboard() {
+async function getDashboard(filters = {}) {
   const [
     summary,
     issues,
@@ -30,23 +30,29 @@ async function getDashboard() {
     maintenanceSummary,
     transferSummary,
     disposalSummary,
-    procurementRequirements,
+    requiredActions,
     recentActivity,
+    recentAssignments,
+    recentTransfers,
+    filteredAssets,
   ] = await Promise.all([
-    dashboardRepository.getDashboardSummary(),
-    dashboardRepository.getOpenIssueCount(),
-    dashboardRepository.getPendingTransferCount(),
-    dashboardRepository.getPendingDisposalCount(),
-    dashboardRepository.getAssetsByCategory(),
-    dashboardRepository.getAssetsByStatus(),
-    dashboardRepository.getAssetsByCondition(),
-    dashboardRepository.getAssetsByLocation(),
-    dashboardRepository.getAssignmentOverview(),
-    dashboardRepository.getMaintenanceSummary(),
-    dashboardRepository.getTransferSummary(),
-    dashboardRepository.getDisposalSummary(),
-    dashboardRepository.getProcurementRequirements(),
-    dashboardRepository.getRecentActivity(),
+    dashboardRepository.getDashboardSummary(filters),
+    dashboardRepository.getOpenIssueCount(filters),
+    dashboardRepository.getPendingTransferCount(filters),
+    dashboardRepository.getPendingDisposalCount(filters),
+    dashboardRepository.getAssetsByCategory(filters),
+    dashboardRepository.getAssetsByStatus(filters),
+    dashboardRepository.getAssetsByCondition(filters),
+    dashboardRepository.getAssetsByLocation(filters),
+    dashboardRepository.getAssignmentOverview(filters),
+    dashboardRepository.getMaintenanceSummary(filters),
+    dashboardRepository.getTransferSummary(filters),
+    dashboardRepository.getDisposalSummary(filters),
+    dashboardRepository.getRequiredActionSummary(filters),
+    dashboardRepository.getRecentActivity(filters),
+    dashboardRepository.getRecentAssignments(filters),
+    dashboardRepository.getRecentTransfers(filters),
+    dashboardRepository.getFilteredAssets(filters),
   ]);
 
   return {
@@ -54,17 +60,15 @@ async function getDashboard() {
       totalAssets: summary?.TotalAssets || 0,
       activeAssets: summary?.ActiveAssets || 0,
       assignedAssets: summary?.AssignedAssets || 0,
-      unassignedAssets: summary?.UnassignedAssets || 0,
+      availableAssets: summary?.AvailableAssets || 0,
       borrowedAssets: summary?.BorrowedAssets || 0,
       underMaintenanceAssets: summary?.UnderMaintenanceAssets || 0,
+      underRepairAssets: summary?.UnderRepairAssets || 0,
       disposedAssets: summary?.DisposedAssets || 0,
       openIssues: issues?.OpenIssues || 0,
       pendingTransfers: transfers?.PendingTransfers || 0,
       pendingDisposals: disposals?.PendingDisposals || 0,
-      itemsNeedingPurchase: procurementRequirements.reduce(
-        (total, item) => total + Number(item.ShortageQuantity || 0),
-        0
-      ),
+      itemsRequiringAttention: issues?.OpenIssues || 0,
     },
 
     charts: {
@@ -94,16 +98,17 @@ async function getDashboard() {
       })),
     },
 
-    procurement: procurementRequirements.map((item) => ({
-      itemName: item.ItemName,
-      categoryName: item.CategoryName,
-      requestedQuantity: Number(item.RequestedQuantity || 0),
-      availableQuantity: Number(item.AvailableQuantity || 0),
-      shortageQuantity: Number(item.ShortageQuantity || 0),
-      status: item.Status,
-      priority: null,
-      estimatedCost: null,
+    requiredActions: requiredActions.map((item) => ({
+      issueTypeId: item.IssueTypeId,
+      issueTypeKey: item.IssueTypeKey,
+      issueTypeName: item.IssueTypeName,
+      categoryKey: item.IssueCategoryKey,
+      categoryName: item.IssueCategoryName,
+      total: Number(item.Total || 0),
     })),
+
+    filters,
+    filteredAssets,
 
     operations: {
       maintenance: maintenanceSummary.map((item) => ({
@@ -126,7 +131,27 @@ async function getDashboard() {
       })),
     },
 
-        recentActivity: recentActivity.map((item) => ({
+    recentAssignments: recentAssignments.map((item) => ({
+      id: item.AssetAssignmentId,
+      assetId: item.AssetId,
+      assetTag: item.AssetTag,
+      assignedToName: item.AssignedToName,
+      assignedByName: item.AssignedByName,
+      assignedAt: item.AssignedAt,
+      returnedAt: item.ReturnedAt,
+    })),
+
+    recentTransfers: recentTransfers.map((item) => ({
+      id: item.AssetTransferRequestId,
+      assetId: item.AssetId,
+      assetTag: item.AssetTag,
+      status: item.TransferStatus,
+      destinationName: item.DestinationName,
+      requestedAt: item.RequestedAt,
+      completedAt: item.CompletedAt,
+    })),
+
+    recentActivity: recentActivity.map((item) => ({
         id: item.ActivityTimelineId,
         userId: item.UserId,
         moduleKey: item.ModuleKey,
@@ -138,7 +163,7 @@ async function getDashboard() {
         createdAt: item.CreatedAt,
         performedByName: item.PerformedByName,
         assetTag: item.AssetTag,
-        })),
+    })),
   };
 }
 

@@ -7,9 +7,10 @@ const router = express.Router();
 
 const controller = require("../controllers/assetDisposalController");
 const validator = require("../validators/assetDisposalValidator");
-const { protect, authorizeRoles } = require("../../../../middleware/authMiddleware");
+const { protect } = require("../../../../middleware/authMiddleware");
+const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
 
-router.use(protect, authorizeRoles("SuperAdmin", "PlatformAdmin"));
+router.use(protect, requirePermission("it_assets.disposal.manage"));
 
 router.get("/", controller.getDisposals);
 router.get("/pending", controller.getPendingDisposals);

@@ -12,12 +12,13 @@ const router = express.Router();
 
 const { getDashboard } = require("../controllers/assetDashboardController");
 const { protect } = require("../../../../middleware/authMiddleware");
+const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
 
 router.use(protect);
 
 /**
  * GET /api/it-assets/dashboard
  */
-router.get("/", getDashboard);
+router.get("/", requirePermission("it_assets.dashboard.view"), getDashboard);
 
 module.exports = router;

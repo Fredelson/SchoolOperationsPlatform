@@ -103,11 +103,9 @@ const validateReturnAsset = async (assetId, payload = {}) => {
     );
   }
 
-  let statusKey = "Available";
-
-  if (["fair", "poor", "damaged"].includes(conditionName)) {
-    statusKey = "UnderRepair";
-  }
+  // Every returned asset requires maintenance review before it can be
+  // explicitly released back to Available inventory.
+  let statusKey = "UnderRepair";
 
   if (conditionName === "beyond repair") {
     statusKey = "ReadyForDisposal";

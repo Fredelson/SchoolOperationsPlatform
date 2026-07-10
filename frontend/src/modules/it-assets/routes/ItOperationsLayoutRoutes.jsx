@@ -12,6 +12,12 @@ import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetDetails from "../pages/AssetDetails";
 import AssetTagPrinter from "../pages/AssetTagPrinter";
 import Disposals from "../pages/Disposals";
+import Assignments from "../pages/Assignments";
+import Transfers from "../pages/Transfers";
+import Issues from "../pages/Issues";
+import Maintenance from "../pages/Maintenance";
+import Reports from "../pages/Reports";
+import BorrowedAssets from "../pages/BorrowedAssets";
 
 import { AssetExplorer } from "../assetExplorer";
 
@@ -52,27 +58,27 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "assignments",
-        element: <div>Assignments - Coming Soon</div>,
+        element: <Assignments />,
       },
 
       {
         path: "borrow",
-        element: <div>Borrow & Return - Coming Soon</div>,
+        element: <BorrowedAssets />,
       },
 
       {
         path: "transfers",
-        element: <div>Transfers - Coming Soon</div>,
+        element: <Transfers />,
       },
 
       {
         path: "issues",
-        element: <div>Issues - Coming Soon</div>,
+        element: <Issues />,
       },
 
       {
         path: "maintenance",
-        element: <div>Maintenance - Coming Soon</div>,
+        element: <Maintenance />,
       },
 
       {
@@ -82,7 +88,7 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "reports",
-        element: <div>Reports - Coming Soon</div>,
+        element: <Reports />,
       },
 
       // ============================================

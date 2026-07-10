@@ -33,10 +33,12 @@ import {
   AppButton,
   AppCard,
   AppEmptyState,
+  AppFormField,
+  AppFormGrid,
   AppPageHeader,
 } from "../../../platform/ui";
 
-import { getItAssetsService } from "../services/itAssetService";
+import { getItAssetsService, getItAssetLookupsService } from "../services/itAssetService";
 
 import AssetPrinterToolbar from "../components/assetTagPrinter/AssetPrinterToolbar";
 import AssetPrinterTable from "../components/assetTagPrinter/AssetPrinterTable";
@@ -189,6 +191,13 @@ function AssetTagPrinter() {
 
   const [assets, setAssets] = useState([]);
   const [selectedAssets, setSelectedAssets] = useState([]);
+  const [lookups, setLookups] = useState({});
+  const emptyFilters = {
+    categoryId: "", brandId: "", modelId: "", statusId: "",
+    conditionId: "", departmentId: "", locationId: "", roomId: "", assignedUserId: "",
+  };
+  const [draftFilters, setDraftFilters] = useState(emptyFilters);
+  const [filters, setFilters] = useState(emptyFilters);
 
   const [search, setSearch] = useState("");
   const [layoutKey, setLayoutKey] = useState("4x7");
@@ -212,16 +221,17 @@ function AssetTagPrinter() {
       setLoading(true);
       setError("");
 
-      const result = await getItAssetsService({
-        page: 1,
-        limit: 100,
-      });
+      const [result, lookupData] = await Promise.all([
+        getItAssetsService({ page: 1, limit: 10000 }),
+        getItAssetLookupsService(),
+      ]);
 
       const loadedAssets = Array.isArray(result?.assets)
         ? result.assets
         : [];
 
       setAssets(loadedAssets);
+      setLookups(lookupData || {});
 
       const availableAssetIds = new Set(
         loadedAssets
@@ -274,14 +284,28 @@ function AssetTagPrinter() {
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return assets;
-    }
+    return assets.filter((asset) => {
+      if (query && !buildAssetSearchText(asset).includes(query)) return false;
+      const matches = (filterKey, assetKey) =>
+        !filters[filterKey] || String(asset?.[assetKey] || "") === String(filters[filterKey]);
+      return matches("categoryId", "ITAssetCategoryId") &&
+        matches("brandId", "ITAssetBrandId") && matches("modelId", "ITAssetModelId") &&
+        matches("statusId", "ITAssetStatusId") && matches("conditionId", "ITAssetConditionId") &&
+        matches("departmentId", "CurrentDepartmentId") && matches("locationId", "CurrentLocationId") &&
+        matches("roomId", "CurrentRoomId") && matches("assignedUserId", "CurrentAssignedUserId");
+    });
+  }, [assets, search, filters]);
 
-    return assets.filter((asset) =>
-      buildAssetSearchText(asset).includes(query)
-    );
-  }, [assets, search]);
+  const modelOptions = useMemo(
+    () => (lookups.models || []).filter((item) =>
+      !draftFilters.brandId || String(item.ITAssetBrandId) === String(draftFilters.brandId)),
+    [lookups.models, draftFilters.brandId]
+  );
+  const roomOptions = useMemo(
+    () => (lookups.rooms || []).filter((item) =>
+      !draftFilters.locationId || String(item.LocationId) === String(draftFilters.locationId)),
+    [lookups.rooms, draftFilters.locationId]
+  );
 
   // ==========================================================
   // Selection
@@ -471,6 +495,43 @@ function AssetTagPrinter() {
             onClearSelection={handleClearSelection}
             onPrint={handlePrint}
           />
+        )}
+
+        {!error && (
+          <AppCard>
+            <Stack spacing={2}>
+              <Typography variant="subtitle1" fontWeight={900}>Asset Filters</Typography>
+              <AppFormGrid>
+                {[
+                  ["categoryId", "Category", lookups.categories, "ITAssetCategoryId", "CategoryName"],
+                  ["brandId", "Brand", lookups.brands, "ITAssetBrandId", "BrandName"],
+                  ["modelId", "Model", modelOptions, "ITAssetModelId", "ModelName"],
+                  ["statusId", "Status", lookups.statuses, "ITAssetStatusId", "StatusName"],
+                  ["conditionId", "Condition", lookups.conditions, "ITAssetConditionId", "ConditionName"],
+                  ["departmentId", "Department", lookups.departments, "DepartmentId", "DepartmentName"],
+                  ["locationId", "Location", lookups.locations, "LocationId", "LocationName"],
+                  ["roomId", "Room", roomOptions, "RoomId", "RoomName"],
+                  ["assignedUserId", "Assigned User", lookups.users, "UserId", "FullName"],
+                ].map(([key, label, optionsList, valueKey, labelKey]) => (
+                  <AppFormField key={key} type="autocomplete" label={label}
+                    value={draftFilters[key]} options={optionsList || []}
+                    valueKey={valueKey} labelKey={labelKey}
+                    onChange={(value) => setDraftFilters((current) => ({
+                      ...current, [key]: value,
+                      ...(key === "brandId" ? { modelId: "" } : {}),
+                      ...(key === "locationId" ? { roomId: "" } : {}),
+                    }))} />
+                ))}
+              </AppFormGrid>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <AppButton onClick={() => setFilters(draftFilters)}>Apply Filters</AppButton>
+                <AppButton variant="outlined" onClick={() => {
+                  setDraftFilters(emptyFilters);
+                  setFilters(emptyFilters);
+                }}>Reset Filters</AppButton>
+              </Stack>
+            </Stack>
+          </AppCard>
         )}
 
         {!error && (

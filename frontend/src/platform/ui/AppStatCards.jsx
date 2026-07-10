@@ -28,6 +28,7 @@ export default function AppStatCards({ items = [], spacing = 2 }) {
             helperText={item.helperText}
             icon={item.icon}
             color={item.color}
+            onClick={item.onClick}
           />
         </Grid>
       ))}

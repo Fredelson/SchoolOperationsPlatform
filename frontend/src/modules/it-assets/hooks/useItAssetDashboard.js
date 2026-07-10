@@ -10,12 +10,12 @@ export const useItAssetDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (filters = {}) => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await getItAssetDashboardService();
+      const data = await getItAssetDashboardService(filters);
       setDashboard(data);
     } catch (err) {
       console.error("IT Asset Dashboard Error:", err);
@@ -26,6 +26,8 @@ export const useItAssetDashboard = () => {
   };
 
   useEffect(() => {
+    // Initial synchronization with the dashboard API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDashboard();
   }, []);
 

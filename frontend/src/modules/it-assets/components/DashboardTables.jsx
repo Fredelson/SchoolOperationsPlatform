@@ -10,7 +10,7 @@ import LocalPrintshopOutlinedIcon from "@mui/icons-material/LocalPrintshopOutlin
 import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
-import { useAuth } from "../../../context/AuthContext";
+import { usePermissions } from "../../../context/PermissionContext";
 import {
   DashboardBottomRow,
   DashboardMiddleRow,
@@ -69,49 +69,27 @@ const SummaryList = ({ rows = [], emptyTitle }) => (
   </Stack>
 );
 
-const procurementColumns = [
-  { field: "itemName", headerName: "Item" },
+const requiredActionColumns = [
+  { field: "issueTypeName", headerName: "Required Action / Issue" },
   { field: "categoryName", headerName: "Category" },
-  { field: "requestedQuantity", headerName: "Requested", align: "right" },
-  { field: "availableQuantity", headerName: "Available", align: "right" },
-  { field: "shortageQuantity", headerName: "Shortage", align: "right" },
-  {
-    field: "priority",
-    headerName: "Priority",
-    render: (row) => row.priority || "Not recorded",
-  },
-  {
-    field: "estimatedCost",
-    headerName: "Estimated Cost",
-    align: "right",
-    render: (row) =>
-      row.estimatedCost == null
-        ? "Not recorded"
-        : new Intl.NumberFormat("en-AE", {
-            style: "currency",
-            currency: "AED",
-          }).format(row.estimatedCost),
-  },
+  { field: "total", headerName: "Open Items", align: "right" },
 ];
 
 const QuickActions = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const role = user?.roleKey || user?.role;
-  const canManageLifecycle = ["SuperAdmin", "PlatformAdmin"].includes(role);
+  const { hasActionAccess } = usePermissions();
 
   const actions = [
-    { label: "Asset Explorer", icon: <Inventory2OutlinedIcon />, path: "/it-assets/assets" },
-    { label: "Assign Asset", icon: <AssignmentIndOutlinedIcon />, path: "/it-assets/assignments" },
-    ...(canManageLifecycle
-      ? [{ label: "Transfer Asset", icon: <SwapHorizOutlinedIcon />, path: "/it-assets/transfers" }]
-      : []),
-    { label: "Asset Tag Printer", icon: <LocalPrintshopOutlinedIcon />, path: "/it-assets/asset-tag-printer" },
-    { label: "Maintenance", icon: <BuildOutlinedIcon />, path: "/it-assets/maintenance" },
-    { label: "Disposal", icon: <DeleteOutlineOutlinedIcon />, path: "/it-assets/disposals" },
-    { label: "Reports", icon: <SummarizeOutlinedIcon />, path: "/it-assets/reports" },
-    { label: "Import Assets", icon: <FileUploadOutlinedIcon />, path: "/it-assets/assets" },
-  ];
+    { label: "Asset Explorer", icon: <Inventory2OutlinedIcon />, path: "/it-assets/assets", permission: "View" },
+    { label: "Assign Asset", icon: <AssignmentIndOutlinedIcon />, path: "/it-assets/assignments", permission: "Assign" },
+    { label: "Transfer Asset", icon: <SwapHorizOutlinedIcon />, path: "/it-assets/transfers", permission: "Transfer" },
+    { label: "Issues", icon: <BuildOutlinedIcon />, path: "/it-assets/issues", permission: "ViewIssues" },
+    { label: "Asset Tag Printer", icon: <LocalPrintshopOutlinedIcon />, path: "/it-assets/asset-tag-printer", permission: "PrintTags" },
+    { label: "Maintenance", icon: <BuildOutlinedIcon />, path: "/it-assets/maintenance", permission: "Maintenance" },
+    { label: "Disposal", icon: <DeleteOutlineOutlinedIcon />, path: "/it-assets/disposals", permission: "Disposal" },
+    { label: "Reports", icon: <SummarizeOutlinedIcon />, path: "/it-assets/reports", permission: "Reports" },
+    { label: "Import Assets", icon: <FileUploadOutlinedIcon />, path: "/it-assets/assets", permission: "Import" },
+  ].filter((action) => hasActionAccess("ITAssets", action.permission));
 
   return (
     <Grid container spacing={1.25}>
@@ -134,20 +112,27 @@ const QuickActions = () => {
 
 const DashboardTables = ({ dashboard = {} }) => {
   const maintenance = dashboard.operations?.maintenance || [];
+  const requiredActions = dashboard.requiredActions || [];
+  const actionGroups = [
+    { title: "Repairs Required", pattern: /repair|clean|issue|fault/i },
+    { title: "Replacement Components Required", pattern: /replace|replacement|battery|charger|keyboard|bulb|drum/i },
+    { title: "External Repair Recommendations", pattern: /external|service center|vendor/i },
+    { title: "Write-Off Recommendations", pattern: /write.?off|beyond repair|dispose/i },
+  ];
 
   return (
     <Stack spacing={2}>
       <DashboardMiddleRow columns="1.45fr 1fr 1fr">
         <DashboardSection
-          title="Procurement Requirements"
-          subtitle="Recorded demand only; cost and priority are not stored in the current schema."
+          title="Return Issues / Required Actions"
+          subtitle="Open structured issues recorded through asset returns and issue workflows."
         >
           <AppDataTable
-            rows={dashboard.procurement || []}
-            columns={procurementColumns}
-            getRowId={(row) => `${row.categoryName}-${row.itemName}-${row.status}`}
-            emptyTitle="No purchase requirements recorded"
-            emptyMessage="The current database contains no outstanding IT equipment requirements."
+            rows={dashboard.requiredActions || []}
+            columns={requiredActionColumns}
+            getRowId={(row) => row.issueTypeId}
+            emptyTitle="No required actions recorded"
+            emptyMessage="There are no open structured return issues requiring attention."
           />
         </DashboardSection>
 
@@ -210,6 +195,65 @@ const DashboardTables = ({ dashboard = {} }) => {
         </Box>
       </DashboardMiddleRow>
 
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <AppCard sx={{ height: "100%" }}>
+            <PanelTitle helper="Latest assignment records matching the active dashboard filters.">
+              Recent Assignments
+            </PanelTitle>
+            {!dashboard.recentAssignments?.length ? (
+              <AppEmptyState title="No recent assignments" />
+            ) : (
+              <Stack spacing={1.25}>
+                {dashboard.recentAssignments.map((item) => (
+                  <Stack key={item.id} direction="row" justifyContent="space-between" spacing={2}
+                    sx={{ pb: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight={800}>
+                        {item.assetTag} assigned to {item.assignedToName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.returnedAt ? "Returned" : "Current assignment"}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                      {formatDate(item.assignedAt)}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            )}
+          </AppCard>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <AppCard sx={{ height: "100%" }}>
+            <PanelTitle helper="Latest transfer workflow records matching the active filters.">
+              Recent Transfers
+            </PanelTitle>
+            {!dashboard.recentTransfers?.length ? (
+              <AppEmptyState title="No recent transfers" />
+            ) : (
+              <Stack spacing={1.25}>
+                {dashboard.recentTransfers.map((item) => (
+                  <Stack key={item.id} direction="row" justifyContent="space-between" spacing={2}
+                    sx={{ pb: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight={800}>
+                        {item.assetTag} transferred to {item.destinationName}
+                      </Typography>
+                      <AppChip label={item.status || "Pending"} status={item.status} />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                      {formatDate(item.completedAt || item.requestedAt)}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            )}
+          </AppCard>
+        </Grid>
+      </Grid>
+
       <DashboardBottomRow columns="repeat(4, minmax(0, 1fr))">
         <DashboardChartCard
           title="Assignment Overview"
@@ -234,6 +278,25 @@ const DashboardTables = ({ dashboard = {} }) => {
           </AppCard>
         </Box>
       </DashboardBottomRow>
+
+      <Grid container spacing={2}>
+        {actionGroups.map((group) => {
+          const rows = requiredActions.filter((item) =>
+            group.pattern.test(`${item.issueTypeKey} ${item.issueTypeName} ${item.categoryKey} ${item.categoryName}`)
+          );
+          return (
+            <Grid key={group.title} size={{ xs: 12, sm: 6, xl: 3 }}>
+              <AppCard sx={{ height: "100%" }}>
+                <PanelTitle>{group.title}</PanelTitle>
+                <SummaryList
+                  rows={rows.map((item) => ({ name: item.issueTypeName, value: item.total }))}
+                  emptyTitle="No matching open actions"
+                />
+              </AppCard>
+            </Grid>
+          );
+        })}
+      </Grid>
     </Stack>
   );
 };

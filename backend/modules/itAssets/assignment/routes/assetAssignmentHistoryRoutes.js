@@ -6,6 +6,9 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("../controllers/assetAssignmentHistoryController");
+const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+
+router.use(requirePermission("it_assets.assignment.manage"));
 
 // All assignment history
 router.get("/history", controller.getAssignmentHistory);
