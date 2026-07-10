@@ -1,2 +1,0 @@
-Sqlcmd: Error: Microsoft ODBC Driver 18 for SQL Server : Login failed for user 'NAIS\NAIS'..
-Sqlcmd: Error: Microsoft ODBC Driver 18 for SQL Server : Cannot open database "OperationsPlatformDB" requested by the login. The login failed..
