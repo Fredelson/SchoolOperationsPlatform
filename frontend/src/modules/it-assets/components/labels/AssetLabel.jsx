@@ -112,15 +112,16 @@ export default function AssetLabel({
       ""
   );
 
-  const navy =
-    theme.palette.platform?.sidebarBackground ||
+  const sidebarColor =
     theme.palette.platform?.sidebar ||
-    theme.palette.primary.dark ||
-    "#061b52";
+    theme.palette.primary.dark;
+  const sidebarBackground =
+    theme.palette.platform?.sidebarBackground ||
+    sidebarColor;
 
-  const gold =
-    theme.palette.warning?.main ||
-    "#d6a928";
+  const gold = theme.palette.warning.main;
+  const labelBackground = theme.palette.common.white;
+  const labelText = theme.palette.common.black;
 
   return (
     <Box
@@ -140,11 +141,11 @@ export default function AssetLabel({
         gridTemplateRows:
           "minmax(0, 28%) minmax(0, 58%) minmax(0, 14%)",
 
-        bgcolor: "#ffffff",
-        color: "#07152f",
+        bgcolor: labelBackground,
+        color: labelText,
 
         border: showBorder
-          ? "0.25mm solid #24324a"
+          ? `0.25mm solid ${theme.palette.divider}`
           : "none",
 
         borderRadius: "1.8mm",
@@ -177,7 +178,7 @@ export default function AssetLabel({
           px: "3.5cqw",
           py: "1.5cqw",
 
-          bgcolor: "#ffffff",
+          bgcolor: labelBackground,
         }}
       >
         {/* Logo */}
@@ -204,7 +205,7 @@ export default function AssetLabel({
               placeItems: "center",
 
               overflow: "hidden",
-              bgcolor: "#ffffff",
+              bgcolor: labelBackground,
             }}
           >
             {showLogo && logoUrl ? (
@@ -222,7 +223,7 @@ export default function AssetLabel({
             ) : (
               <Typography
                 sx={{
-                  color: navy,
+                  color: labelText,
                   fontSize:
                     "clamp(5px, 4cqw, 12px)",
                   lineHeight: 1,
@@ -255,7 +256,7 @@ export default function AssetLabel({
             sx={{
               minWidth: 0,
 
-              color: navy,
+              color: labelText,
 
               fontSize:
                 "clamp(6px, 5.2cqw, 23px)",
@@ -296,7 +297,7 @@ export default function AssetLabel({
 
             <Typography
               sx={{
-                color: navy,
+                color: labelText,
 
                 fontSize:
                   "clamp(5px, 3.2cqw, 15px)",
@@ -343,10 +344,10 @@ export default function AssetLabel({
           px: "4cqw",
           py: "2.3cqw",
 
-          borderTop: `0.35mm solid ${navy}`,
-          borderBottom: `0.35mm solid ${navy}`,
+          borderTop: `0.35mm solid ${sidebarColor}`,
+          borderBottom: `0.35mm solid ${sidebarColor}`,
 
-          bgcolor: "#ffffff",
+          bgcolor: labelBackground,
         }}
       >
         {/* Asset identity and barcode */}
@@ -371,7 +372,7 @@ export default function AssetLabel({
 
               alignSelf: "end",
 
-              color: "#34435d",
+              color: labelText,
 
               fontSize:
                 "clamp(4px, 2.6cqw, 12px)",
@@ -394,7 +395,7 @@ export default function AssetLabel({
 
               alignSelf: "center",
 
-              color: navy,
+              color: labelText,
 
               fontSize:
                 "clamp(7px, 5.7cqw, 28px)",
@@ -478,7 +479,7 @@ export default function AssetLabel({
                 display: "grid",
                 placeItems: "center",
 
-                bgcolor: "#ffffff",
+                bgcolor: labelBackground,
 
                 "& svg": {
                   width: "100% !important",
@@ -523,8 +524,8 @@ export default function AssetLabel({
 
           px: "4cqw",
 
-          bgcolor: navy,
-          color: "#ffffff",
+          background: sidebarBackground,
+          color: labelText,
         }}
       >
         <Box
@@ -537,7 +538,7 @@ export default function AssetLabel({
         <Typography
           component="span"
           sx={{
-            color: gold,
+            color: labelText,
 
             fontSize:
               "clamp(4px, 2.8cqw, 13px)",
@@ -553,7 +554,7 @@ export default function AssetLabel({
           sx={{
             minWidth: 0,
 
-            color: "#ffffff",
+            color: labelText,
 
             fontSize:
               "clamp(4px, 2.6cqw, 13px)",
@@ -576,7 +577,7 @@ export default function AssetLabel({
         <Typography
           component="span"
           sx={{
-            color: gold,
+            color: labelText,
 
             fontSize:
               "clamp(4px, 2.8cqw, 13px)",

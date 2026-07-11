@@ -296,10 +296,33 @@ function AssetTagPrinter() {
     });
   }, [assets, search, filters]);
 
-  const modelOptions = useMemo(
+  const categoryModels = useMemo(
     () => (lookups.models || []).filter((item) =>
-      !draftFilters.brandId || String(item.ITAssetBrandId) === String(draftFilters.brandId)),
-    [lookups.models, draftFilters.brandId]
+      !draftFilters.categoryId ||
+      String(item.ITAssetCategoryId) === String(draftFilters.categoryId)),
+    [lookups.models, draftFilters.categoryId]
+  );
+
+  const brandOptions = useMemo(() => {
+    if (!draftFilters.categoryId) return lookups.brands || [];
+
+    const categoryBrandIds = new Set(
+      categoryModels
+        .map((model) => model.ITAssetBrandId)
+        .filter((brandId) => brandId !== null && brandId !== undefined)
+        .map(String)
+    );
+
+    return (lookups.brands || []).filter((brand) =>
+      categoryBrandIds.has(String(brand.ITAssetBrandId))
+    );
+  }, [categoryModels, draftFilters.categoryId, lookups.brands]);
+
+  const modelOptions = useMemo(
+    () => categoryModels.filter((item) =>
+      !draftFilters.brandId ||
+      String(item.ITAssetBrandId) === String(draftFilters.brandId)),
+    [categoryModels, draftFilters.brandId]
   );
   const roomOptions = useMemo(
     () => (lookups.rooms || []).filter((item) =>
@@ -504,7 +527,7 @@ function AssetTagPrinter() {
               <AppFormGrid>
                 {[
                   ["categoryId", "Category", lookups.categories, "ITAssetCategoryId", "CategoryName"],
-                  ["brandId", "Brand", lookups.brands, "ITAssetBrandId", "BrandName"],
+                  ["brandId", "Brand", brandOptions, "ITAssetBrandId", "BrandName"],
                   ["modelId", "Model", modelOptions, "ITAssetModelId", "ModelName"],
                   ["statusId", "Status", lookups.statuses, "ITAssetStatusId", "StatusName"],
                   ["conditionId", "Condition", lookups.conditions, "ITAssetConditionId", "ConditionName"],
@@ -518,6 +541,7 @@ function AssetTagPrinter() {
                     valueKey={valueKey} labelKey={labelKey}
                     onChange={(value) => setDraftFilters((current) => ({
                       ...current, [key]: value,
+                      ...(key === "categoryId" ? { brandId: "", modelId: "" } : {}),
                       ...(key === "brandId" ? { modelId: "" } : {}),
                       ...(key === "locationId" ? { roomId: "" } : {}),
                     }))} />

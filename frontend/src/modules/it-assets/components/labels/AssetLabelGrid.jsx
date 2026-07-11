@@ -24,7 +24,7 @@
 // - Only the A4 grid cell dimensions change.
 // ============================================================
 
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 
 import AssetLabel from "./AssetLabel";
 
@@ -32,6 +32,8 @@ import AssetLabel from "./AssetLabel";
 // Constants
 // ============================================================
 
+// Shared by the label grid and its existing printer toolbar.
+// eslint-disable-next-line react-refresh/only-export-components
 export const ASSET_LABEL_LAYOUTS = {
   "3x7": {
     key: "3x7",
@@ -117,6 +119,7 @@ export default function AssetLabelGrid({
   showLogo = true,
   showBorder = true,
 }) {
+  const theme = useTheme();
   const layout =
     ASSET_LABEL_LAYOUTS[layoutKey] ||
     ASSET_LABEL_LAYOUTS["4x7"];
@@ -212,10 +215,9 @@ export default function AssetLabelGrid({
 
             overflow: "hidden",
 
-            bgcolor: "#ffffff",
+            bgcolor: "common.white",
 
-            boxShadow:
-              "0 8px 28px rgba(15, 23, 42, 0.16)",
+            boxShadow: theme.shadows[3],
 
             "@media print": {
               boxShadow: "none",

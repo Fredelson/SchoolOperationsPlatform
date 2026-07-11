@@ -14,7 +14,7 @@
 // - Authentication and authorization are enforced after scan.
 // ============================================================
 
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import { QRCodeSVG } from "qrcode.react";
 
 /**
@@ -52,6 +52,7 @@ export default function AssetQrCode({
   includeMargin = false,
   sx = {},
 }) {
+  const theme = useTheme();
   /*
    * A custom value may be supplied for testing.
    * In normal use, assetId generates the details-page URL.
@@ -78,7 +79,7 @@ export default function AssetQrCode({
         width: size,
         height: size,
         flexShrink: 0,
-        bgcolor: "#ffffff",
+        bgcolor: "common.white",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -96,11 +97,13 @@ export default function AssetQrCode({
         size={size}
         level={level}
         includeMargin={includeMargin}
-        bgColor="#ffffff"
-        fgColor="#000000"
+        bgColor={theme.palette.common.white}
+        fgColor={theme.palette.common.black}
       />
     </Box>
   );
 }
 
+// Exported for existing URL-generation tests and integrations.
+// eslint-disable-next-line react-refresh/only-export-components
 export { buildAssetDetailsUrl };

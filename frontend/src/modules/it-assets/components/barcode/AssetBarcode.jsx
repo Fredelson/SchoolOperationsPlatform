@@ -13,7 +13,7 @@
 // - Designed to scale inside responsive asset-label grids.
 // ============================================================
 
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import Barcode from "react-barcode";
 
 /**
@@ -49,6 +49,7 @@ function AssetBarcode({
   margin = 0,
   sx = {},
 }) {
+  const theme = useTheme();
   const normalizedValue = String(value ?? "").trim();
 
   if (!normalizedValue) {
@@ -118,8 +119,8 @@ function AssetBarcode({
         displayValue={displayValue}
         fontSize={fontSize}
         margin={margin}
-        background="#ffffff"
-        lineColor="#000000"
+        background={theme.palette.common.white}
+        lineColor={theme.palette.common.black}
         renderer="svg"
       />
     </Box>
