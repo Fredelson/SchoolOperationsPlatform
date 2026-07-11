@@ -108,7 +108,26 @@ async function getMySidebar(user) {
     user?.userId ||
     user?.id;
 
-  const menus = await navigationRepository.getSidebarMenusForUser(userId);
+  let menus = await navigationRepository.getSidebarMenusForUser(userId);
+
+  const role = String(
+    user?.RoleName || user?.roleName || user?.role || ""
+  ).toLowerCase().replace(/[\s_-]+/g, "");
+
+  if (role !== "superadmin" && role !== "platformadmin") {
+    const protectedRootIds = new Set(
+      menus.filter((menu) => menu.MenuKey === "USER_ACCESS_ROOT").map((menu) => menu.MenuId)
+    );
+    menus = menus.filter((menu) => {
+      if (menu.GroupName === "User & Access") return false;
+      let current = menu;
+      while (current) {
+        if (protectedRootIds.has(current.MenuId)) return false;
+        current = menus.find((candidate) => candidate.MenuId === current.ParentMenuId);
+      }
+      return true;
+    });
+  }
 
   const groups = {};
 
@@ -166,10 +185,6 @@ async function getMySidebar(user) {
       items: buildMenuTree(group.rawMenus),
     }))
     .filter((group) => group.items.length > 0);
-
-  const role = String(
-    user?.RoleName || user?.roleName || user?.role || ""
-  ).toLowerCase().replace(/[\s_-]+/g, "");
 
   if (role === "superadmin" || role === "platformadmin") {
     const modules = await navigationRepository.getSidebarModules();

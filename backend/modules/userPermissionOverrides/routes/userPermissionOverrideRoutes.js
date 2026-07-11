@@ -14,6 +14,12 @@ const router = express.Router();
 router.use(...platformAdministrationAccess);
 
 router.get(
+  "/lookups",
+  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
+  controller.getLookups
+);
+
+router.get(
   "/",
   requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
   controller.getAllOverrides

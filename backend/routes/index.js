@@ -79,7 +79,7 @@ router.use("/system", require("../modules/system"));
 // SECURITY MODULES
 // ============================================================
 
-router.use("/access-levels", require("./security/accessLevelRoutes"));
+router.use("/access-levels", require("../modules/accessLevels"));
 
 // ============================================================
 // USER IMPORT

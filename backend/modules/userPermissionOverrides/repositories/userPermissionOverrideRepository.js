@@ -32,7 +32,17 @@ const {
 // Get All User Permission Overrides
 // ============================================================
 
-async function getAll() {
+async function getAll({ search = "", userId = null, moduleId = null, permissionId = null, isAllowed = null, page = 1, pageSize = 10 } = {}) {
+  const offset=(page-1)*pageSize;
+  const from=`FROM dbo.UserPermissionOverrides upo INNER JOIN dbo.Users u ON upo.UserId=u.UserId
+    INNER JOIN dbo.Permissions p ON upo.PermissionId=p.PermissionId LEFT JOIN dbo.Modules m ON p.ModuleId=m.ModuleId
+    LEFT JOIN dbo.Users cb ON upo.CreatedBy=cb.UserId`;
+  const where=`WHERE (@Search='%%' OR u.FullName LIKE @Search OR u.EmployeeId LIKE @Search OR p.PermissionKey LIKE @Search)
+    AND (@UserId IS NULL OR upo.UserId=@UserId) AND (@ModuleId IS NULL OR p.ModuleId=@ModuleId)
+    AND (@PermissionId IS NULL OR upo.PermissionId=@PermissionId) AND (@IsAllowed IS NULL OR upo.IsAllowed=@IsAllowed)`;
+  const params=[{name:"Search",type:sql.NVarChar(150),value:`%${search}%`},{name:"UserId",type:sql.Int,value:userId},
+    {name:"ModuleId",type:sql.Int,value:moduleId},{name:"PermissionId",type:sql.Int,value:permissionId},
+    {name:"IsAllowed",type:sql.Bit,value:isAllowed},{name:"Offset",type:sql.Int,value:offset},{name:"PageSize",type:sql.Int,value:pageSize}];
   const result = await executeQuery(`
     SELECT
       upo.UserPermissionOverrideId,
@@ -43,22 +53,24 @@ async function getAll() {
       upo.PermissionId,
       p.PermissionKey,
       p.PermissionName,
+      p.ModuleId,
+      m.ModuleName,
       upo.IsAllowed,
       upo.Reason,
       upo.CreatedBy,
       cb.FullName AS CreatedByName,
       upo.CreatedAt
-    FROM dbo.UserPermissionOverrides upo
-    INNER JOIN dbo.Users u
-      ON upo.UserId = u.UserId
-    INNER JOIN dbo.Permissions p
-      ON upo.PermissionId = p.PermissionId
-    LEFT JOIN dbo.Users cb
-      ON upo.CreatedBy = cb.UserId
-    ORDER BY u.FullName ASC, p.PermissionKey ASC;
-  `);
+    ${from} ${where} ORDER BY u.FullName,p.PermissionKey OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    SELECT COUNT(1) AS TotalRows ${from} ${where};
+  `,params);
+  return {items:result.recordsets?.[0]||[],totalRows:result.recordsets?.[1]?.[0]?.TotalRows||0,page,pageSize};
+}
 
-  return rows(result);
+async function getLookups() {
+  const result=await executeQuery(`SELECT UserId,EmployeeId,FullName FROM dbo.Users WHERE IsActive=1 AND IsDeleted=0 ORDER BY FullName;
+    SELECT ModuleId,ModuleKey,ModuleName FROM dbo.Modules WHERE IsActive=1 ORDER BY SortOrder,ModuleName;
+    SELECT PermissionId,PermissionKey,PermissionName,ModuleId FROM dbo.Permissions WHERE IsActive=1 ORDER BY PermissionKey;`);
+  return {users:result.recordsets?.[0]||[],modules:result.recordsets?.[1]||[],permissions:result.recordsets?.[2]||[]};
 }
 
 // ============================================================
@@ -202,7 +214,7 @@ async function create({ userId, permissionId, isAllowed, reason, createdBy }) {
     ]
   );
 
-  return insertedId(result);
+  return insertedId(result, "InsertedId");
 }
 
 // ============================================================
@@ -308,4 +320,5 @@ module.exports = {
   remove,
   findUserById,
   findPermissionById,
+  getLookups,
 };

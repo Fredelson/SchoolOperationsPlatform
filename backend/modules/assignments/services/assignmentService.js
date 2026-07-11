@@ -120,6 +120,23 @@ async function getUserAssignments(userId) {
   return assignmentRepository.getUserAssignments(parsedUserId);
 }
 
+async function getAssignments(query = {}) {
+  const page=Math.max(Number(query.page)||1,1); const pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);
+  const status=String(query.status||"").toLowerCase();
+  return assignmentRepository.getAssignments({ search:String(query.search||"").trim(), assignmentTypeId:Number(query.assignmentTypeId)||null,
+    isActive:status==="active"?true:status==="inactive"?false:null,page,pageSize });
+}
+
+async function getAssignmentLookups() { return assignmentRepository.getAssignmentLookups(); }
+
+async function activateUserAssignment(userId, userAssignmentId) {
+  const parsedUserId=parseRouteId(userId,"User ID"); const parsedAssignmentId=parseRouteId(userAssignmentId,"Assignment ID");
+  const assignment=await assignmentRepository.findUserAssignmentById(parsedAssignmentId, false);
+  if(!assignment || Number(assignment.UserId)!==parsedUserId) throw new NotFoundError("User assignment not found.");
+  await validateActiveUser(parsedUserId); await assignmentRepository.activateUserAssignment(parsedAssignmentId);
+  return {userAssignmentId:parsedAssignmentId};
+}
+
 /**
  * Creates a new assignment for a user.
  */
@@ -234,4 +251,7 @@ module.exports = {
   updateUserAssignment,
   deleteUserAssignment,
   setPrimaryUserAssignment,
+  getAssignments,
+  getAssignmentLookups,
+  activateUserAssignment,
 };

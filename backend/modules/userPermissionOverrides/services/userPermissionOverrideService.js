@@ -37,9 +37,14 @@ function normalizeBoolean(value) {
 // Get All Overrides
 // ============================================================
 
-async function getAllOverrides() {
-  return repository.getAll();
+async function getAllOverrides(query = {}) {
+  const page=Math.max(Number(query.page)||1,1);const pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);
+  const allowed=String(query.effect||"").toLowerCase();
+  return repository.getAll({search:String(query.search||"").trim(),userId:Number(query.userId)||null,moduleId:Number(query.moduleId)||null,
+    permissionId:Number(query.permissionId)||null,isAllowed:allowed==="grant"?true:allowed==="revoke"?false:null,page,pageSize});
 }
+
+async function getLookups(){return repository.getLookups();}
 
 // ============================================================
 // Get Overrides By User
@@ -176,4 +181,5 @@ module.exports = {
   createOverride,
   updateOverride,
   deleteOverride,
+  getLookups,
 };

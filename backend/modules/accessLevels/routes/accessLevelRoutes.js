@@ -1,0 +1,14 @@
+const router=require("express").Router();
+const controller=require("../controllers/accessLevelController");
+const {platformAdministrationAccess}=require("../../../middleware/platformAdministrationMiddleware");
+const requirePermission=require("../../permissionResolver/middleware/requirePermission");
+const P=require("../../../shared/permissions/permissionKeys").ACCESS_LEVELS;
+router.use(...platformAdministrationAccess);
+router.get("/",requirePermission(P.VIEW),controller.list);
+router.get("/:id",requirePermission(P.VIEW),controller.get);
+router.post("/",requirePermission(P.CREATE),controller.create);
+router.put("/:id",requirePermission(P.UPDATE),controller.update);
+router.patch("/:id/activate",requirePermission(P.UPDATE),controller.activate);
+router.patch("/:id/deactivate",requirePermission(P.UPDATE),controller.deactivate);
+router.delete("/:id",requirePermission(P.DELETE),controller.remove);
+module.exports=router;

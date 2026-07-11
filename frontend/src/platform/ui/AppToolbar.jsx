@@ -10,6 +10,7 @@
 // ============================================
 
 import { Box, Stack } from "@mui/material";
+import AppSearch from "./AppSearch";
 
 // ============================================
 // Component
@@ -19,6 +20,8 @@ export default function AppToolbar({
   left = null,
   right = null,
   children = null,
+  searchValue,
+  onSearchChange,
   card = false,
   sx = {},
 }) {
@@ -48,6 +51,9 @@ export default function AppToolbar({
         spacing={1.5}
         sx={{ flex: 1 }}
       >
+        {searchValue !== undefined && onSearchChange && (
+          <AppSearch value={searchValue} onChange={onSearchChange} />
+        )}
         {left || children}
       </Stack>
 

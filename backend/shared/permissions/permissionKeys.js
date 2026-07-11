@@ -36,6 +36,13 @@ const PERMISSIONS = {
     DELETE: "roles.delete",
   },
 
+  ACCESS_LEVELS: {
+    VIEW: "access-levels.view",
+    CREATE: "access-levels.create",
+    UPDATE: "access-levels.update",
+    DELETE: "access-levels.delete",
+  },
+
   PERMISSIONS: {
     VIEW: "permissions.view",
     CREATE: "permissions.create",

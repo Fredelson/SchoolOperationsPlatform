@@ -113,6 +113,51 @@ async function getUserAssignments(userId) {
   return rows(result);
 }
 
+async function getAssignments({ search = "", assignmentTypeId = null, isActive = null, page = 1, pageSize = 10 }) {
+  const offset = (page - 1) * pageSize;
+  const params = [
+    { name: "Search", type: sql.NVarChar(150), value: `%${search}%` },
+    { name: "AssignmentTypeId", type: sql.Int, value: assignmentTypeId },
+    { name: "IsActive", type: sql.Bit, value: isActive },
+    { name: "Offset", type: sql.Int, value: offset },
+    { name: "PageSize", type: sql.Int, value: pageSize },
+  ];
+  const from = `FROM dbo.UserAssignments ua INNER JOIN dbo.Users u ON u.UserId=ua.UserId
+    INNER JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId
+    LEFT JOIN dbo.AcademicYears ay ON ay.AcademicYearId=ua.AcademicYearId
+    LEFT JOIN dbo.Departments d ON d.DepartmentId=ua.DepartmentId
+    LEFT JOIN dbo.Sections s ON s.SectionId=ua.SectionId`;
+  const where = `WHERE (@Search='%%' OR u.FullName LIKE @Search OR u.EmployeeId LIKE @Search OR at.AssignmentName LIKE @Search)
+    AND (@AssignmentTypeId IS NULL OR ua.AssignmentTypeId=@AssignmentTypeId)
+    AND (@IsActive IS NULL OR ua.IsActive=@IsActive)`;
+  const result = await executeQuery(`SELECT ua.UserAssignmentId,ua.UserId,u.FullName,u.EmployeeId,ua.AssignmentTypeId,
+    at.AssignmentKey,at.AssignmentName,ua.AcademicYearId,ay.AcademicYearName,ua.DepartmentId,d.DepartmentName,
+    ua.SectionId,s.SectionName,ua.SubjectId,ua.YearLevelId,ua.ClassId,ua.RoomId,ua.StartDate,ua.EndDate,
+    ua.IsPrimary,ua.IsActive,ua.CreatedAt,ua.UpdatedAt ${from} ${where}
+    ORDER BY ua.IsActive DESC,ua.IsPrimary DESC,u.FullName,ua.CreatedAt DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+    SELECT COUNT(1) AS TotalRows ${from} ${where};`, params);
+  return { items: result.recordsets?.[0] || [], totalRows: result.recordsets?.[1]?.[0]?.TotalRows || 0, page, pageSize };
+}
+
+async function getAssignmentLookups() {
+  const result = await executeQuery(`
+    SELECT UserId,EmployeeId,FullName FROM dbo.Users WHERE IsActive=1 AND IsDeleted=0 ORDER BY FullName;
+    SELECT AssignmentTypeId,AssignmentKey,AssignmentName FROM dbo.AssignmentTypes WHERE IsActive=1 ORDER BY SortOrder,AssignmentName;
+    SELECT AcademicYearId,AcademicYearName FROM dbo.AcademicYears WHERE IsActive=1 ORDER BY AcademicYearName DESC;
+    SELECT DepartmentId,DepartmentName FROM dbo.Departments WHERE IsActive=1 ORDER BY DepartmentName;
+    SELECT SectionId,SectionName FROM dbo.Sections WHERE IsActive=1 ORDER BY SectionName;
+    SELECT SubjectId,SubjectName FROM dbo.Subjects WHERE IsActive=1 ORDER BY SortOrder,SubjectName;
+    SELECT YearLevelId,YearLevelName,SectionId FROM dbo.YearLevels WHERE IsActive=1 ORDER BY SortOrder,YearLevelName;
+    SELECT ClassId,ClassName,AcademicYearId,SectionId,YearLevelId,RoomId FROM dbo.Classes WHERE IsActive=1 ORDER BY ClassName;
+    SELECT RoomId,RoomName FROM dbo.Rooms WHERE IsActive=1 ORDER BY RoomName;
+  `);
+  return { users: result.recordsets?.[0] || [], assignmentTypes: result.recordsets?.[1] || [], academicYears: result.recordsets?.[2] || [], departments: result.recordsets?.[3] || [], sections: result.recordsets?.[4] || [], subjects: result.recordsets?.[5] || [], yearLevels: result.recordsets?.[6] || [], classes: result.recordsets?.[7] || [], rooms: result.recordsets?.[8] || [] };
+}
+
+async function activateUserAssignment(userAssignmentId) {
+  await executeQuery(`UPDATE dbo.UserAssignments SET IsActive=1,EndDate=NULL,UpdatedAt=GETDATE() WHERE UserAssignmentId=@Id;`, [{name:"Id",type:sql.Int,value:userAssignmentId}]);
+}
+
 /**
  * Finds a platform user by ID.
  */
@@ -193,7 +238,7 @@ async function findAcademicYearById(academicYearId) {
  * - Soft delete assignment
  * - Set primary assignment
  */
-async function findUserAssignmentById(userAssignmentId) {
+async function findUserAssignmentById(userAssignmentId, activeOnly = true) {
   const result = await executeQuery(
     `
     SELECT
@@ -216,7 +261,7 @@ async function findUserAssignmentById(userAssignmentId) {
       UpdatedAt
     FROM dbo.UserAssignments
     WHERE UserAssignmentId = @UserAssignmentId
-      AND IsActive = 1;
+      AND (@ActiveOnly = 0 OR IsActive = 1);
     `,
     [
       {
@@ -224,6 +269,7 @@ async function findUserAssignmentById(userAssignmentId) {
         type: sql.Int,
         value: userAssignmentId,
       },
+      { name: "ActiveOnly", type: sql.Bit, value: activeOnly },
     ]
   );
 
@@ -481,4 +527,7 @@ module.exports = {
   updateUserAssignment,
   softDeleteUserAssignment,
   setPrimaryUserAssignment,
+  getAssignments,
+  getAssignmentLookups,
+  activateUserAssignment,
 };

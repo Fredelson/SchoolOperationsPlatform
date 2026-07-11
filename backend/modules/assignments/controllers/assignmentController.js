@@ -19,6 +19,11 @@
 const asyncHandler = require("../../../shared/helpers/asyncHandler");
 const { sendSuccess } = require("../../../shared/helpers/apiResponse");
 const assignmentService = require("../services/assignmentService");
+const activityLogger = require("../../audit/services/activityLogger");
+const audit=(req,action,id,oldValue=null,newValue=null)=>activityLogger.log({moduleKey:"USER_ACCESS",actionType:action,entityType:"UserAssignment",entityId:id,title:`User assignment ${action.toLowerCase()}`,oldValue,newValue,user:req.user,ipAddress:req.ip});
+
+const getAssignments = asyncHandler(async(req,res)=>sendSuccess(res,"User assignments loaded successfully.",await assignmentService.getAssignments(req.query)));
+const getAssignmentLookups = asyncHandler(async(req,res)=>sendSuccess(res,"Assignment lookups loaded successfully.",await assignmentService.getAssignmentLookups()));
 
 /**
  * ------------------------------------------------------------
@@ -59,6 +64,7 @@ const createUserAssignment = asyncHandler(async (req, res) => {
     req.body,
     req.user
   );
+  await audit(req,"CREATE",data.userAssignmentId,null,req.body);
 
   return sendSuccess(res, "User assignment created successfully.", data, 201);
 });
@@ -76,6 +82,7 @@ const updateUserAssignment = asyncHandler(async (req, res) => {
     req.params.assignmentId,
     req.body
   );
+  await audit(req,"UPDATE",data.userAssignmentId,null,req.body);
 
   return sendSuccess(res, "User assignment updated successfully.", data);
 });
@@ -92,6 +99,7 @@ const deleteUserAssignment = asyncHandler(async (req, res) => {
     req.params.userId,
     req.params.assignmentId
   );
+  await audit(req,"DEACTIVATE",data.userAssignmentId);
 
   return sendSuccess(res, "User assignment deleted successfully.", data);
 });
@@ -108,9 +116,12 @@ const setPrimaryUserAssignment = asyncHandler(async (req, res) => {
     req.params.userId,
     req.params.assignmentId
   );
+  await audit(req,"SET_PRIMARY",data.userAssignmentId);
 
   return sendSuccess(res, "Primary assignment updated successfully.", data);
 });
+
+const activateUserAssignment=asyncHandler(async(req,res)=>{const data=await assignmentService.activateUserAssignment(req.params.userId,req.params.assignmentId);await audit(req,"ACTIVATE",data.userAssignmentId);return sendSuccess(res,"User assignment activated successfully.",data);});
 
 /**
  * ============================================================
@@ -124,4 +135,7 @@ module.exports = {
   updateUserAssignment,
   deleteUserAssignment,
   setPrimaryUserAssignment,
+  getAssignments,
+  getAssignmentLookups,
+  activateUserAssignment,
 };

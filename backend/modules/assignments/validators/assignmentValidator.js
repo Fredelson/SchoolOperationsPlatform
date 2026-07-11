@@ -58,6 +58,10 @@ function validateCreateAssignmentPayload(payload) {
     throw new BadRequestError("Academic year is required.");
   }
 
+  if (payload.startDate && payload.endDate && new Date(payload.endDate) < new Date(payload.startDate)) {
+    throw new BadRequestError("End date cannot be before start date.");
+  }
+
   return {
     assignmentTypeId,
     academicYearId,

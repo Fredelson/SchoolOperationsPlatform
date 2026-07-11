@@ -48,6 +48,10 @@ import ButtonManager from "../buttons/pages/ButtonManager";
 import WidgetManager from "../widgets/pages/WidgetManager";
 import FeatureFlagManager from "../features/featureFlags/pages/FeatureFlagManager";
 import { UserManagement } from "../../admin/pages";
+import AccessLevelsPage from "../user-access/pages/AccessLevelsPage";
+import UserAssignmentsPage from "../user-access/pages/UserAssignmentsPage";
+import UserPermissionOverridesPage from "../user-access/pages/UserPermissionOverridesPage";
+import AssignmentTypesPage from "../user-access/pages/AssignmentTypesPage";
 
 
 // ============================================
@@ -60,7 +64,6 @@ import {
   PermissionManagerPage,
   RolesManagerPage,
   RolePermissionsPage,
-  UserPermissionOverridesPage,
 } from "../enterprise/pages/EnterpriseDataManager";
 
 // ============================================
@@ -139,7 +142,15 @@ const superAdminLayoutRoutes = [
       },
       {
         path: "access-levels",
-        element: <SuperAdminComingSoon title="Access Levels" />,
+        element: <AccessLevelsPage />,
+      },
+      {
+        path: "user-assignments",
+        element: <UserAssignmentsPage />,
+      },
+      {
+        path: "assignment-types",
+        element: <AssignmentTypesPage />,
       },
       {
         path: "permissions",
