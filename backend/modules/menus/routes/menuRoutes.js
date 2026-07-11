@@ -16,6 +16,9 @@ const express = require("express");
 const router = express.Router();
 
 const menuController = require("../controllers/menuController");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 
 const {

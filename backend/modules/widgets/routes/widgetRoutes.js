@@ -8,6 +8,9 @@ const express = require("express");
 const widgetController = require("../controllers/widgetController");
 
 const router = express.Router();
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 router.get("/", widgetController.getWidgets);
 router.get("/lookups", widgetController.getWidgetLookups);

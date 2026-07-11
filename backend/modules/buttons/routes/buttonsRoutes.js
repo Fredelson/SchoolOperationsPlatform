@@ -8,6 +8,9 @@ const express = require("express");
 const buttonsController = require("../controllers/buttonsController");
 
 const router = express.Router();
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 router.get("/", buttonsController.getButtons);
 router.get("/statistics", buttonsController.getButtonStatistics);

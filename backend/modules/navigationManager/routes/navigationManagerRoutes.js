@@ -8,6 +8,9 @@ const express = require("express");
 const router = express.Router();
 
 const navigationManagerController = require("../controllers/navigationManagerController");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 const {
   validateNavigationMenuPayload,

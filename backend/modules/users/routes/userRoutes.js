@@ -38,7 +38,7 @@ const {
   getUserImportHistory,
 } = require("../controllers/userImportController");
 
-const { protect } = require("../../../middleware/authMiddleware");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
@@ -52,7 +52,7 @@ const upload = multer({
 /**
  * All Users routes require authentication.
  */
-router.use(protect);
+router.use(...platformAdministrationAccess);
 
 /**
  * ------------------------------------------------------------

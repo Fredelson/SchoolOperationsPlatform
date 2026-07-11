@@ -5,13 +5,13 @@
 
 const express = require("express");
 const controller = require("../controllers/userPermissionOverrideController");
-const { protect } = require("../../../middleware/authMiddleware");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 const router = express.Router();
 
-router.use(protect);
+router.use(...platformAdministrationAccess);
 
 router.get(
   "/",

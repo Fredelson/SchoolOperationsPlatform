@@ -159,13 +159,45 @@ async function getMySidebar(user) {
     });
   });
 
-  return Object.values(groups)
+  const sidebar = Object.values(groups)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((group) => ({
       title: group.title,
       items: buildMenuTree(group.rawMenus),
     }))
     .filter((group) => group.items.length > 0);
+
+  const role = String(
+    user?.RoleName || user?.roleName || user?.role || ""
+  ).toLowerCase().replace(/[\s_-]+/g, "");
+
+  if (role === "superadmin" || role === "platformadmin") {
+    const modules = await navigationRepository.getSidebarModules();
+    const representedModuleIds = new Set(
+      menus.map((menu) => menu.ModuleId).filter(Boolean)
+    );
+
+    const unlinkedModules = modules
+      .filter((module) => !representedModuleIds.has(module.ModuleId))
+      .map((module) => ({
+        id: `module-${module.ModuleId}`,
+        key: `MODULE_${module.ModuleKey}`,
+        label: module.ModuleName,
+        path: `/super-admin/module/${encodeURIComponent(module.ModuleKey)}`,
+        iconKey: module.Icon || "apps",
+        backendReady: true,
+        moduleFallback: true,
+      }));
+
+    if (unlinkedModules.length > 0) {
+      sidebar.push({
+        title: "Modules",
+        items: unlinkedModules,
+      });
+    }
+  }
+
+  return sidebar;
 }
 
 // ============================================

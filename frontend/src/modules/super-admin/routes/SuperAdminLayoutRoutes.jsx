@@ -42,6 +42,7 @@ import SuperAdminDashboard from "../dashboard/pages/SuperAdminDashboard";
 // ============================================
 
 import ModuleManager from "../modules/pages/ModuleManager";
+import ModuleLandingPage from "../modules/pages/ModuleLandingPage";
 import MenuManager from "../menus/pages/MenuManager";
 import ButtonManager from "../buttons/pages/ButtonManager";
 import WidgetManager from "../widgets/pages/WidgetManager";
@@ -101,6 +102,10 @@ const superAdminLayoutRoutes = [
       {
         path: "modules",
         element: <ModuleManager />,
+      },
+      {
+        path: "module/:moduleKey",
+        element: <ModuleLandingPage />,
       },
       {
         path: "menus",

@@ -60,6 +60,7 @@ async function getSidebarMenusForUser(userId) {
 
         -- Menu item
         m.MenuId,
+        m.ModuleId,
         m.ParentMenuId,
         m.MenuKey,
         m.MenuName,
@@ -134,4 +135,31 @@ async function getSidebarMenusForUser(userId) {
 
 module.exports = {
   getSidebarMenusForUser,
+  getSidebarModules,
 };
+
+// ============================================
+// Get Active Modules For Sidebar Fallback
+// ============================================
+
+async function getSidebarModules() {
+  const result = await executeQuery(`
+    SELECT
+      m.ModuleId,
+      m.ModuleKey,
+      m.ModuleName,
+      m.BaseRoute,
+      m.Icon,
+      m.SortOrder,
+      fvs.StatusKey AS VisibilityStatusKey
+    FROM dbo.Modules m
+    INNER JOIN dbo.FeatureVisibilityStatuses fvs
+      ON fvs.VisibilityStatusId = m.VisibilityStatusId
+    WHERE
+      m.IsActive = 1
+      AND LOWER(fvs.StatusKey) = 'enabled'
+    ORDER BY m.SortOrder, m.ModuleName;
+  `);
+
+  return rows(result);
+}

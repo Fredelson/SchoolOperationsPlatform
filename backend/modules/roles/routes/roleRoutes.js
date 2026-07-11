@@ -14,11 +14,11 @@ const {
   deleteRole,
 } = require("../controllers/roleController");
 
-const { protect } = require("../../../middleware/authMiddleware");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
-router.use(protect);
+router.use(...platformAdministrationAccess);
 
 router.get("/", requirePermission(PERMISSIONS.ROLES.VIEW), getRoles);
 router.get("/:roleId", requirePermission(PERMISSIONS.ROLES.VIEW), getRoleById);

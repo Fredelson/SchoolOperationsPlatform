@@ -19,6 +19,9 @@ const {
 } = require("../validators/moduleValidator");
 
 const router = express.Router();
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 // ============================================
 // Module Query Routes

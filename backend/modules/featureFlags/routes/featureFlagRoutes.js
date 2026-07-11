@@ -8,6 +8,9 @@ const express = require("express");
 const router = express.Router();
 
 const featureFlagController = require("../controllers/featureFlagController");
+const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+
+router.use(...platformAdministrationAccess);
 
 router.get("/lookups", featureFlagController.getFeatureFlagLookups);
 router.get("/", featureFlagController.getFeatureFlags);

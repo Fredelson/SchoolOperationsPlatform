@@ -104,6 +104,9 @@ const superAdminRoles = [
   "SuperAdmin",
   "Super Admin",
   "super-admin",
+  "PlatformAdmin",
+  "Platform Admin",
+  "platform-admin",
 ];
 
 // ============================================
