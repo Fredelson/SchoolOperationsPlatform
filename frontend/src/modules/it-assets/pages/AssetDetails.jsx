@@ -126,6 +126,12 @@ const AssetDetails = () => {
     () => String(asset?.StatusKey || asset?.StatusName || "").toUpperCase() === "DISPOSED",
     [asset]
   );
+  const maintenanceUnfinished = useMemo(() => {
+    const status = String(asset?.StatusKey || asset?.StatusName || "")
+      .replace(/[\s_-]/g, "")
+      .toUpperCase();
+    return ["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(status);
+  }, [asset]);
 
   if (loading && !asset) return <AppLoadingState title="Loading asset details..." />;
 
@@ -294,7 +300,7 @@ const AssetDetails = () => {
                       fullWidth
                       variant="outlined"
                       startIcon={<AssignmentIndOutlinedIcon />}
-                      disabled={isAssigned(asset) || disposed}
+                      disabled={isAssigned(asset) || disposed || maintenanceUnfinished}
                       onClick={() => openDialog("assign")}
                       sx={{ justifyContent: "flex-start" }}
                     >

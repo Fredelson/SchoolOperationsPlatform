@@ -24,6 +24,7 @@ import {
   getItAssetIssuesApi,
   getItAssetMaintenanceLogsApi,
   getItAssetMaintenanceDueApi,
+  completeItAssetMaintenanceApi,
   borrowItAssetApi,
   returnBorrowedItAssetApi,
   getActiveItAssetBorrowsApi,
@@ -159,6 +160,11 @@ export const getItAssetMaintenanceLogsService = async (params = {}) => {
 export const getItAssetMaintenanceDueService = async () => {
   const response = await getItAssetMaintenanceDueApi();
   return response?.data || [];
+};
+
+export const completeItAssetMaintenanceService = async (maintenanceLogId) => {
+  const response = await completeItAssetMaintenanceApi(maintenanceLogId);
+  return response?.data || null;
 };
 
 export const borrowItAssetService = async (payload) => {

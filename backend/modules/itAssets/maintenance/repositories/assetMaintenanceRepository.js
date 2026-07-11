@@ -11,10 +11,11 @@ const { firstOrNull, rows } = require("../../../../shared/database/repositoryBas
 const getAssetById = async (assetId) => {
   const result = await executeQuery(
     `
-      SELECT TOP 1 *
-      FROM dbo.ITAssets
-      WHERE AssetId = @AssetId
-        AND IsDeleted = 0;
+      SELECT TOP 1 a.*, s.StatusKey, s.StatusName
+      FROM dbo.ITAssets a
+      LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+      WHERE a.AssetId = @AssetId
+        AND a.IsDeleted = 0;
     `,
     [{ name: "AssetId", type: sql.Int, value: Number(assetId) }]
   );
@@ -211,10 +212,17 @@ const getMaintenanceLogs = async ({ assetId = null }) => {
         ml.*,
         a.AssetTag,
         a.ModelDescription,
-        u.FullName AS PerformedByName
+        u.FullName AS PerformedByName,
+        s.StatusKey AS AssetStatusKey,
+        s.StatusName AS AssetStatusName,
+        ROW_NUMBER() OVER (
+          PARTITION BY ml.AssetId
+          ORDER BY ml.PerformedAt DESC, ml.MaintenanceLogId DESC
+        ) AS MaintenanceSequence
       FROM dbo.ITAssetMaintenanceLogs ml
       INNER JOIN dbo.ITAssets a ON ml.AssetId = a.AssetId
       LEFT JOIN dbo.Users u ON ml.PerformedBy = u.UserId
+      LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
       WHERE a.IsDeleted = 0
         AND (@AssetId IS NULL OR ml.AssetId = @AssetId)
       ORDER BY ml.PerformedAt DESC;
@@ -230,9 +238,16 @@ const getMaintenanceDue = async () => {
     SELECT
       ml.*,
       a.AssetTag,
-      a.ModelDescription
+      a.ModelDescription,
+      s.StatusKey AS AssetStatusKey,
+      s.StatusName AS AssetStatusName,
+      ROW_NUMBER() OVER (
+        PARTITION BY ml.AssetId
+        ORDER BY ml.PerformedAt DESC, ml.MaintenanceLogId DESC
+      ) AS MaintenanceSequence
     FROM dbo.ITAssetMaintenanceLogs ml
     INNER JOIN dbo.ITAssets a ON ml.AssetId = a.AssetId
+    LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
     WHERE a.IsDeleted = 0
       AND ml.NextDueAt IS NOT NULL
       AND ml.NextDueAt <= GETDATE()
@@ -242,10 +257,54 @@ const getMaintenanceDue = async () => {
   return rows(result);
 };
 
+const getMaintenanceLogById = async (maintenanceLogId) => {
+  const result = await executeQuery(
+    `SELECT TOP 1 * FROM dbo.ITAssetMaintenanceLogs WHERE MaintenanceLogId = @MaintenanceLogId;`,
+    [{ name: "MaintenanceLogId", type: sql.Int, value: Number(maintenanceLogId) }]
+  );
+  return firstOrNull(result);
+};
+
+const completeMaintenance = async ({ maintenance, asset, availableStatusId, actionByUserId }) => {
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+  try {
+    await transaction.begin();
+    const result = await new sql.Request(transaction)
+      .input("AssetId", sql.Int, asset.AssetId)
+      .input("AvailableStatusId", sql.Int, availableStatusId)
+      .query(`
+        UPDATE dbo.ITAssets
+        SET ITAssetStatusId = @AvailableStatusId, UpdatedAt = GETDATE()
+        OUTPUT INSERTED.*
+        WHERE AssetId = @AssetId AND IsDeleted = 0;
+      `);
+    await new sql.Request(transaction)
+      .input("AssetId", sql.Int, asset.AssetId)
+      .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
+      .input("NewStatusId", sql.Int, availableStatusId)
+      .input("ChangedBy", sql.Int, actionByUserId || null)
+      .input("Notes", sql.NVarChar(sql.MAX), `Maintenance finished: ${maintenance.MaintenanceType}`)
+      .query(`
+        INSERT INTO dbo.ITAssetStatusHistory
+          (AssetId, OldStatusId, NewStatusId, ChangedBy, ChangedAt, Notes)
+        VALUES
+          (@AssetId, @OldStatusId, @NewStatusId, @ChangedBy, GETDATE(), @Notes);
+      `);
+    await transaction.commit();
+    return { maintenance, asset: result.recordset[0] };
+  } catch (error) {
+    if (transaction._aborted !== true) await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   getAssetById,
   getStatusByKey,
   createMaintenanceLog,
   getMaintenanceLogs,
   getMaintenanceDue,
+  getMaintenanceLogById,
+  completeMaintenance,
 };

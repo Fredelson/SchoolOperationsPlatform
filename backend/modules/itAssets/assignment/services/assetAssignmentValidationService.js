@@ -19,6 +19,17 @@ const validateAssignAsset = async (payload) => {
     });
   }
 
+  const currentStatus = String(asset.StatusKey || asset.StatusName || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  if (["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(currentStatus)) {
+    throw Object.assign(
+      new Error("This asset cannot be assigned until maintenance is marked finished."),
+      { statusCode: 400 }
+    );
+  }
+
   const assignedStatus = await repository.getStatusByKey("Assigned");
 
   if (!assignedStatus) {

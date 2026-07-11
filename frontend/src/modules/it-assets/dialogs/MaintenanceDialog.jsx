@@ -4,17 +4,13 @@ import { AppDialog, AppFormField, AppFormGrid } from "../../../platform/ui";
 
 const MaintenanceDialog = ({ open, asset, saving, error, onClose, onSubmit }) => {
   const [form, setForm] = useState({
-    maintenanceType: "",
+    issue: "",
     description: "",
-    cost: "",
   });
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
-
-  const costIsValid =
-    form.cost === "" || (Number.isFinite(Number(form.cost)) && Number(form.cost) >= 0);
 
   return (
     <AppDialog
@@ -26,13 +22,12 @@ const MaintenanceDialog = ({ open, asset, saving, error, onClose, onSubmit }) =>
       error={error}
       primaryText="Start Maintenance"
       secondaryText="Cancel"
-      disablePrimary={!asset?.AssetId || !form.maintenanceType.trim() || !costIsValid}
+      disablePrimary={!asset?.AssetId || !form.issue.trim()}
       onPrimary={() =>
         onSubmit({
           assetId: asset.AssetId,
-          maintenanceType: form.maintenanceType.trim(),
+          maintenanceType: form.issue.trim(),
           description: form.description.trim() || null,
-          cost: form.cost === "" ? null : Number(form.cost),
         })
       }
       onClose={onClose}
@@ -40,21 +35,10 @@ const MaintenanceDialog = ({ open, asset, saving, error, onClose, onSubmit }) =>
     >
       <AppFormGrid>
         <AppFormField
-          label="Maintenance Type"
-          value={form.maintenanceType}
-          onChange={(value) => updateField("maintenanceType", value)}
+          label="Issue"
+          value={form.issue}
+          onChange={(value) => updateField("issue", value)}
           required
-          full
-        />
-        <AppFormField
-          label="Estimated / Actual Cost"
-          value={form.cost}
-          onChange={(value) => updateField("cost", value)}
-          helperText={
-            costIsValid
-              ? "Enter the amount without a currency symbol."
-              : "Enter a valid amount of zero or more."
-          }
           full
         />
         <AppFormField

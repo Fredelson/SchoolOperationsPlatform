@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Grid, Stack, Typography } from "@mui/material";
 import usePageTitle from "../../../platform/hooks/usePageTitle";
 import useAppNotification from "../../../platform/ui/feedback/useAppNotification";
-import { usePermissions } from "../../../context/PermissionContext";
 import {
   AppBreadcrumbs, AppButton, AppCard, AppChip, AppDataTable, AppPageHeader, AppStatCard,
 } from "../../../platform/ui";
@@ -21,7 +20,6 @@ const formatDate = (value) => value
 export default function BorrowedAssets() {
   usePageTitle("Borrow & Return Assets");
   const notification = useAppNotification();
-  const { hasActionAccess } = usePermissions();
   const [active, setActive] = useState([]);
   const [overdue, setOverdue] = useState([]);
   const [history, setHistory] = useState([]);
@@ -91,16 +89,15 @@ export default function BorrowedAssets() {
       return <AppChip label={row.ReturnedAt ? "Returned" : isOverdue ? "Overdue" : "Borrowed"}
         status={row.ReturnedAt ? "Completed" : isOverdue ? "Overdue" : "Active"} />;
     } },
-    ...(hasActionAccess("ITAssets", "Borrow") ? [{ field: "actions", headerName: "Actions", render: (row) =>
+    { field: "actions", headerName: "Actions", render: (row) =>
       !row.ReturnedAt && <AppButton size="small" variant="outlined" onClick={() => { setDialogError(""); setReturningBorrow(row); }}>Return</AppButton>
-    }] : []),
+    },
   ];
 
   return <Stack spacing={3}>
     <AppBreadcrumbs items={[{ label: "IT Assets", to: "/it-assets/dashboard" }, { label: "Borrow & Return" }]} />
     <AppPageHeader title="Borrow & Return" subtitle="Manage temporary asset custody, due dates, returns, and complete history."
-      actions={hasActionAccess("ITAssets", "Borrow")
-        ? <AppButton onClick={() => { setDialogError(""); setBorrowOpen(true); }}>Borrow Asset</AppButton> : null} />
+      actions={<AppButton onClick={() => { setDialogError(""); setBorrowOpen(true); }}>Borrow Asset</AppButton>} />
     {error && <AppCard><Typography color="error">{error}</Typography></AppCard>}
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, sm: 4 }}><AppStatCard title="Currently Borrowed" value={active.length} /></Grid>

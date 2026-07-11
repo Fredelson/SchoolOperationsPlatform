@@ -132,6 +132,11 @@ export const getItAssetMaintenanceDueApi = async () => {
   return response.data;
 };
 
+export const completeItAssetMaintenanceApi = async (maintenanceLogId) => {
+  const response = await api.put(`/it-assets/maintenance/${maintenanceLogId}/complete`);
+  return response.data;
+};
+
 export const borrowItAssetApi = async (payload) => {
   const response = await api.post("/it-assets/borrow", payload);
   return response.data;

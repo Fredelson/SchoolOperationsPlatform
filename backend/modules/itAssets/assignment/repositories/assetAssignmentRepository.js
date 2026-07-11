@@ -81,10 +81,11 @@ const getAssetById = async (assetId) => {
     .request()
     .input("AssetId", sql.Int, assetId)
     .query(`
-      SELECT TOP 1 *
-      FROM dbo.ITAssets
-      WHERE AssetId = @AssetId
-        AND IsDeleted = 0;
+      SELECT TOP 1 a.*, s.StatusKey, s.StatusName
+      FROM dbo.ITAssets a
+      LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+      WHERE a.AssetId = @AssetId
+        AND a.IsDeleted = 0;
     `);
 
   return result.recordset[0];

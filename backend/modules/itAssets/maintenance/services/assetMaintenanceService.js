@@ -38,8 +38,23 @@ const getMaintenanceDue = async () => {
   return repository.getMaintenanceDue();
 };
 
+const completeMaintenance = async ({ maintenanceLogId, user }) => {
+  const maintenance = await repository.getMaintenanceLogById(maintenanceLogId);
+  if (!maintenance) throw Object.assign(new Error("Maintenance record not found."), { statusCode: 404 });
+  const asset = await repository.getAssetById(maintenance.AssetId);
+  const status = String(asset?.StatusKey || asset?.StatusName || "").replace(/[\s_-]/g, "").toUpperCase();
+  if (!asset || !["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(status)) {
+    throw Object.assign(new Error("This maintenance is already finished."), { statusCode: 400 });
+  }
+  const availableStatus = await repository.getStatusByKey("Available");
+  if (!availableStatus) throw Object.assign(new Error("Available status is missing."), { statusCode: 400 });
+  return repository.completeMaintenance({ maintenance, asset,
+    availableStatusId: availableStatus.ITAssetStatusId, actionByUserId: userId(user) });
+};
+
 module.exports = {
   createMaintenanceLog,
   getMaintenanceLogs,
   getMaintenanceDue,
+  completeMaintenance,
 };

@@ -13,6 +13,7 @@ const requirePermission = require("../../../permissionResolver/middleware/requir
 router.use(protect, requirePermission("it_assets.maintenance.manage"));
 
 router.post("/", validator.validateCreateMaintenance, controller.createMaintenanceLog);
+router.put("/:maintenanceLogId/complete", controller.completeMaintenance);
 
 router.get("/", controller.getMaintenanceLogs);
 router.get("/due", controller.getMaintenanceDue);
