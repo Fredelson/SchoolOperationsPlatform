@@ -23,6 +23,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 // ============================================
 
 import OrganizationBranding from "./modules/system/pages/OrganizationBranding";
+import PlatformLayout from "./platform/layout/PlatformLayout";
 
 // ============================================
 // Teacher
@@ -161,13 +162,15 @@ export default function App() {
 
       {/* Platform Foundation */}
       <Route
-        path="/system/branding"
+        path="/system"
         element={
           <ProtectedRoute allowedRoles={platformAdminRoles}>
-            <OrganizationBranding />
+            <PlatformLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="branding" element={<OrganizationBranding />} />
+      </Route>
 
       {/* Teacher */}
       <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />

@@ -233,7 +233,7 @@ export default function AssetPrinterToolbar({
                   }
                 />
               }
-              label="Cutting border"
+              label="Black border & cutting guide"
             />
           </Box>
 

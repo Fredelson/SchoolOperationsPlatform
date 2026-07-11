@@ -144,9 +144,18 @@ export default function AssetLabel({
         bgcolor: labelBackground,
         color: labelText,
 
+        // Keep the finished tag edge crisp on every printer. The dashed
+        // outline sits just outside it and provides a separate cutting guide.
         border: showBorder
-          ? `0.25mm solid ${theme.palette.divider}`
+          ? "0.3mm solid #000000"
           : "none",
+
+        outline: showBorder
+          ? "0.15mm dashed #000000"
+          : "none",
+        outlineOffset: showBorder
+          ? "0.3mm"
+          : 0,
 
         borderRadius: "1.8mm",
 
