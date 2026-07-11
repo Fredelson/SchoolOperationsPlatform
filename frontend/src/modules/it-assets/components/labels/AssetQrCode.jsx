@@ -105,5 +105,5 @@ export default function AssetQrCode({
 }
 
 // Exported for existing URL-generation tests and integrations.
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export { buildAssetDetailsUrl };

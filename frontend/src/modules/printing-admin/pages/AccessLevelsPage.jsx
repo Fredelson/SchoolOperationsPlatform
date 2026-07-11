@@ -225,7 +225,7 @@ const AccessLevelsPage = () => {
         DisplayName: record.DisplayName,
         Description: record.Description,
         SortOrder: record.SortOrder || 0,
-        IsActive: !Boolean(record.IsActive),
+        IsActive: !record.IsActive,
       };
 
       await updateAccessLevel(record.AccessLevelId, payload);

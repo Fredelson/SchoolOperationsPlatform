@@ -370,7 +370,7 @@ export default function HosDashboard() {
         <Typography>Loading HOS dashboard data...</Typography>
       ) : (
         <>
-          <KPIGrid stats={hosDashboardStats} icons={icons} />
+          <KpiGrid stats={hosDashboardStats} icons={icons} />
 
           {/* Charts Section */}
           <Box

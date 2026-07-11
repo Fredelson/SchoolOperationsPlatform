@@ -45,7 +45,7 @@ export function PermissionProvider({ children }) {
   }, [token]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadPermissions();
   }, [loadPermissions]);
 
@@ -85,7 +85,7 @@ export function PermissionProvider({ children }) {
 }
 
 // The provider and its companion hook intentionally share this context module.
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export function usePermissions() {
   const context = useContext(PermissionContext);
 

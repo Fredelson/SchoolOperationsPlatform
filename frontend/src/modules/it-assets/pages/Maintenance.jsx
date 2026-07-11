@@ -11,7 +11,7 @@ export default function Maintenance() {
   const load = useCallback(async () => { try { setLoading(true); setError(""); const [all, dueRows] = await Promise.all([getItAssetMaintenanceLogsService(), getItAssetMaintenanceDueService()]); setLogs(all); setDue(dueRows); }
     catch (err) { setError(err?.response?.data?.message || err.message || "Unable to load maintenance."); } finally { setLoading(false); } }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, [load]);
   const finish = async (maintenanceLogId) => {

@@ -112,32 +112,6 @@ function normalizeMenuPayload(values = {}) {
   };
 }
 
-function unwrapRows(response) {
-  return (
-    response?.data?.data ??
-    response?.data?.items ??
-    response?.data?.menus ??
-    response?.data?.rows ??
-    response?.items ??
-    response?.menus ??
-    response?.rows ??
-    response?.data ??
-    []
-  );
-}
-
-function unwrapTotal(response, rows) {
-  return (
-    response?.data?.totalRecords ??
-    response?.data?.total ??
-    response?.data?.pagination?.totalRecords ??
-    response?.totalRecords ??
-    response?.total ??
-    response?.pagination?.totalRecords ??
-    rows.length
-  );
-}
-
 // ============================================
 // Hook
 // ============================================

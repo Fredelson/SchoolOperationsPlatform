@@ -11,7 +11,7 @@ export default function AssignmentTypesPage() {
   const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null); const [form, setForm] = useState(empty);
   const load = useCallback(async () => { try { setLoading(true); const body = unwrap(await assignmentApi.types({ page: page + 1, pageSize, search, status })); setRows(body.items || []); setTotal(body.totalRows || 0); } catch (err) { setError(err?.response?.data?.message || "Unable to load assignment types."); } finally { setLoading(false); } }, [page, pageSize, search, status]);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => { load(); }, [load]);
   const edit = (row = null) => { setEditing(row); setForm(row ? { assignmentKey: row.AssignmentKey, assignmentName: row.AssignmentName, description: row.Description || "", sortOrder: row.SortOrder, isActive: row.IsActive } : empty); setOpen(true); };
   const save = async () => { try { if (editing) await assignmentApi.updateType(editing.AssignmentTypeId, form); else await assignmentApi.createType(form); setOpen(false); await load(); } catch (err) { setError(err?.response?.data?.message || "Unable to save assignment type."); } };

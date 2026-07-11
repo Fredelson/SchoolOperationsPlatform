@@ -19,7 +19,7 @@
 // • Pure presentation
 // ============================================
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import AppStatCards from "../../../../platform/ui/AppStatCards";
 

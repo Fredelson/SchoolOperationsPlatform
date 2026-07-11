@@ -19,8 +19,6 @@
 // • Parent hook performs deletion
 // ============================================
 
-import React from "react";
-
 import {
   Dialog,
   DialogTitle,

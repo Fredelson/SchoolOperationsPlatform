@@ -77,6 +77,8 @@ async function getSidebarMenusForUser(userId) {
         ump.SortOrder AS UserSortOrder
 
     FROM dbo.Menus m
+    INNER JOIN dbo.Modules module
+        ON module.ModuleId = m.ModuleId
 
     -- Root menus are assigned to sidebar groups.
     -- Child menus must not be assigned to groups directly.
@@ -97,6 +99,23 @@ async function getSidebarMenusForUser(userId) {
 
     WHERE
         ISNULL(ump.IsHidden, 0) = 0
+    AND LOWER(fvs.StatusKey) = 'enabled'
+    AND module.IsActive = 1
+    AND LOWER((SELECT StatusKey FROM dbo.FeatureVisibilityStatuses WHERE VisibilityStatusId = module.VisibilityStatusId)) = 'enabled'
+    AND (
+      EXISTS (
+        SELECT 1 FROM dbo.Users u INNER JOIN dbo.Roles r ON r.RoleId=u.RoleId
+        WHERE u.UserId=@UserId AND r.RoleKey IN ('SuperAdmin','PlatformAdmin')
+      )
+      OR (
+        m.PermissionId IS NOT NULL
+        AND COALESCE(
+          (SELECT TOP 1 CONVERT(int,upo.IsAllowed) FROM dbo.UserPermissionOverrides upo WHERE upo.UserId=@UserId AND upo.PermissionId=m.PermissionId),
+          (SELECT TOP 1 CONVERT(int,rp.IsAllowed) FROM dbo.Users u INNER JOIN dbo.RolePermissions rp ON rp.RoleId=u.RoleId WHERE u.UserId=@UserId AND rp.PermissionId=m.PermissionId),
+          0
+        ) = 1
+      )
+    )
 
     -- Include:
     -- 1. Root menus that belong to a group.
@@ -135,31 +154,4 @@ async function getSidebarMenusForUser(userId) {
 
 module.exports = {
   getSidebarMenusForUser,
-  getSidebarModules,
 };
-
-// ============================================
-// Get Active Modules For Sidebar Fallback
-// ============================================
-
-async function getSidebarModules() {
-  const result = await executeQuery(`
-    SELECT
-      m.ModuleId,
-      m.ModuleKey,
-      m.ModuleName,
-      m.BaseRoute,
-      m.Icon,
-      m.SortOrder,
-      fvs.StatusKey AS VisibilityStatusKey
-    FROM dbo.Modules m
-    INNER JOIN dbo.FeatureVisibilityStatuses fvs
-      ON fvs.VisibilityStatusId = m.VisibilityStatusId
-    WHERE
-      m.IsActive = 1
-      AND LOWER(fvs.StatusKey) = 'enabled'
-    ORDER BY m.SortOrder, m.ModuleName;
-  `);
-
-  return rows(result);
-}

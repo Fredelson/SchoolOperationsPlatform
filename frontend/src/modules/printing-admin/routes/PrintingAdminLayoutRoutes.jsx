@@ -27,6 +27,13 @@ import ProtectedRoute from "../../../routes/ProtectedRoute";
 import PlatformLayout from "../../../platform/layout/PlatformLayout";
 
 import PrintingAdminDashboard from "../pages/PrintingAdminDashboard";
+import PaperStockPage from "../pages/PaperStockPage";
+import InventoryTransactions from "../pages/InventoryTransactions";
+import PaperPurchases from "../pages/PaperPurchases";
+import PaperDistributions from "../pages/PaperDistributions";
+import MasterData from "../pages/MasterData";
+import AccessLevelsPage from "../pages/AccessLevelsPage";
+import { UserManagement } from "../../admin/pages";
 
 // ============================================
 // Shared Placeholder Page
@@ -46,6 +53,7 @@ const printingAdminLayoutRoutes = [
       <ProtectedRoute
         allowedRoles={[
           "SuperAdmin",
+          "PlatformAdmin",
           "PrintingAdmin",
         ]}
       >
@@ -105,38 +113,22 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "paper-stock",
-        element: (
-          <SuperAdminComingSoon
-            title="Paper Stock"
-          />
-        ),
+        element: <PaperStockPage />,
       },
 
       {
         path: "inventory-transactions",
-        element: (
-          <SuperAdminComingSoon
-            title="Inventory Logs"
-          />
-        ),
+        element: <InventoryTransactions />,
       },
 
       {
         path: "purchases",
-        element: (
-          <SuperAdminComingSoon
-            title="Paper Purchases"
-          />
-        ),
+        element: <PaperPurchases />,
       },
 
       {
         path: "distributions",
-        element: (
-          <SuperAdminComingSoon
-            title="Paper Distribution"
-          />
-        ),
+        element: <PaperDistributions />,
       },
 
       // ======================================
@@ -203,29 +195,17 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "user-management",
-        element: (
-          <SuperAdminComingSoon
-            title="User Management"
-          />
-        ),
+        element: <UserManagement />,
       },
 
       {
         path: "master-data",
-        element: (
-          <SuperAdminComingSoon
-            title="Master Data"
-          />
-        ),
+        element: <MasterData />,
       },
 
       {
         path: "access-levels",
-        element: (
-          <SuperAdminComingSoon
-            title="Access Levels"
-          />
-        ),
+        element: <AccessLevelsPage />,
       },
     ],
   },

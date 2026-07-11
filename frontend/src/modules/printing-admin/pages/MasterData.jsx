@@ -9,7 +9,6 @@ import { useEffect, useState } from "react";
 
 import {
   Alert,
-  Box,
   Button,
   Chip,
   Dialog,
@@ -179,7 +178,7 @@ const MasterData = () => {
       setError("");
       setSuccess("");
 
-      const newStatus = !Boolean(record.IsActive);
+      const newStatus = !record.IsActive;
 
       await updateMasterStatus(currentType, record.Id, newStatus);
 

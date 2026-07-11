@@ -7,7 +7,7 @@ export default function BorrowAssetDialog({ open, assets = [], users = [], savin
   const [form, setForm] = useState(EMPTY_FORM);
   useEffect(() => {
     // Reset the transient form each time the reusable dialog opens.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     if (open) setForm(EMPTY_FORM);
   }, [open]);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));

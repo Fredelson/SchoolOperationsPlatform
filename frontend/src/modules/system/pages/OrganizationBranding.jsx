@@ -5,7 +5,7 @@
 // ============================================
 
 import { useEffect, useState } from "react";
-import { Alert, Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Stack } from "@mui/material";
 
 import useBranding from "../hooks/useBranding";
 import { updateSystemBranding } from "../services/brandingService";

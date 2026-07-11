@@ -273,7 +273,7 @@ function AssetTagPrinter() {
 
   useEffect(() => {
     // Initial synchronization with the asset list API.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadAssets();
   }, [loadAssets]);
 

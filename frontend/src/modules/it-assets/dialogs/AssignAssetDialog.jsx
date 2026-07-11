@@ -22,9 +22,6 @@ const initialForm = {
   notes: "",
 };
 
-const getUserLabel = (user) =>
-  user ? `${user.FullName || ""} (${user.EmployeeId || "No Code"})` : "";
-
 const AssignAssetDialog = ({
   open,
   asset,

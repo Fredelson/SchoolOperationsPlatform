@@ -103,7 +103,7 @@ const AssetDetails = () => {
 
   useEffect(() => {
     // Initial synchronization with asset, lookup, timeline, and audit APIs.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadAsset();
   }, [loadAsset]);
 

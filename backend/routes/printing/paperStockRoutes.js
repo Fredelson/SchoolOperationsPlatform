@@ -21,7 +21,7 @@ const router = express.Router();
 router.get(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
   getPaperStock
 );
 
@@ -29,7 +29,7 @@ router.get(
 router.put(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
   updatePaperStock
 );
 

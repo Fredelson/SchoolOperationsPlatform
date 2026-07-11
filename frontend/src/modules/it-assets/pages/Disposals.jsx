@@ -54,7 +54,7 @@ const Disposals = () => {
 
   useEffect(() => {
     // Initial server synchronization for this route.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadDisposals();
   }, [loadDisposals]);
 

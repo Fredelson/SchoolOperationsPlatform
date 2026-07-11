@@ -19,7 +19,7 @@ export default function Issues() {
   const load = useCallback(async () => { try { setLoading(true); setError(""); setRows(await getItAssetIssuesService()); }
     catch (err) { setError(err?.response?.data?.message || err.message || "Unable to load issues."); } finally { setLoading(false); } }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, [load]);
   const visible = useMemo(() => status ? rows.filter((row) => String(row.IssueStatus).toUpperCase() === status) : rows, [rows, status]);

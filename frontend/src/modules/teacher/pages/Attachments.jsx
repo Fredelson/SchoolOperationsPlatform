@@ -17,11 +17,9 @@ import {
   MenuItem,
   Chip,
   InputAdornment,
-  IconButton,
   Pagination,
 } from "@mui/material";
 
-import DownloadIcon from "@mui/icons-material/Download";
 import SearchIcon from "@mui/icons-material/Search";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -31,7 +29,6 @@ import ImageIcon from "@mui/icons-material/Image";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import TagIcon from "@mui/icons-material/Tag";
 import ArticleIcon from "@mui/icons-material/Article";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import DashboardLayout from "../../../components/layout/DashboardLayout";
@@ -42,7 +39,6 @@ import usePageTitle from "@platform/hooks/usePageTitle";
 import { useAuth } from "../../../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const FILE_BASE_URL = import.meta.env.VITE_FILE_URL || "http://localhost:5000";
 
 const getExtension = (fileName = "") => {
   const parts = fileName.toLowerCase().split(".");

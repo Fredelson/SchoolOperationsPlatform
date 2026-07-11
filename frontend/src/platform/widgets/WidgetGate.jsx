@@ -13,5 +13,5 @@
 // ============================================
 
 export default function WidgetGate({ widgetKey, children }) {
-  return children;
+  return widgetKey ? children : null;
 }

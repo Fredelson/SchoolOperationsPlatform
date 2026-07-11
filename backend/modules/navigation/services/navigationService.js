@@ -108,26 +108,7 @@ async function getMySidebar(user) {
     user?.userId ||
     user?.id;
 
-  let menus = await navigationRepository.getSidebarMenusForUser(userId);
-
-  const role = String(
-    user?.RoleName || user?.roleName || user?.role || ""
-  ).toLowerCase().replace(/[\s_-]+/g, "");
-
-  if (role !== "superadmin" && role !== "platformadmin") {
-    const protectedRootIds = new Set(
-      menus.filter((menu) => menu.MenuKey === "USER_ACCESS_ROOT").map((menu) => menu.MenuId)
-    );
-    menus = menus.filter((menu) => {
-      if (menu.GroupName === "User & Access") return false;
-      let current = menu;
-      while (current) {
-        if (protectedRootIds.has(current.MenuId)) return false;
-        current = menus.find((candidate) => candidate.MenuId === current.ParentMenuId);
-      }
-      return true;
-    });
-  }
+  const menus = await navigationRepository.getSidebarMenusForUser(userId);
 
   const groups = {};
 
@@ -185,32 +166,6 @@ async function getMySidebar(user) {
       items: buildMenuTree(group.rawMenus),
     }))
     .filter((group) => group.items.length > 0);
-
-  if (role === "superadmin" || role === "platformadmin") {
-    const modules = await navigationRepository.getSidebarModules();
-    const representedModuleIds = new Set(
-      menus.map((menu) => menu.ModuleId).filter(Boolean)
-    );
-
-    const unlinkedModules = modules
-      .filter((module) => !representedModuleIds.has(module.ModuleId))
-      .map((module) => ({
-        id: `module-${module.ModuleId}`,
-        key: `MODULE_${module.ModuleKey}`,
-        label: module.ModuleName,
-        path: `/super-admin/module/${encodeURIComponent(module.ModuleKey)}`,
-        iconKey: module.Icon || "apps",
-        backendReady: true,
-        moduleFallback: true,
-      }));
-
-    if (unlinkedModules.length > 0) {
-      sidebar.push({
-        title: "Modules",
-        items: unlinkedModules,
-      });
-    }
-  }
 
   return sidebar;
 }

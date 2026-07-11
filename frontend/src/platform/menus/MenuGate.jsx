@@ -16,5 +16,5 @@
 // ============================================
 
 export default function MenuGate({ menuKey, children }) {
-  return children;
+  return menuKey ? children : null;
 }

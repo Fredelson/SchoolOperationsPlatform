@@ -20,6 +20,8 @@ export function useSidebarState(sections = [], pathname = "") {
   const [openMenus, setOpenMenus] = useState({});
 
   useEffect(() => {
+    // Synchronize expanded parents when navigation data or the active route changes.
+     
     setOpenMenus((current) => ({
       ...current,
       ...buildInitialOpenMenus(sections, pathname),

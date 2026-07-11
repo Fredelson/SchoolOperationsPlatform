@@ -8,6 +8,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Box, Alert, Typography } from "@mui/material";
+import DashboardLayout from "../../../components/layout/DashboardLayout";
+import Sidebar from "../../../components/sidebar/Sidebar";
 
 import {
   Assignment,

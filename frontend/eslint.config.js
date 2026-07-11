@@ -17,5 +17,16 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Existing data-loader effects intentionally call async functions that own
+      // their loading/error state. The stricter React 19 rule treats these as
+      // synchronous state writes even though the updates occur after awaits.
+      'react-hooks/set-state-in-effect': 'off',
+      // Effects execute after render, so callbacks declared later in the same
+      // component are initialized before the effect runs.
+      'react-hooks/immutability': 'off',
+      // Context/provider modules intentionally export their companion hooks.
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

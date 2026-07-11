@@ -38,7 +38,7 @@ export default function Assignments() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, [load]);
   return <Stack spacing={3}>

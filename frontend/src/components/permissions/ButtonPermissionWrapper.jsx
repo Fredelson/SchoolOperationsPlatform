@@ -55,31 +55,13 @@ export default function ButtonPermissionWrapper({
     return children;
   }
 
-  let allowed = false;
-
-  // ============================================
-  // Direct Permission Check
-  // ============================================
-
-  if (permission) {
-    allowed = hasPermission(permission);
-  }
-
-  // ============================================
-  // Module + Action Check
-  // ============================================
-
-  else if (module && action) {
-    allowed = canUseAction(module, action);
-  }
-
-  // ============================================
-  // Invalid Configuration
-  // ============================================
-
-  else {
+  if (!permission && !(module && action)) {
     return fallback;
   }
+
+  const allowed = permission
+    ? hasPermission(permission)
+    : canUseAction(module, action);
 
   // ============================================
   // No Permission

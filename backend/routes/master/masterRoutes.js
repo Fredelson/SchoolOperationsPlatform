@@ -24,17 +24,18 @@ const {
 } = require("../../controllers/master/masterController");
 
 const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
+const MASTER_DATA_ROLES = ["PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
 
 // GET /api/master/:type
-router.get("/:type", protect, getMasterData);
+router.get("/:type", protect, authorizeRoles(...MASTER_DATA_ROLES), getMasterData);
 
 // POST /api/master/:type
-router.post("/:type", protect, createMasterData);
+router.post("/:type", protect, authorizeRoles(...MASTER_DATA_ROLES), createMasterData);
 
 // PUT /api/master/:type/:id
-router.put("/:type/:id", protect, updateMasterData);
+router.put("/:type/:id", protect, authorizeRoles(...MASTER_DATA_ROLES), updateMasterData);
 
 // PATCH /api/master/:type/:id/status
-router.patch("/:type/:id/status", protect, updateMasterStatus);
+router.patch("/:type/:id/status", protect, authorizeRoles(...MASTER_DATA_ROLES), updateMasterStatus);
 
 module.exports = router;

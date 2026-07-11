@@ -89,7 +89,8 @@ const teacherRoles = ["Teacher", "TeachingAssistant", "SuperAdmin"];
 const hodRoles = ["HOD", "SuperAdmin"];
 const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
 
-const printingRoles = ["PrintingAdmin", "SuperAdmin"];
+const printingRoles = ["PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
+const itOperationsRoles = ["ITAdmin", "PlatformAdmin", "SuperAdmin"];
 const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
 
 const platformAdminRoles = [
@@ -160,7 +161,7 @@ export default function App() {
       {/* IT Operations Layout Routes */}
       {renderProtectedLayoutRoutes(
           itOperationsLayoutRoutes,
-          printingRoles
+          itOperationsRoles
       )}
 
       {/* Platform Foundation */}

@@ -27,7 +27,7 @@ export const useItAssetDashboard = () => {
 
   useEffect(() => {
     // Initial synchronization with the dashboard API.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     fetchDashboard();
   }, []);
 

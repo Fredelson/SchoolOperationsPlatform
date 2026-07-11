@@ -37,7 +37,7 @@ const {
 router.get(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
   getPurchases
 );
 
@@ -45,7 +45,7 @@ router.get(
 router.post(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
   addPurchase
 );
 

@@ -33,7 +33,7 @@ import AssetLabel from "./AssetLabel";
 // ============================================================
 
 // Shared by the label grid and its existing printer toolbar.
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export const ASSET_LABEL_LAYOUTS = {
   "3x7": {
     key: "3x7",

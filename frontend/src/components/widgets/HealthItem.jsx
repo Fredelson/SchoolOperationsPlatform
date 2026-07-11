@@ -8,7 +8,7 @@ import CircleIcon from "@mui/icons-material/Circle";
 
 import { dashboardColors } from "../../theme/dashboardColors";
 
-export default function HealthItem({ label, status, value }) {
+export default function HealthItem({ label, status }) {
   const isHealthy =
     status === "Healthy" ||
     status === "Connected" ||

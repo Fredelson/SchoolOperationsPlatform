@@ -53,8 +53,6 @@ import {
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   Cell,
   Pie,
   PieChart,

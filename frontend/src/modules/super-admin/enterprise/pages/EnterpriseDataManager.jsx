@@ -76,7 +76,7 @@ export default function EnterpriseDataManager({ type }) {
 
   useEffect(() => {
     // Initial and filter-driven synchronization with the manager API.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, [load]);
 

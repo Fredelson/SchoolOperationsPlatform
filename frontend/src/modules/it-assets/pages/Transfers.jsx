@@ -20,7 +20,7 @@ export default function Transfers() {
   const load = useCallback(async () => { try { setLoading(true); setError(""); setRows(await getItAssetTransfersService()); }
     catch (err) { setError(err?.response?.data?.message || err.message || "Unable to load transfers."); } finally { setLoading(false); } }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, [load]);
   return <Stack spacing={3}><AppBreadcrumbs items={[{ label: "IT Assets", to: "/it-assets/dashboard" }, { label: "Transfers" }]} />
