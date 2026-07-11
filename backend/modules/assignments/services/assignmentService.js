@@ -27,6 +27,7 @@ const {
 
 const {
   validateCreateAssignmentPayload,
+  validateAssignmentTypePayload,
 } = require("../validators/assignmentValidator");
 
 /**
@@ -119,6 +120,13 @@ async function getUserAssignments(userId) {
 
   return assignmentRepository.getUserAssignments(parsedUserId);
 }
+async function listAssignmentTypes(query={}){const page=Math.max(Number(query.page)||1,1),pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);return assignmentRepository.listAssignmentTypes({search:String(query.search||"").trim(),status:query.status||"",page,pageSize});}
+async function getAssignmentType(idValue){const record=await assignmentRepository.findAssignmentTypeAny(parseRouteId(idValue,"Assignment Type ID"));if(!record)throw new NotFoundError("Assignment type not found.");return record;}
+async function uniqueAssignmentType(data,exclude=null){if(await assignmentRepository.findAssignmentTypeDuplicate(data.assignmentKey,data.assignmentName,exclude))throw new ConflictError("Assignment type key or name already exists.");}
+async function createAssignmentType(payload){const data=validateAssignmentTypePayload(payload);await uniqueAssignmentType(data);return assignmentRepository.createAssignmentType(data);}
+async function updateAssignmentType(idValue,payload){const id=parseRouteId(idValue,"Assignment Type ID"),current=await getAssignmentType(id);const data=validateAssignmentTypePayload(payload);if(current.IsSystemAssignment&&!data.isActive)throw new BadRequestError("System assignment types cannot be deactivated.");await uniqueAssignmentType(data,id);return assignmentRepository.updateAssignmentType(id,data);}
+async function setAssignmentTypeActive(idValue,active){const current=await getAssignmentType(idValue);if(current.IsSystemAssignment&&!active)throw new BadRequestError("System assignment types cannot be deactivated.");return assignmentRepository.setAssignmentTypeActive(current.AssignmentTypeId,active);}
+async function deleteAssignmentType(idValue){const current=await getAssignmentType(idValue);if(current.IsSystemAssignment)throw new BadRequestError("System assignment types cannot be deleted.");const usage=await assignmentRepository.assignmentTypeUsage(current.AssignmentTypeId);if(usage?.UsageCount)throw new ConflictError("Assignment type is already used and cannot be deleted.");await assignmentRepository.removeAssignmentType(current.AssignmentTypeId);return current;}
 
 async function getAssignments(query = {}) {
   const page=Math.max(Number(query.page)||1,1); const pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);
@@ -254,4 +262,5 @@ module.exports = {
   getAssignments,
   getAssignmentLookups,
   activateUserAssignment,
+  listAssignmentTypes,getAssignmentType,createAssignmentType,updateAssignmentType,setAssignmentTypeActive,deleteAssignmentType,
 };

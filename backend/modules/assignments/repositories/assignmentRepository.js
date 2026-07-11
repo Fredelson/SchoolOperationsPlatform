@@ -113,6 +113,16 @@ async function getUserAssignments(userId) {
   return rows(result);
 }
 
+async function listAssignmentTypes({search="",status="",page=1,pageSize=10}){const offset=(page-1)*pageSize;const params=[{name:"Search",type:sql.NVarChar(150),value:`%${search}%`},{name:"Status",type:sql.NVarChar(20),value:status||null},{name:"Offset",type:sql.Int,value:offset},{name:"PageSize",type:sql.Int,value:pageSize}];const where=`WHERE (@Search='%%' OR AssignmentKey LIKE @Search OR AssignmentName LIKE @Search OR Description LIKE @Search) AND (@Status IS NULL OR (@Status='active' AND IsActive=1) OR (@Status='inactive' AND IsActive=0))`;const result=await executeQuery(`SELECT AssignmentTypeId,AssignmentKey,AssignmentName,Description,IsSystemAssignment,IsActive,SortOrder,CreatedAt,UpdatedAt FROM dbo.AssignmentTypes ${where} ORDER BY SortOrder,AssignmentName OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;SELECT COUNT(1) TotalRows FROM dbo.AssignmentTypes ${where};`,params);return{items:result.recordsets?.[0]||[],totalRows:result.recordsets?.[1]?.[0]?.TotalRows||0,page,pageSize};}
+async function findAssignmentTypeAny(id){return firstOrNull(await executeQuery(`SELECT * FROM dbo.AssignmentTypes WHERE AssignmentTypeId=@Id;`,[{name:"Id",type:sql.Int,value:id}]));}
+async function findAssignmentTypeDuplicate(key,name,excludeId=null){return firstOrNull(await executeQuery(`SELECT AssignmentTypeId FROM dbo.AssignmentTypes WHERE (AssignmentKey=@Key OR AssignmentName=@Name) AND (@ExcludeId IS NULL OR AssignmentTypeId<>@ExcludeId);`,[{name:"Key",type:sql.NVarChar(100),value:key},{name:"Name",type:sql.NVarChar(150),value:name},{name:"ExcludeId",type:sql.Int,value:excludeId}]));}
+async function createAssignmentType(data){const result=await executeQuery(`INSERT dbo.AssignmentTypes(AssignmentKey,AssignmentName,Description,IsSystemAssignment,IsActive,SortOrder,CreatedAt) OUTPUT INSERTED.AssignmentTypeId VALUES(@Key,@Name,@Description,0,@IsActive,@SortOrder,GETDATE());`,assignmentTypeInputs(data));return findAssignmentTypeAny(insertedId(result,"AssignmentTypeId"));}
+function assignmentTypeInputs(data,id=null){return[...(id? [{name:"Id",type:sql.Int,value:id}]:[]),{name:"Key",type:sql.NVarChar(100),value:data.assignmentKey},{name:"Name",type:sql.NVarChar(150),value:data.assignmentName},{name:"Description",type:sql.NVarChar(255),value:data.description||null},{name:"IsActive",type:sql.Bit,value:data.isActive},{name:"SortOrder",type:sql.Int,value:data.sortOrder}];}
+async function updateAssignmentType(id,data){await executeQuery(`UPDATE dbo.AssignmentTypes SET AssignmentKey=CASE WHEN IsSystemAssignment=1 THEN AssignmentKey ELSE @Key END,AssignmentName=@Name,Description=@Description,IsActive=@IsActive,SortOrder=@SortOrder,UpdatedAt=GETDATE() WHERE AssignmentTypeId=@Id;`,assignmentTypeInputs(data,id));return findAssignmentTypeAny(id);}
+async function setAssignmentTypeActive(id,active){await executeQuery(`UPDATE dbo.AssignmentTypes SET IsActive=@Active,UpdatedAt=GETDATE() WHERE AssignmentTypeId=@Id;`,[{name:"Id",type:sql.Int,value:id},{name:"Active",type:sql.Bit,value:active}]);return findAssignmentTypeAny(id);}
+async function assignmentTypeUsage(id){return firstOrNull(await executeQuery(`SELECT COUNT(1) UsageCount FROM dbo.UserAssignments WHERE AssignmentTypeId=@Id;`,[{name:"Id",type:sql.Int,value:id}]));}
+async function removeAssignmentType(id){await executeQuery(`DELETE dbo.AssignmentTypes WHERE AssignmentTypeId=@Id;`,[{name:"Id",type:sql.Int,value:id}]);}
+
 async function getAssignments({ search = "", assignmentTypeId = null, isActive = null, page = 1, pageSize = 10 }) {
   const offset = (page - 1) * pageSize;
   const params = [
@@ -530,4 +540,5 @@ module.exports = {
   getAssignments,
   getAssignmentLookups,
   activateUserAssignment,
+  listAssignmentTypes,findAssignmentTypeAny,findAssignmentTypeDuplicate,createAssignmentType,updateAssignmentType,setAssignmentTypeActive,assignmentTypeUsage,removeAssignmentType,
 };

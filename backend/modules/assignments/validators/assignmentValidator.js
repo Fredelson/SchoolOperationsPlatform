@@ -79,4 +79,10 @@ function validateCreateAssignmentPayload(payload) {
 
 module.exports = {
   validateCreateAssignmentPayload,
+  validateAssignmentTypePayload(payload) {
+    const assignmentKey=String(payload.assignmentKey||"").trim();const assignmentName=String(payload.assignmentName||"").trim();
+    if(!assignmentKey||!/^[A-Za-z0-9_-]+$/.test(assignmentKey)) throw new BadRequestError("A valid assignment key is required.");
+    if(!assignmentName) throw new BadRequestError("Assignment name is required.");
+    return {assignmentKey,assignmentName,description:String(payload.description||"").trim()||null,sortOrder:Number(payload.sortOrder)||0,isActive:payload.isActive!==false};
+  },
 };

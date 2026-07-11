@@ -21,6 +21,7 @@
 // ============================================
 
 import { Button } from "@mui/material";
+import { usePermissions } from "../../context/PermissionContext";
 
 export default function ActionButton({
   children,
@@ -28,16 +29,8 @@ export default function ActionButton({
   disabled = false,
   ...props
 }) {
-  // ============================================
-  // Future Permission Hook
-  //
-  // Later:
-  // const allowed = useButtonPermission(actionKey);
-  // if (!allowed) return null;
-  //
-  // For now:
-  // All buttons are allowed.
-  // ============================================
+  const { hasPermission, loading } = usePermissions();
+  if (actionKey && (loading || !hasPermission(actionKey))) return null;
 
   return (
     <Button

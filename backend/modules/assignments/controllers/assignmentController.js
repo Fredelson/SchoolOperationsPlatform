@@ -120,6 +120,13 @@ const setPrimaryUserAssignment = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, "Primary assignment updated successfully.", data);
 });
+const listAssignmentTypes=asyncHandler(async(req,res)=>sendSuccess(res,"Assignment types loaded successfully.",await assignmentService.listAssignmentTypes(req.query)));
+const getAssignmentType=asyncHandler(async(req,res)=>sendSuccess(res,"Assignment type loaded successfully.",await assignmentService.getAssignmentType(req.params.assignmentTypeId)));
+const createAssignmentType=asyncHandler(async(req,res)=>{const data=await assignmentService.createAssignmentType(req.body);await activityLogger.log({moduleKey:"USER_ACCESS",actionType:"CREATE",entityType:"AssignmentType",entityId:data.AssignmentTypeId,title:"Assignment type created",newValue:data,user:req.user,ipAddress:req.ip});return sendSuccess(res,"Assignment type created successfully.",data,201);});
+const updateAssignmentType=asyncHandler(async(req,res)=>{const oldValue=await assignmentService.getAssignmentType(req.params.assignmentTypeId);const data=await assignmentService.updateAssignmentType(req.params.assignmentTypeId,req.body);await activityLogger.log({moduleKey:"USER_ACCESS",actionType:"UPDATE",entityType:"AssignmentType",entityId:data.AssignmentTypeId,title:"Assignment type updated",oldValue,newValue:data,user:req.user,ipAddress:req.ip});return sendSuccess(res,"Assignment type updated successfully.",data);});
+const activateAssignmentType=asyncHandler(async(req,res)=>{const data=await assignmentService.setAssignmentTypeActive(req.params.assignmentTypeId,true);await activityLogger.log({moduleKey:"USER_ACCESS",actionType:"ACTIVATE",entityType:"AssignmentType",entityId:data.AssignmentTypeId,title:"Assignment type activated",newValue:data,user:req.user,ipAddress:req.ip});return sendSuccess(res,"Assignment type activated successfully.",data);});
+const deactivateAssignmentType=asyncHandler(async(req,res)=>{const data=await assignmentService.setAssignmentTypeActive(req.params.assignmentTypeId,false);await activityLogger.log({moduleKey:"USER_ACCESS",actionType:"DEACTIVATE",entityType:"AssignmentType",entityId:data.AssignmentTypeId,title:"Assignment type deactivated",newValue:data,user:req.user,ipAddress:req.ip});return sendSuccess(res,"Assignment type deactivated successfully.",data);});
+const deleteAssignmentType=asyncHandler(async(req,res)=>{const data=await assignmentService.deleteAssignmentType(req.params.assignmentTypeId);await activityLogger.log({moduleKey:"USER_ACCESS",actionType:"DELETE",entityType:"AssignmentType",entityId:data.AssignmentTypeId,title:"Assignment type deleted",oldValue:data,user:req.user,ipAddress:req.ip});return sendSuccess(res,"Assignment type deleted successfully.",data);});
 
 const activateUserAssignment=asyncHandler(async(req,res)=>{const data=await assignmentService.activateUserAssignment(req.params.userId,req.params.assignmentId);await audit(req,"ACTIVATE",data.userAssignmentId);return sendSuccess(res,"User assignment activated successfully.",data);});
 
@@ -138,4 +145,5 @@ module.exports = {
   getAssignments,
   getAssignmentLookups,
   activateUserAssignment,
+  listAssignmentTypes,getAssignmentType,createAssignmentType,updateAssignmentType,activateAssignmentType,deactivateAssignmentType,deleteAssignmentType,
 };

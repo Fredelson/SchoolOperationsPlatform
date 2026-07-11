@@ -11,6 +11,7 @@ const {
   getAssignments,
   getAssignmentLookups,
   activateUserAssignment,
+  listAssignmentTypes,getAssignmentType,createAssignmentType,updateAssignmentType,activateAssignmentType,deactivateAssignmentType,deleteAssignmentType,
 } = require("../controllers/assignmentController");
 
 const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
@@ -23,6 +24,13 @@ router.get("/", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignm
 router.get("/lookups", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignmentLookups);
 
 // Assignment Types
+router.get("/types/manage",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),listAssignmentTypes);
+router.get("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),getAssignmentType);
+router.post("/types",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.CREATE),createAssignmentType);
+router.put("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),updateAssignmentType);
+router.patch("/types/:assignmentTypeId/activate",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),activateAssignmentType);
+router.patch("/types/:assignmentTypeId/deactivate",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),deactivateAssignmentType);
+router.delete("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.DELETE),deleteAssignmentType);
 router.get(
   "/types",
   requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),

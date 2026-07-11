@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
-import { Alert, Stack } from "@mui/material";
-import { AppChip, AppDataTable, AppPageHeader } from "@ui";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
+import { AppButton, AppChip, AppDataTable, AppDialog, AppPageHeader, AppToolbar } from "@ui";
 import { assignmentApi, unwrap } from "../api/userAccessApi";
 
+const empty = { assignmentKey: "", assignmentName: "", description: "", sortOrder: 0, isActive: true };
+
 export default function AssignmentTypesPage() {
-  const [rows, setRows] = useState([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    assignmentApi.lookups().then((response) => setRows(unwrap(response).assignmentTypes || []))
-      .catch((err) => setError(err?.response?.data?.message || "Unable to load assignment types."))
-      .finally(() => setLoading(false));
-  }, []);
-  const columns = [
-    { field: "AssignmentName", headerName: "Assignment Type" },
-    { field: "AssignmentKey", headerName: "Key" },
-    { field: "IsActive", headerName: "Status", render: () => <AppChip label="Active" status="success" /> },
-  ];
-  return <Stack spacing={3}><AppPageHeader title="Assignment Types" subtitle="Registered assignment types used by User Assignments." />{error && <Alert severity="error">{error}</Alert>}<AppDataTable rows={rows} columns={columns} loading={loading} getRowId={(row) => row.AssignmentTypeId} /></Stack>;
+  const [rows, setRows] = useState([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10); const [search, setSearch] = useState(""); const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null); const [form, setForm] = useState(empty);
+  const load = useCallback(async () => { try { setLoading(true); const body = unwrap(await assignmentApi.types({ page: page + 1, pageSize, search, status })); setRows(body.items || []); setTotal(body.totalRows || 0); } catch (err) { setError(err?.response?.data?.message || "Unable to load assignment types."); } finally { setLoading(false); } }, [page, pageSize, search, status]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load(); }, [load]);
+  const edit = (row = null) => { setEditing(row); setForm(row ? { assignmentKey: row.AssignmentKey, assignmentName: row.AssignmentName, description: row.Description || "", sortOrder: row.SortOrder, isActive: row.IsActive } : empty); setOpen(true); };
+  const save = async () => { try { if (editing) await assignmentApi.updateType(editing.AssignmentTypeId, form); else await assignmentApi.createType(form); setOpen(false); await load(); } catch (err) { setError(err?.response?.data?.message || "Unable to save assignment type."); } };
+  const toggle = async (row) => { try { if (row.IsActive) await assignmentApi.deactivateType(row.AssignmentTypeId); else await assignmentApi.activateType(row.AssignmentTypeId); await load(); } catch (err) { setError(err?.response?.data?.message || "Unable to update assignment type."); } };
+  const remove = async (row) => { if (!row.IsSystemAssignment && window.confirm("Delete this assignment type?")) { try { await assignmentApi.deleteType(row.AssignmentTypeId); await load(); } catch (err) { setError(err?.response?.data?.message || "Unable to delete assignment type."); } } };
+  const columns = [{ field: "AssignmentName", headerName: "Assignment Type" }, { field: "AssignmentKey", headerName: "Key" }, { field: "Description", headerName: "Description" }, { field: "IsActive", headerName: "Status", render: (row) => <AppChip label={row.IsActive ? "Active" : "Inactive"} status={row.IsActive ? "success" : "inactive"} /> }, { field: "actions", headerName: "Actions", render: (row) => <Stack direction="row" spacing={1}><AppButton size="small" variant="outlined" onClick={() => edit(row)}>View / Edit</AppButton><AppButton size="small" variant="outlined" onClick={() => toggle(row)}>{row.IsActive ? "Deactivate" : "Activate"}</AppButton>{!row.IsSystemAssignment && <AppButton size="small" color="error" variant="outlined" onClick={() => remove(row)}>Delete</AppButton>}</Stack> }];
+  return <Stack spacing={3}><AppPageHeader title="Assignment Types" subtitle="Manage assignment types used by User Assignments." actions={<AppButton onClick={() => edit()}>Add Assignment Type</AppButton>} /><AppToolbar searchValue={search} onSearchChange={(event) => { setSearch(event.target.value); setPage(0); }}><TextField select SelectProps={{ native: true }} size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }}><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></TextField></AppToolbar>{error && <Alert severity="error">{error}</Alert>}<AppDataTable rows={rows} columns={columns} loading={loading} page={page} rowsPerPage={pageSize} totalRows={total} onPageChange={(_, value) => setPage(value)} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} getRowId={(row) => row.AssignmentTypeId} /><AppDialog open={open} title={editing ? "Edit Assignment Type" : "Add Assignment Type"} onClose={() => setOpen(false)} onPrimary={save} disablePrimary={!form.assignmentKey || !form.assignmentName}><TextField label="Key" value={form.assignmentKey} disabled={Boolean(editing?.IsSystemAssignment)} onChange={(event) => setForm({ ...form, assignmentKey: event.target.value })} /><TextField label="Name" value={form.assignmentName} onChange={(event) => setForm({ ...form, assignmentName: event.target.value })} /><TextField label="Description" multiline value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /><TextField label="Sort Order" type="number" value={form.sortOrder} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} /><FormControlLabel control={<Checkbox checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />} label="Active" /></AppDialog></Stack>;
 }

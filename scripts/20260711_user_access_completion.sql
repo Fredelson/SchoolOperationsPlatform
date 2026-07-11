@@ -7,7 +7,7 @@ IF @ModuleId IS NULL SET @ModuleId = (SELECT TOP 1 ModuleId FROM dbo.Modules ORD
 DECLARE @Permissions TABLE (PermissionKey nvarchar(100), PermissionName nvarchar(150));
 INSERT @Permissions VALUES
 ('access-levels.view','View Access Levels'),('access-levels.create','Create Access Levels'),('access-levels.update','Update Access Levels'),('access-levels.delete','Delete Access Levels'),
-('assignment-types.view','View Assignment Types'),('user-assignments.view','View User Assignments'),('user-assignments.create','Create User Assignments'),('user-assignments.update','Update User Assignments'),('user-assignments.delete','Delete User Assignments'),
+('assignment-types.view','View Assignment Types'),('assignment-types.create','Create Assignment Types'),('assignment-types.update','Update Assignment Types'),('assignment-types.delete','Delete Assignment Types'),('user-assignments.view','View User Assignments'),('user-assignments.create','Create User Assignments'),('user-assignments.update','Update User Assignments'),('user-assignments.delete','Delete User Assignments'),
 ('user-permission-overrides.view','View User Permission Overrides'),('user-permission-overrides.create','Create User Permission Overrides'),('user-permission-overrides.update','Update User Permission Overrides'),('user-permission-overrides.delete','Delete User Permission Overrides');
 
 INSERT dbo.Permissions (PermissionKey,PermissionName,ModuleId,PermissionGroupId,Description,IsActive,CreatedAt)
@@ -41,9 +41,23 @@ BEGIN
     INSERT dbo.Menus(WorkspaceId,ModuleId,ParentMenuId,MenuKey,MenuName,Route,Icon,PermissionId,FeatureFlagId,BadgeQueryKey,VisibilityStatusId,IsPinned,IsCollapsible,SortOrder,CreatedAt)
     VALUES(@WorkspaceId,@ModuleId,@RootId,'USER_PERMISSION_OVERRIDES','User Permission Overrides','/super-admin/user-permission-overrides','manage_accounts',(SELECT PermissionId FROM dbo.Permissions WHERE PermissionKey='user-permission-overrides.view'),NULL,NULL,@VisibilityId,0,0,60,GETDATE());
 
+  UPDATE dbo.Menus SET PermissionId=(SELECT PermissionId FROM dbo.Permissions WHERE PermissionKey='assignment-types.view'),VisibilityStatusId=@VisibilityId,BadgeQueryKey=NULL,UpdatedAt=GETDATE() WHERE MenuKey='ASSIGNMENT_TYPES';
+
   UPDATE m SET PermissionId=p.PermissionId,VisibilityStatusId=@VisibilityId,BadgeQueryKey=NULL
   FROM dbo.Menus m JOIN dbo.Permissions p ON p.PermissionKey=CASE m.MenuKey WHEN 'ACCESS_LEVELS' THEN 'access-levels.view' WHEN 'USER_ASSIGNMENTS' THEN 'user-assignments.view' WHEN 'USER_PERMISSION_OVERRIDES' THEN 'user-permission-overrides.view' END
   WHERE m.MenuKey IN ('ACCESS_LEVELS','USER_ASSIGNMENTS','USER_PERMISSION_OVERRIDES');
 END;
+
+UPDATE dbo.Modules SET BaseRoute='/super-admin/users',UpdatedAt=GETDATE() WHERE ModuleKey='user_access';
+
+DECLARE @Buttons TABLE(ButtonKey nvarchar(100),ButtonName nvarchar(150),PermissionKey nvarchar(100));
+INSERT @Buttons VALUES
+('ACCESS_LEVEL_CREATE','Add Access Level','access-levels.create'),('ACCESS_LEVEL_UPDATE','Edit Access Level','access-levels.update'),('ACCESS_LEVEL_DELETE','Delete Access Level','access-levels.delete'),
+('ASSIGNMENT_TYPE_CREATE','Add Assignment Type','assignment-types.create'),('ASSIGNMENT_TYPE_UPDATE','Edit Assignment Type','assignment-types.update'),('ASSIGNMENT_TYPE_DELETE','Delete Assignment Type','assignment-types.delete'),
+('USER_ASSIGNMENT_CREATE','Add User Assignment','user-assignments.create'),('USER_ASSIGNMENT_UPDATE','Edit User Assignment','user-assignments.update'),('USER_ASSIGNMENT_DELETE','Deactivate User Assignment','user-assignments.delete'),
+('USER_OVERRIDE_CREATE','Add Permission Override','user-permission-overrides.create'),('USER_OVERRIDE_UPDATE','Edit Permission Override','user-permission-overrides.update'),('USER_OVERRIDE_DELETE','Delete Permission Override','user-permission-overrides.delete');
+INSERT dbo.Buttons(ModuleId,ButtonKey,ButtonName,PermissionId,FeatureFlagId,VisibilityStatusId,CreatedAt)
+SELECT @ModuleId,b.ButtonKey,b.ButtonName,p.PermissionId,NULL,@VisibilityId,GETDATE() FROM @Buttons b JOIN dbo.Permissions p ON p.PermissionKey=b.PermissionKey
+WHERE NOT EXISTS(SELECT 1 FROM dbo.Buttons x WHERE x.ButtonKey=b.ButtonKey);
 
 COMMIT TRANSACTION;

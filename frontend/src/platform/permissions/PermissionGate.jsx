@@ -5,16 +5,13 @@
 // Purpose:
 // Controls permission-based access.
 //
-// Future:
-// Will connect to:
-// - Super Admin Permission Engine
-// - Role Manager
-// - Access Levels
-//
-// Current:
-// Allows all content.
+// Uses the existing effective-permission resolver context.
 // ============================================
 
-export default function PermissionGate({ permissionKey, children }) {
+import { usePermissions } from "../../context/PermissionContext";
+
+export default function PermissionGate({ permissionKey, children, fallback = null }) {
+  const { hasPermission, loading } = usePermissions();
+  if (loading || !permissionKey || !hasPermission(permissionKey)) return fallback;
   return children;
 }
