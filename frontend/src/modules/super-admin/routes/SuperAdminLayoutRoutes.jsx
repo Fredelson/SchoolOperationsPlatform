@@ -51,6 +51,8 @@ import AccessLevelsPage from "../user-access/pages/AccessLevelsPage";
 import UserAssignmentsPage from "../user-access/pages/UserAssignmentsPage";
 import UserPermissionOverridesPage from "../user-access/pages/UserPermissionOverridesPage";
 import AssignmentTypesPage from "../user-access/pages/AssignmentTypesPage";
+import WorkspaceManagerPage from "../workspaces/pages/WorkspaceManagerPage";
+import WorkspacePreviewPage from "../workspaces/pages/WorkspacePreviewPage";
 
 
 // ============================================
@@ -104,6 +106,14 @@ const superAdminLayoutRoutes = [
       {
         path: "modules",
         element: <ModuleManager />,
+      },
+      {
+        path: "workspaces",
+        element: <WorkspaceManagerPage />,
+      },
+      {
+        path: "workspace-preview",
+        element: <WorkspacePreviewPage />,
       },
       {
         path: "menus",

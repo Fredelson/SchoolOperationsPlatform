@@ -8,6 +8,7 @@
 ========================================================= */
 
 const workspaceManagerService = require("../services/workspaceManagerService");
+const activityLogger = require("../../audit/services/activityLogger");
 
 /* =========================================================
    GET WORKSPACES
@@ -154,6 +155,37 @@ const getWorkspaceLookups = async (req, res) => {
   }
 };
 
+const getWorkspaceConfiguration = async (req, res) => {
+  try {
+    const data = await workspaceManagerService.getWorkspaceConfiguration(req.params.id);
+    return res.status(200).json({ success:true, message:"Workspace configuration loaded successfully.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success:false, message:error.message || "Failed to load workspace configuration." });
+  }
+};
+
+const replaceAssignments = async (req,res) => {
+  try {
+    const data=await workspaceManagerService.replaceAssignments(req.params.id,req.params.assignmentType,req.body);
+    await activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:"UPDATE",entityType:"WorkspaceAssignments",entityId:req.params.id,title:`Workspace ${req.params.assignmentType} updated`,newValue:req.body?.items,user:req.user,ipAddress:req.ip});
+    return res.status(200).json({success:true,message:"Workspace assignments saved successfully.",data});
+  } catch(error) { return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to save workspace assignments."}); }
+};
+
+const getUserPreview = async (req,res) => {
+  try { const data=await workspaceManagerService.getUserPreview(req.params.userId); return res.status(200).json({success:true,message:"Read-only user preview loaded.",data}); }
+  catch(error) { return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to load user preview."}); }
+};
+
+const startLiveMode = async (req,res) => {
+  try { const data=await workspaceManagerService.startLiveMode(req.user,req.body); await activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:"LIVE_MODE_ENTER",entityType:"WorkspaceLiveSession",entityId:data.session.LiveSessionId,title:"Super Admin entered Live Mode",description:req.body.reason,newValue:{targetUserId:data.target.UserId},user:req.user,ipAddress:req.ip}); return res.status(201).json({success:true,message:"Live Mode started.",data}); }
+  catch(error){return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to start Live Mode."});}
+};
+const exitLiveMode = async (req,res) => {
+  try { const data=await workspaceManagerService.exitLiveMode(req.user,req.params.sessionId); await activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:"LIVE_MODE_EXIT",entityType:"WorkspaceLiveSession",entityId:req.params.sessionId,title:"Super Admin exited Live Mode",user:req.user,ipAddress:req.ip}); return res.status(200).json({success:true,message:"Live Mode ended.",data}); }
+  catch(error){return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to end Live Mode."});}
+};
+
 /* =========================================================
    EXPORT CONTROLLER
 ========================================================= */
@@ -165,4 +197,9 @@ module.exports = {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceLookups,
+  getWorkspaceConfiguration,
+  replaceAssignments,
+  getUserPreview,
+  startLiveMode,
+  exitLiveMode,
 };

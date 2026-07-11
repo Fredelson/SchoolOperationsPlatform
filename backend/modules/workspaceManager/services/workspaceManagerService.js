@@ -8,6 +8,9 @@
 ========================================================= */
 
 const workspaceManagerRepository = require("../repositories/workspaceManagerRepository");
+const permissionResolverService = require("../../permissionResolver/services/permissionResolverService");
+const navigationService = require("../../navigation/services/navigationService");
+const jwt = require("jsonwebtoken");
 
 /* =========================================================
    ERROR HELPER
@@ -209,6 +212,45 @@ const getWorkspaceLookups = async () => {
   return await workspaceManagerRepository.getWorkspaceLookups();
 };
 
+const getWorkspaceConfiguration = async (workspaceId) => {
+  await getWorkspaceById(workspaceId);
+  return workspaceManagerRepository.getWorkspaceConfiguration(Number(workspaceId));
+};
+
+const replaceAssignments = async (workspaceId, assignmentType, body) => {
+  await getWorkspaceById(workspaceId);
+  const items=Array.isArray(body?.items)?body.items:[];
+  const ids=items.map(item=>Number(item.id));
+  if (ids.some(id=>!Number.isInteger(id)||id<=0)) throwError("Every assignment requires a valid ID.");
+  if (new Set(ids).size!==ids.length) throwError("Duplicate assignments are not allowed.",409);
+  return workspaceManagerRepository.replaceAssignments(Number(workspaceId),assignmentType,items);
+};
+
+const getUserPreview = async (userId) => {
+  const user=await workspaceManagerRepository.getPreviewUser(Number(userId));
+  if (!user) throwError("Preview user not found or inactive.",404);
+  const [permissions,sidebar,configuration]=await Promise.all([
+    permissionResolverService.resolveUserPermissions(user.UserId),
+    navigationService.getMySidebar({id:user.UserId}),
+    user.WorkspaceId ? workspaceManagerRepository.getWorkspaceConfiguration(user.WorkspaceId) : null,
+  ]);
+  return {mode:"preview",readOnly:true,user,workspace:configuration?.workspace||null,sidebar,configuration,permissions};
+};
+
+const startLiveMode = async (actor, body) => {
+  const actorRole=String(actor?.roleKey||actor?.role||"").replace(/[\s_-]/g,"").toLowerCase();
+  if(actorRole!=="superadmin") throwError("Live Mode is restricted to Super Admin.",403);
+  const reason=String(body?.reason||"").trim(); if(reason.length<10) throwError("A troubleshooting reason of at least 10 characters is required.");
+  const target=await workspaceManagerRepository.getPreviewUser(Number(body?.targetUserId)); if(!target) throwError("Target user not found or inactive.",404);
+  const session=await workspaceManagerRepository.createLiveSession(Number(actor.id||actor.UserId),target.UserId,reason);
+  const token=jwt.sign({id:target.UserId,employeeId:target.EmployeeId,fullName:target.FullName,roleId:target.RoleId,roleKey:target.RoleKey,role:target.RoleKey,departmentId:target.DepartmentId,sectionId:target.SectionId,schoolId:target.SchoolId,defaultWorkspaceId:target.WorkspaceId,liveMode:true,liveSessionId:session.LiveSessionId,actorUserId:Number(actor.id||actor.UserId),actorName:actor.fullName,reason},process.env.JWT_SECRET,{expiresIn:"60m"});
+  return {token,session,target,expiresInMinutes:60};
+};
+const exitLiveMode = async (actor,sessionId) => {
+  const data=await workspaceManagerRepository.closeLiveSession(sessionId,Number(actor.id||actor.UserId));
+  if(!data) throwError("Active Live Mode session not found.",404); return data;
+};
+
 /* =========================================================
    EXPORT SERVICE
 ========================================================= */
@@ -220,4 +262,9 @@ module.exports = {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceLookups,
+  getWorkspaceConfiguration,
+  replaceAssignments,
+  getUserPreview,
+  startLiveMode,
+  exitLiveMode,
 };

@@ -51,6 +51,17 @@ const {
 async function getSidebarMenusForUser(userId) {
   const result = await executeQuery(
     `
+    DECLARE @WorkspaceId int = COALESCE(
+      (SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),
+      (SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId
+       JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId AND w.IsActive=1
+       WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,w.SortOrder),
+      (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1)
+    );
+    DECLARE @NavigationWorkspaceId int = CASE WHEN EXISTS(
+      SELECT 1 FROM dbo.MenuGroups WHERE WorkspaceId=@WorkspaceId
+    ) THEN @WorkspaceId ELSE (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1) END;
+
     SELECT
         -- Sidebar section / group
         mg.MenuGroupId,
@@ -89,6 +100,7 @@ async function getSidebarMenusForUser(userId) {
 
     LEFT JOIN dbo.MenuGroups mg
         ON mgi.MenuGroupId = mg.MenuGroupId
+        AND mg.WorkspaceId = @NavigationWorkspaceId
 
     INNER JOIN dbo.FeatureVisibilityStatuses fvs
         ON m.VisibilityStatusId = fvs.VisibilityStatusId
@@ -126,7 +138,7 @@ async function getSidebarMenusForUser(userId) {
     AND
     (
         m.ParentMenuId IS NOT NULL
-        OR mgi.MenuGroupItemId IS NOT NULL
+        OR mg.MenuGroupId IS NOT NULL
     )
 
     ORDER BY

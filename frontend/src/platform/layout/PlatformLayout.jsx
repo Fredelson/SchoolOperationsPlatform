@@ -10,12 +10,13 @@
 // ============================================
 
 import { useState } from "react";
-import { Box, Drawer, useMediaQuery } from "@mui/material";
+import { Alert, Box, Button, Drawer, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Outlet } from "react-router-dom";
 
 import PlatformSidebar from "./PlatformSidebar";
 import PlatformTopbar from "./PlatformTopbar";
+import { exitLiveMode } from "../../modules/super-admin/workspaces/services/workspaceService";
 
 // ============================================
 // Layout Constants
@@ -34,6 +35,9 @@ export default function PlatformLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const liveToken=sessionStorage.getItem("liveModeToken");
+  let livePayload=null; try { if(liveToken) livePayload=JSON.parse(atob(liveToken.split(".")[1].replaceAll("-","+").replaceAll("_","/"))); } catch { livePayload=null; }
+  const handleExitLive=async()=>{try{if(livePayload?.liveSessionId)await exitLiveMode(livePayload.liveSessionId);}finally{sessionStorage.removeItem("liveModeToken");window.close();window.location.href="/super-admin/workspaces";}};
 
   const handleCloseMobileSidebar = () => {
     setMobileOpen(false);
@@ -51,6 +55,7 @@ export default function PlatformLayout() {
         height={TOPBAR_HEIGHT}
         onMenuClick={() => setMobileOpen((prev) => !prev)}
       />
+      {livePayload?.liveMode&&<Alert severity="error" variant="filled" action={<Button color="inherit" onClick={handleExitLive}>Exit Live Mode</Button>} sx={{position:"fixed",top:TOPBAR_HEIGHT,left:0,right:0,zIndex:1300,borderRadius:0}}>LIVE MODE · Acting as {livePayload.fullName} · Reason: {livePayload.reason}</Alert>}
 
       {isDesktop && (
         <PlatformSidebar
@@ -95,7 +100,7 @@ export default function PlatformLayout() {
             xs: 0,
             lg: `${SIDEBAR_WIDTH}px`,
           },
-          pt: `calc(${TOPBAR_HEIGHT}px + 15px)`,
+          pt: `calc(${TOPBAR_HEIGHT}px + ${livePayload?.liveMode?65:15}px)`,
           px: { xs: 2, md: 3 },
           pb: { xs: 2, md: 3 },
           width: {

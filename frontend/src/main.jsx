@@ -33,6 +33,11 @@ import { AppNotificationProvider } from "./platform/ui/feedback/AppNotificationP
 
 import "./index.css";
 
+if (window.location.hash.startsWith("#liveToken=")) {
+  sessionStorage.setItem("liveModeToken", decodeURIComponent(window.location.hash.slice(11)));
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+}
+
 // ============================================
 // Render Application
 // ============================================

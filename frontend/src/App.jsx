@@ -74,6 +74,7 @@ import { UserManagement } from "./modules/admin/pages";
 
 import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
 import itOperationsLayoutRoutes from "./modules/it-assets/routes/ItOperationsLayoutRoutes";
+import LiveModeHomePage from "./modules/super-admin/workspaces/pages/LiveModeHomePage";
 
 // ============================================
 // Shared
@@ -165,6 +166,7 @@ export default function App() {
       )}
 
       {/* Platform Foundation */}
+      <Route path="/live-workspace" element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}><Route index element={<LiveModeHomePage />}/></Route>
       <Route
         path="/system"
         element={

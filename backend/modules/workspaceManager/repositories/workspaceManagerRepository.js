@@ -390,6 +390,76 @@ const getWorkspaceLookups = async () => {
   };
 };
 
+const getWorkspaceConfiguration = async (workspaceId) => {
+  const pool = await poolPromise;
+  const result = await pool.request().input("WorkspaceId", sql.Int, workspaceId).query(`
+    SELECT * FROM dbo.Workspaces WHERE WorkspaceId=@WorkspaceId;
+    SELECT m.ModuleId,m.ModuleKey,m.ModuleName,m.BaseRoute,m.Icon,m.IsActive,
+      CONVERT(bit,CASE WHEN wm.WorkspaceModuleId IS NULL THEN 0 ELSE wm.IsVisible END) IsAssigned,
+      ISNULL(wm.IsEnabled,0) IsEnabled,ISNULL(wm.SortOrder,m.SortOrder) SortOrder
+    FROM dbo.Modules m LEFT JOIN dbo.WorkspaceModules wm ON wm.ModuleId=m.ModuleId AND wm.WorkspaceId=@WorkspaceId
+    ORDER BY ISNULL(wm.SortOrder,m.SortOrder),m.ModuleName;
+    SELECT mg.MenuGroupId,mg.GroupKey,mg.GroupName,mg.SortOrder,m.MenuId,m.ParentMenuId,m.MenuKey,m.MenuName,m.Route,m.Icon,m.PermissionId FROM dbo.MenuGroups mg JOIN dbo.MenuGroupItems mgi ON mgi.MenuGroupId=mg.MenuGroupId JOIN dbo.Menus m ON m.MenuId=mgi.MenuId WHERE mg.WorkspaceId=@WorkspaceId ORDER BY mg.SortOrder,mgi.SortOrder,m.SortOrder;
+    SELECT b.*,ISNULL(wb.IsVisible,0) IsAssigned,ISNULL(wb.IsEnabled,0) IsEnabled FROM dbo.Buttons b LEFT JOIN dbo.WorkspaceButtons wb ON wb.ButtonId=b.ButtonId AND wb.WorkspaceId=@WorkspaceId ORDER BY b.ButtonName;
+    SELECT w.*,ISNULL(ww.IsVisible,0) IsAssigned,ISNULL(ww.IsEnabled,0) IsEnabled FROM dbo.Widgets w LEFT JOIN dbo.WorkspaceWidgets ww ON ww.WidgetId=w.WidgetId AND ww.WorkspaceId=@WorkspaceId ORDER BY w.SortOrder,w.WidgetName;
+    SELECT * FROM dbo.Dashboards WHERE WorkspaceId=@WorkspaceId;
+    SELECT r.RoleId,r.RoleKey,r.RoleName,CONVERT(bit,CASE WHEN wr.WorkspaceRoleId IS NULL THEN 0 ELSE 1 END) IsAssigned FROM dbo.Roles r LEFT JOIN dbo.WorkspaceRoles wr ON wr.RoleId=r.RoleId AND wr.WorkspaceId=@WorkspaceId ORDER BY r.RoleName;
+  `);
+  return { workspace:result.recordsets[0][0],modules:result.recordsets[1],navigation:result.recordsets[2],buttons:result.recordsets[3],widgets:result.recordsets[4],dashboards:result.recordsets[5],profiles:result.recordsets[6] };
+};
+
+const replaceAssignments = async (workspaceId, assignmentType, items) => {
+  const definitions = {
+    modules: { table:"WorkspaceModules", id:"ModuleId", extra:",IsVisible,IsEnabled,SortOrder", values:",@IsVisible,@IsEnabled,@SortOrder" },
+    buttons: { table:"WorkspaceButtons", id:"ButtonId", extra:",IsVisible,IsEnabled,SortOrder", values:",@IsVisible,@IsEnabled,@SortOrder" },
+    widgets: { table:"WorkspaceWidgets", id:"WidgetId", extra:",IsVisible,IsEnabled,SortOrder", values:",@IsVisible,@IsEnabled,@SortOrder" },
+    profiles: { table:"WorkspaceRoles", id:"RoleId", extra:",IsDefault,CreatedAt", values:",@IsDefault,GETDATE()" },
+  };
+  const definition=definitions[assignmentType];
+  if (!definition) throw new Error("Unsupported workspace assignment type.");
+  const pool=await poolPromise; const transaction=pool.transaction(); await transaction.begin();
+  try {
+    await transaction.request().input("WorkspaceId",sql.Int,workspaceId).query(`DELETE dbo.${definition.table} WHERE WorkspaceId=@WorkspaceId`);
+    for (const item of items) {
+      const request=transaction.request().input("WorkspaceId",sql.Int,workspaceId).input("ItemId",sql.Int,Number(item.id));
+      if (assignmentType === "profiles") request.input("IsDefault",sql.Bit,item.isDefault!==false);
+      else request.input("IsVisible",sql.Bit,item.isVisible!==false).input("IsEnabled",sql.Bit,item.isEnabled!==false).input("SortOrder",sql.Int,Number(item.sortOrder||0));
+      await request.query(`INSERT dbo.${definition.table}(WorkspaceId,${definition.id}${definition.extra}) VALUES(@WorkspaceId,@ItemId${definition.values})`);
+    }
+    await transaction.commit(); return getWorkspaceConfiguration(workspaceId);
+  } catch(error) { await transaction.rollback(); throw error; }
+};
+
+const getPreviewUser = async (userId) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("UserId",sql.Int,userId).query(`
+    SELECT u.UserId,u.FullName,u.EmployeeId,u.DefaultWorkspaceId,u.DepartmentId,u.SectionId,u.SchoolId,r.RoleId,r.RoleKey,r.RoleName,
+      COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
+    FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND u.IsActive=1 AND ISNULL(u.IsDeleted,0)=0;
+  `);
+  return result.recordset[0];
+};
+
+const createLiveSession = async (actorUserId,targetUserId,reason) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("ActorUserId",sql.Int,actorUserId).input("TargetUserId",sql.Int,targetUserId).input("Reason",sql.NVarChar(500),reason).query(`INSERT dbo.WorkspaceLiveSessions(ActorUserId,TargetUserId,Reason) OUTPUT INSERTED.* VALUES(@ActorUserId,@TargetUserId,@Reason)`);
+  return result.recordset[0];
+};
+const closeLiveSession = async (sessionId,actorUserId) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("SessionId",sql.UniqueIdentifier,sessionId).input("ActorUserId",sql.Int,actorUserId).query(`UPDATE dbo.WorkspaceLiveSessions SET IsActive=0,ExitedAt=GETDATE() OUTPUT INSERTED.* WHERE LiveSessionId=@SessionId AND ActorUserId=@ActorUserId AND IsActive=1`);
+  return result.recordset[0];
+};
+const touchLiveSession = async (sessionId,route) => {
+  const pool=await poolPromise;
+  await pool.request().input("SessionId",sql.UniqueIdentifier,sessionId).input("Route",sql.NVarChar(500),String(route||"").slice(0,500)).query(`UPDATE dbo.WorkspaceLiveSessions SET LastRoute=@Route WHERE LiveSessionId=@SessionId AND IsActive=1`);
+};
+const getActiveLiveSession = async (sessionId,actorUserId,targetUserId) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("SessionId",sql.UniqueIdentifier,sessionId).input("ActorUserId",sql.Int,actorUserId).input("TargetUserId",sql.Int,targetUserId).query(`SELECT TOP 1 * FROM dbo.WorkspaceLiveSessions WHERE LiveSessionId=@SessionId AND ActorUserId=@ActorUserId AND TargetUserId=@TargetUserId AND IsActive=1`);
+  return result.recordset[0];
+};
+
 /* =========================================================
    EXPORT REPOSITORY
 ========================================================= */
@@ -404,4 +474,11 @@ module.exports = {
   deleteWorkspace,
   getWorkspaceUsageCounts,
   getWorkspaceLookups,
+  getWorkspaceConfiguration,
+  replaceAssignments,
+  getPreviewUser,
+  createLiveSession,
+  closeLiveSession,
+  touchLiveSession,
+  getActiveLiveSession,
 };

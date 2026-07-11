@@ -20,7 +20,7 @@ const { verifyToken } = require("../shared/security/jwt");
 // Protect Private Routes
 // ============================================
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     // Read Authorization header from request
     const authHeader = req.headers.authorization;
@@ -41,6 +41,18 @@ const protect = (req, res, next) => {
 
     // Store decoded user data for controllers/routes
     req.user = decoded;
+
+    if (decoded.liveMode && decoded.liveSessionId) {
+      const workspaceRepository=require("../modules/workspaceManager/repositories/workspaceManagerRepository");
+      const activeSession=await workspaceRepository.getActiveLiveSession(decoded.liveSessionId,decoded.actorUserId,decoded.id);
+      if(!activeSession) return res.status(401).json({success:false,message:"Live Mode session has ended or is invalid."});
+      req.liveMode = { sessionId:decoded.liveSessionId, actorUserId:decoded.actorUserId, targetUserId:decoded.id, reason:decoded.reason };
+      res.on("finish", () => {
+        const activityLogger=require("../modules/audit/services/activityLogger");
+        workspaceRepository.touchLiveSession(decoded.liveSessionId,req.originalUrl).catch(()=>{});
+        activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:`LIVE_${req.method}`,entityType:"WorkspaceLiveRoute",entityId:decoded.liveSessionId,title:`Live Mode ${req.method} ${req.originalUrl}`,description:`HTTP ${res.statusCode}; target user ${decoded.id}; ${decoded.reason}`,user:{id:decoded.actorUserId},ipAddress:req.ip});
+      });
+    }
 
     // Continue to next middleware/controller
     next();
