@@ -53,8 +53,14 @@ import { UserManagement } from "../../admin/pages";
 // Security & Access Pages
 // ============================================
 
-import RolesManager from "../roles/pages/RolesManager";
-import PermissionsMatrix from "../permissions/pages/PermissionsMatrix";
+import {
+  NavigationManagerPage,
+  PermissionGroupsPage,
+  PermissionManagerPage,
+  RolesManagerPage,
+  RolePermissionsPage,
+  UserPermissionOverridesPage,
+} from "../enterprise/pages/EnterpriseDataManager";
 
 // ============================================
 // Monitoring & System Pages
@@ -101,6 +107,10 @@ const superAdminLayoutRoutes = [
         element: <MenuManager />,
       },
       {
+        path: "navigation-manager",
+        element: <NavigationManagerPage />,
+      },
+      {
         path: "buttons",
         element: <ButtonManager />,
       },
@@ -120,7 +130,7 @@ const superAdminLayoutRoutes = [
       },
       {
         path: "roles",
-        element: <RolesManager />,
+        element: <RolesManagerPage />,
       },
       {
         path: "access-levels",
@@ -128,7 +138,19 @@ const superAdminLayoutRoutes = [
       },
       {
         path: "permissions",
-        element: <PermissionsMatrix />,
+        element: <PermissionManagerPage />,
+      },
+      {
+        path: "permission-groups",
+        element: <PermissionGroupsPage />,
+      },
+      {
+        path: "role-permissions",
+        element: <RolePermissionsPage />,
+      },
+      {
+        path: "user-permission-overrides",
+        element: <UserPermissionOverridesPage />,
       },
 
       // Operations Modules
