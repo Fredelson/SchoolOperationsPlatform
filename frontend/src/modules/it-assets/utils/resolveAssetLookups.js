@@ -58,6 +58,8 @@ export const resolveAssetLookups = (asset, lookups = {}) => {
     LocationName: asset.LocationName || location?.LocationName || null,
     RoomName: asset.RoomName || room?.RoomName || null,
     SchoolName: asset.SchoolName || school?.SchoolName || null,
+    PreviousOwner:
+      asset.PreviousOwner || asset.ResolvedPreviousOwner || null,
     CurrentAssignedUserName:
       asset.CurrentAssignedUserName || assignedUser?.FullName || null,
     CurrentAssignedName:

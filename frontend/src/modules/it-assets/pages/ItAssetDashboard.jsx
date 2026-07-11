@@ -8,7 +8,6 @@ import * as XLSX from "xlsx";
 
 import usePageTitle from "../../../platform/hooks/usePageTitle";
 import { useAuth } from "../../../context/AuthContext";
-import { usePermissions } from "../../../context/PermissionContext";
 import {
   AppBreadcrumbs, AppButton, AppCard, AppChip, AppEmptyState, AppFormField,
   AppDataTable, AppFormGrid, AppLoadingState, AppPageHeader, AppStatCards, AppToolbar,
@@ -53,7 +52,6 @@ const filteredAssetColumns = [
 const ItAssetDashboard = ({ reportMode = false }) => {
   usePageTitle(reportMode ? "IT Asset Reports" : "IT Asset Dashboard");
   const { user } = useAuth();
-  const { hasActionAccess } = usePermissions();
   const navigate = useNavigate();
   const reportRef = useRef(null);
   const { dashboard, loading, error, refetch } = useItAssetDashboard();
@@ -172,10 +170,17 @@ const ItAssetDashboard = ({ reportMode = false }) => {
                   {filterLabels.length ? `${filterLabels.length} active filters` : "All IT assets"}
                 </Typography>
               </Box>
-              <AppButton variant="outlined" startIcon={<FilterAltOutlinedIcon />}
-                onClick={() => setFiltersOpen((open) => !open)}>
-                {filtersOpen ? "Hide Filters" : "Show Filters"}
-              </AppButton>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
+                <AppButton variant="outlined" onClick={exportPdf} disabled={exporting}>
+                  {exporting ? "Exporting PDF..." : "Export PDF"}
+                </AppButton>
+                <AppButton variant="outlined" onClick={exportExcel}>Export Excel</AppButton>
+                <AppButton variant="outlined" onClick={() => window.print()}>Print</AppButton>
+                <AppButton variant="outlined" startIcon={<FilterAltOutlinedIcon />}
+                  onClick={() => setFiltersOpen((open) => !open)}>
+                  {filtersOpen ? "Hide Filters" : "Show Filters"}
+                </AppButton>
+              </Stack>
             </Stack>
             <Collapse in={filtersOpen}>
               <Stack spacing={1.5} sx={{ pt: 1 }}>
@@ -197,13 +202,6 @@ const ItAssetDashboard = ({ reportMode = false }) => {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
               <AppButton onClick={applyFilters}>Apply Filters</AppButton>
               <AppButton variant="outlined" onClick={resetFilters}>Reset Filters</AppButton>
-              {hasActionAccess("ITAssets", "Reports") && (
-                <>
-                  <AppButton variant="outlined" onClick={exportPdf} disabled={exporting}>Export PDF</AppButton>
-                  <AppButton variant="outlined" onClick={exportExcel}>Export Excel</AppButton>
-                  <AppButton variant="outlined" onClick={() => window.print()}>Print</AppButton>
-                </>
-              )}
             </Stack>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {filterLabels.length ? filterLabels.map((label) => <AppChip key={label} label={label} />)

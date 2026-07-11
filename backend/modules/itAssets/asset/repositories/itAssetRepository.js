@@ -231,6 +231,11 @@ const getAssetById = async (assetId) => {
 
         u.FullName AS CurrentAssignedUserName,
 
+        COALESCE(
+          NULLIF(LTRIM(RTRIM(a.PreviousOwner)), ''),
+          previousAssignment.AssignedToName
+        ) AS ResolvedPreviousOwner,
+
         r.RoomName,
         d.DepartmentName,
         l.LocationName,
@@ -248,6 +253,19 @@ const getAssetById = async (assetId) => {
         ON a.ITAssetConditionId = con.ITAssetConditionId
       LEFT JOIN dbo.Users u
         ON a.CurrentAssignedUserId = u.UserId
+      OUTER APPLY (
+        SELECT TOP 1
+          COALESCE(
+            NULLIF(LTRIM(RTRIM(aa.AssignedToName)), ''),
+            assignedUser.FullName
+          ) AS AssignedToName
+        FROM dbo.ITAssetAssignments aa
+        LEFT JOIN dbo.Users assignedUser
+          ON aa.AssignedToUserId = assignedUser.UserId
+        WHERE aa.AssetId = a.AssetId
+          AND aa.ReturnedAt IS NOT NULL
+        ORDER BY aa.ReturnedAt DESC, aa.AssetAssignmentId DESC
+      ) previousAssignment
       LEFT JOIN dbo.Rooms r
         ON a.CurrentRoomId = r.RoomId
       LEFT JOIN dbo.Departments d

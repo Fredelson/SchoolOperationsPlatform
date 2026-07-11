@@ -457,11 +457,21 @@ const returnAsset = async ({
       .input("AssetId", sql.Int, asset.AssetId)
       .input("ReturnedStatusId", sql.Int, returnedStatusId)
       .input("ReturnConditionId", sql.Int, returnConditionId || null)
+      .input(
+        "PreviousOwner",
+        sql.NVarChar(510),
+        activeAssignment.AssignedToName ||
+          activeAssignment.AssignedToUserName ||
+          asset.CurrentAssignedName ||
+          asset.CurrentAssignedUserName ||
+          null
+      )
       .query(`
         UPDATE dbo.ITAssets
         SET
           ITAssetStatusId = @ReturnedStatusId,
           ITAssetConditionId = @ReturnConditionId,
+          PreviousOwner = COALESCE(@PreviousOwner, PreviousOwner),
           CurrentAssignedUserId = NULL,
           CurrentAssignedName = NULL,
           CurrentAssignedEmployeeCode = NULL,
