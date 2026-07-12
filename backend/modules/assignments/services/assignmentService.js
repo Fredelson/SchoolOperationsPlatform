@@ -117,8 +117,9 @@ async function getAssignmentTypes() {
  */
 async function getUserAssignments(userId) {
   const parsedUserId = parseRouteId(userId, "User ID");
-
-  return assignmentRepository.getUserAssignments(parsedUserId);
+  const items=await assignmentRepository.getUserAssignments(parsedUserId);
+  for(const item of items){item.Scopes=await assignmentRepository.getScopes(item.UserAssignmentId);item.ScopeHistory=await assignmentRepository.getScopeHistory(item.UserAssignmentId);}
+  return items;
 }
 async function listAssignmentTypes(query={}){const page=Math.max(Number(query.page)||1,1),pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);return assignmentRepository.listAssignmentTypes({search:String(query.search||"").trim(),status:query.status||"",page,pageSize});}
 async function getAssignmentType(idValue){const record=await assignmentRepository.findAssignmentTypeAny(parseRouteId(idValue,"Assignment Type ID"));if(!record)throw new NotFoundError("Assignment type not found.");return record;}
@@ -131,8 +132,9 @@ async function deleteAssignmentType(idValue){const current=await getAssignmentTy
 async function getAssignments(query = {}) {
   const page=Math.max(Number(query.page)||1,1); const pageSize=Math.min(Math.max(Number(query.pageSize||query.limit)||10,1),100);
   const status=String(query.status||"").toLowerCase();
-  return assignmentRepository.getAssignments({ search:String(query.search||"").trim(), assignmentTypeId:Number(query.assignmentTypeId)||null,
-    isActive:status==="active"?true:status==="inactive"?false:null,page,pageSize });
+  const result=await assignmentRepository.getAssignments({ search:String(query.search||"").trim(), assignmentTypeId:Number(query.assignmentTypeId)||null,isActive:status==="active"?true:status==="inactive"?false:null,page,pageSize });
+  for(const item of result.items){item.Scopes=await assignmentRepository.getScopes(item.UserAssignmentId);item.ScopeHistory=await assignmentRepository.getScopeHistory(item.UserAssignmentId);}
+  return result;
 }
 
 async function getAssignmentLookups() { return assignmentRepository.getAssignmentLookups(); }
@@ -144,6 +146,7 @@ async function activateUserAssignment(userId, userAssignmentId) {
   await validateActiveUser(parsedUserId); await assignmentRepository.activateUserAssignment(parsedAssignmentId);
   return {userAssignmentId:parsedAssignmentId};
 }
+async function validateScopes(assignmentTypeId,payload){const scopes=Array.isArray(payload.scopes)?payload.scopes.map(s=>({scopeType:String(s.scopeType||""),scopeEntityId:Number(s.scopeEntityId)})):[];const rules=await assignmentRepository.getAssignmentScopeRules(assignmentTypeId),allowed=new Map(rules.map(r=>[r.ScopeType,r]));for(const s of scopes){if(!allowed.has(s.scopeType))throw new BadRequestError(`${s.scopeType} is not allowed for this assignment type.`);if(!Number.isInteger(s.scopeEntityId)||!await assignmentRepository.scopeEntityExists(s.scopeType,s.scopeEntityId))throw new BadRequestError(`Invalid ${s.scopeType} scope.`);}const keys=scopes.map(s=>`${s.scopeType}:${s.scopeEntityId}`);if(new Set(keys).size!==keys.length)throw new ConflictError("Duplicate active assignment scopes are not allowed.");for(const r of rules.filter(x=>x.IsRequired))if(!scopes.some(s=>s.scopeType===r.ScopeType))throw new BadRequestError(`${r.ScopeType} scope is required.`);return scopes;}
 
 /**
  * Creates a new assignment for a user.
@@ -152,6 +155,7 @@ async function createUserAssignment(userId, payload, currentUser) {
   const parsedUserId = parseRouteId(userId, "User ID");
 
   const data = validateCreateAssignmentPayload(payload);
+  const scopes=await validateScopes(data.assignmentTypeId,payload);
 
   await validateActiveUser(parsedUserId);
   await validateAssignmentReferences(data);
@@ -176,6 +180,7 @@ async function createUserAssignment(userId, payload, currentUser) {
     data,
     createdBy
   );
+  await assignmentRepository.replaceScopes(userAssignmentId,scopes);
 
   return {
     userAssignmentId,
@@ -190,6 +195,7 @@ async function updateUserAssignment(userId, userAssignmentId, payload) {
   const parsedAssignmentId = parseRouteId(userAssignmentId, "Assignment ID");
 
   const data = validateCreateAssignmentPayload(payload);
+  const scopes=await validateScopes(data.assignmentTypeId,payload);
 
   await validateActiveUser(parsedUserId);
   await validateUserAssignmentOwnership(parsedUserId, parsedAssignmentId);
@@ -210,6 +216,7 @@ async function updateUserAssignment(userId, userAssignmentId, payload) {
   }
 
   await assignmentRepository.updateUserAssignment(parsedAssignmentId, data);
+  await assignmentRepository.replaceScopes(parsedAssignmentId,scopes);
 
   return {
     userAssignmentId: parsedAssignmentId,

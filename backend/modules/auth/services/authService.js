@@ -60,11 +60,13 @@ function buildUserPayload(user) {
     sectionName: user.SectionName,
 
     defaultWorkspaceId: user.DefaultWorkspaceId,
+    defaultWorkspaceRoute: user.DefaultWorkspaceRoute,
     legacyRole: user.LegacyRole,
     mustChangePassword: user.MustChangePassword,
     emailVerified: user.EmailVerified,
     isRegistrationCompleted: user.IsRegistrationCompleted,
     isProtectedRole: user.IsProtectedRole,
+    assignmentScopes: user.AssignmentScopes || [],
   };
 }
 
@@ -90,6 +92,7 @@ function generateToken(user) {
       sectionId: user.SectionId,
       defaultWorkspaceId: user.DefaultWorkspaceId,
       isProtectedRole: user.IsProtectedRole,
+      assignmentScopes: user.AssignmentScopes || [],
     },
     process.env.JWT_SECRET,
     {
@@ -138,6 +141,7 @@ async function login(employeeId, password) {
   }
 
   await authRepository.markLoginSuccess(user.UserId);
+  user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
 
   return {
     token: generateToken(user),
@@ -162,6 +166,7 @@ async function getMe(userId) {
     error.statusCode = 404;
     throw error;
   }
+  user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
 
   return buildUserPayload(user);
 }

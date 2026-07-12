@@ -45,9 +45,6 @@ import InfoIcon from "@mui/icons-material/Info";
 import LayersIcon from "@mui/icons-material/Layers";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
@@ -770,15 +767,7 @@ export default function CreateRequest() {
   // ============================================
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "User"}
-          role={userRole || "User"}
-        />
-      }
-    >
+    <>
       <PageHeader
         title="Create New Photocopy Request"
         subtitle="Fill in the details below to submit a new photocopy request."
@@ -912,7 +901,7 @@ export default function CreateRequest() {
           />
         </Box>
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -53,9 +53,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
@@ -66,7 +63,7 @@ const API_URL = "http://localhost:5000/api";
 export default function MyRequests() {
   usePageTitle("MyRequests");
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
 
   const [requests, setRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState("All");
@@ -143,6 +140,8 @@ export default function MyRequests() {
     if (token) {
       fetchRequests();
     }
+    // Authentication token is the intended reload trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Reset pagination when search or filter changes
@@ -215,15 +214,7 @@ export default function MyRequests() {
   ).length;
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="teacher" />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || "Teacher"}
-          role={user?.role || "Teacher"}
-        />
-      }
-    >
+    <>
       {/* ============================================ */}
       {/* Page Header */}
       {/* ============================================ */}
@@ -447,7 +438,7 @@ export default function MyRequests() {
           </Box>
         </Box>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 

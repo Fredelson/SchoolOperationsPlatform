@@ -144,8 +144,7 @@ export function useCrudManager({
     entityPluralLabel,
     filters,
     notification,
-    pagination.page,
-    pagination.rowsPerPage,
+    pagination,
     rowsKey,
   ]);
 

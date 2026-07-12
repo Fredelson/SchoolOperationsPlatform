@@ -15,9 +15,6 @@ import {
   Typography,
 } from "@mui/material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import {
@@ -78,10 +75,7 @@ export default function PaperStockPage() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={<Topbar />}
-    >
+    <>
       <PageHeader
         title="Paper Stock"
         subtitle="Manage A4 and A3 paper inventory"
@@ -207,6 +201,6 @@ export default function PaperStockPage() {
           </Paper>
         </Grid>
       </Grid>
-    </DashboardLayout>
+    </>
   );
 }

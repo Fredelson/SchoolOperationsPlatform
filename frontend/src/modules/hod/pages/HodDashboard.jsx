@@ -8,8 +8,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Box, Alert, Typography } from "@mui/material";
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
 
 import {
   Assignment,
@@ -22,7 +20,6 @@ import {
 
 import PageHeader from "../../../components/common/PageHeader";
 import DateFilter from "../../../components/common/DateFilter";
-import Topbar from "../../../components/common/Topbar";
 
 import KpiGrid from "../../../components/common/KpiGrid";
 
@@ -181,6 +178,8 @@ export default function HodDashboard() {
 
   useEffect(() => {
     fetchHodData();
+    // Dashboard loader intentionally runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   
@@ -400,15 +399,7 @@ export default function HodDashboard() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "HOD"}
-          role={user?.displayRole || user?.role || user?.Role || "HOD"}
-        />
-      }
-    >
+    <>
       <PageHeader
         title={`${user?.departmentName || user?.DepartmentName || ""} ${
           user?.subject || user?.Subject || ""
@@ -492,6 +483,6 @@ export default function HodDashboard() {
         onReject={handleReject}
         actionLoading={actionLoading}
       />
-    </DashboardLayout>
+    </>
   );
 }

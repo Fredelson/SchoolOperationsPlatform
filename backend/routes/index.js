@@ -31,6 +31,7 @@ router.use("/lookups", require("../modules/lookups"));
 router.use("/assignments", require("../modules/assignments"));
 
 router.use("/it-assets", require("../modules/itAssets"));
+router.use("/library", require("../modules/library"));
 
 router.use("/roles", require("../modules/roles"));
 router.use("/permissions", require("../modules/permissions"));

@@ -101,7 +101,7 @@ export function useLookups(keys = DEFAULT_LOOKUPS, options = {}) {
         setLoading(false);
       }
     },
-    [lookupKeySignature, useCache]
+    [lookupKeys, useCache]
   );
 
   // ==========================================

@@ -51,6 +51,8 @@ export function PermissionProvider({ children }) {
 
   const value = useMemo(() => {
     const allowed = new Set(profile.allowedPermissionKeys || []);
+    const normalizedRole=String(user?.roleKey||user?.role||profile.user?.roleKey||"").replace(/[\s_-]/g,"").toLowerCase();
+    const isSuperAdmin=normalizedRole==="superadmin";
     const allowedButtons=new Set((profile.runtimeControls?.buttons||[]).map(item=>item.ButtonKey));
     const allowedWidgets=new Set((profile.runtimeControls?.widgets||[]).map(item=>item.WidgetKey));
     const actionKeys = {
@@ -66,7 +68,7 @@ export function PermissionProvider({ children }) {
       permissions: profile.permissions || [], modules: [], actions: profile.allowedPermissionKeys || [],
       buttons: profile.runtimeControls?.buttons||[], widgets: profile.runtimeControls?.widgets||[], featureFlags: {},
       hasRole: (role) => [user?.Role, user?.role, profile.user?.roleKey].includes(role),
-      hasPermission: (key) => allowed.has(key),
+      hasPermission: (key) => isSuperAdmin || allowed.has(key),
       hasModuleAccess: (moduleName) => moduleName === "ITAssets"
         ? allowed.has("it_assets.dashboard.view") || allowed.has("it_assets.assets.view")
         : true,

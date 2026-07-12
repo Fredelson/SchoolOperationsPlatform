@@ -1,0 +1,1 @@
+import api from "@services/api";export const getLibraryDashboard=async()=>(await api.get("/library/dashboard")).data?.data;export const getLibraryResource=async(resource,params)=>(await api.get(`/library/${resource}`,{params})).data?.data;

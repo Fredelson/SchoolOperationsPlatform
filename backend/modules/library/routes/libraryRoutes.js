@@ -1,0 +1,4 @@
+const router=require("express").Router();const {protect}=require("../../../middleware/authMiddleware");const requirePermission=require("../../permissionResolver/middleware/requirePermission");const c=require("../controllers/libraryController");
+router.use(protect);router.get("/dashboard",requirePermission("library.dashboard.view"),c.dashboard);
+const permissions={books:"library.books.view",categories:"library.categories.manage",members:"library.members.view",loans:"library.loans.view",reservations:"library.reservations.view",inventory:"library.inventory.manage",settings:"library.settings.manage"};
+router.get("/:resource",(req,res,next)=>{const key=permissions[req.params.resource];if(!key)return res.status(404).json({success:false,message:"Library resource not found."});return requirePermission(key)(req,res,next);},c.list);module.exports=router;

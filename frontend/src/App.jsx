@@ -17,6 +17,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import { LoginPage } from "./modules/auth/pages";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import PermissionRoute from "./routes/PermissionRoute";
 
 // ============================================
 // Platform Foundation
@@ -49,24 +50,7 @@ import { HosDashboard, SubjectAllocationPage } from "./modules/hos/pages";
 // Printing / Platform Admin
 // ============================================
 
-import {
-  DepartmentLimitsPage,
-  PaperStockPage,
-  PaperPurchases,
-  PaperDistributions,
-  InventoryTransactions,
-  MasterData,
-  AccessLevelsPage,
-} from "./modules/printing-admin/pages";
-
-import PrintingAdminDashboard from "./modules/printing-admin/pages/PrintingAdminDashboard";
 import printingAdminLayoutRoutes from "./modules/printing-admin/routes/PrintingAdminLayoutRoutes";
-
-// ============================================
-// Admin
-// ============================================
-
-import { UserManagement } from "./modules/admin/pages";
 
 // ============================================
 // Super Admin
@@ -75,6 +59,7 @@ import { UserManagement } from "./modules/admin/pages";
 import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
 import itOperationsLayoutRoutes from "./modules/it-assets/routes/ItOperationsLayoutRoutes";
 import LiveModeHomePage from "./modules/super-admin/workspaces/pages/LiveModeHomePage";
+import libraryLayoutRoutes from "./modules/library/routes/LibraryLayoutRoutes";
 
 // ============================================
 // Shared
@@ -92,8 +77,7 @@ const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
 
 const printingRoles = ["PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
 const itOperationsRoles = ["ITAdmin", "PlatformAdmin", "SuperAdmin"];
-const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
-
+const libraryRoles = ["Librarian", "LibraryAdmin", "SuperAdmin"];
 const platformAdminRoles = [
   "SuperAdmin",
   "Super Admin",
@@ -110,6 +94,23 @@ const superAdminRoles = [
   "Platform Admin",
   "platform-admin",
 ];
+
+const superAdminRoutePermissions = {
+  dashboard: "SuperAdmin.Dashboard.View", modules: "Module.View", workspaces: "workspace.preview",
+  "workspace-preview": "workspace.preview_user",
+  menus: "Menu.View", "navigation-manager": "Navigation.View", buttons: "Button.View", widgets: "Widget.View",
+  "feature-flags": "FeatureFlag.View", users: "users.view", roles: "roles.view", "access-levels": "access-levels.view",
+  "user-assignments": "user-assignments.view", "assignment-types": "assignment-types.view", permissions: "permissions.view",
+  "permission-groups": "permission-groups.view", "role-permissions": "role-permissions.view",
+  "user-permission-overrides": "user-permission-overrides.view", printing: "printing.dashboard.view",
+  assets: "it_assets.assets.view", "audit-logs": "AuditLog.View", settings: "SystemSettings.View",
+};
+
+const guardChildRoute=(parentPath,childPath,element)=>{
+  if(!parentPath?.startsWith("/super-admin")) return element;
+  const permissionKey=superAdminRoutePermissions[childPath];
+  return permissionKey?<PermissionRoute permissionKey={permissionKey}>{element}</PermissionRoute>:element;
+};
 
 // ============================================
 // Helper: Protected Layout Routes
@@ -131,7 +132,7 @@ const renderProtectedLayoutRoutes = (routes, allowedRoles) =>
           key={child.path || "index"}
           index={child.index}
           path={child.path}
-          element={child.element}
+          element={guardChildRoute(route.path, child.path, child.element)}
         />
       ))}
     </Route>
@@ -164,6 +165,7 @@ export default function App() {
           itOperationsLayoutRoutes,
           itOperationsRoles
       )}
+      {renderProtectedLayoutRoutes(libraryLayoutRoutes,libraryRoles)}
 
       {/* Platform Foundation */}
       <Route path="/live-workspace" element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}><Route index element={<LiveModeHomePage />}/></Route>
@@ -178,278 +180,15 @@ export default function App() {
         <Route path="branding" element={<OrganizationBranding />} />
       </Route>
 
-      {/* Teacher */}
-      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-
-      <Route
-        path="/teacher/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <TeacherDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/profile"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/my-requests"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <MyRequests />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/create-request"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <CreateRequest />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/attachments"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <Attachments />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/reports"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <TeacherReports />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/teacher/request-details/:id"
-        element={
-          <ProtectedRoute allowedRoles={teacherRoles}>
-            <RequestDetails />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* HOD */}
-      <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
-
-      <Route
-        path="/hod/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <HodDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/profile"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/pending-requests"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <HodRequestsPage type="pending" />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/approved-requests"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <HodRequestsPage type="approved" />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/rejected-requests"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <HodRequestsPage type="rejected" />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/returned-requests"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <HodRequestsPage type="returned" />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/my-requests"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <MyRequests />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/create-request"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <CreateRequest />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/attachments"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <Attachments />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hod/request-details/:id"
-        element={
-          <ProtectedRoute allowedRoles={hodRoles}>
-            <RequestDetails />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* HOS */}
-      <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
-
-      <Route
-        path="/hos/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={hosRoles}>
-            <HosDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hos/profile"
-        element={
-          <ProtectedRoute allowedRoles={hosRoles}>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/hos/subject-allocation"
-        element={
-          <ProtectedRoute allowedRoles={hosRoles}>
-            <SubjectAllocationPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Printing Legacy Direct Routes */}
-      <Route path="/printing" element={<Navigate to="/printing/dashboard" replace />} />
-
-      <Route
-        path="/printing/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <PrintingAdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/department-limits"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <DepartmentLimitsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/paper-stock"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <PaperStockPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/inventory-transactions"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <InventoryTransactions />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/distributions"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <PaperDistributions />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/purchases"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <PaperPurchases />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/user-management"
-        element={
-          <ProtectedRoute allowedRoles={printingAdminRoles}>
-            <UserManagement />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/access-levels"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <AccessLevelsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/master-data"
-        element={
-          <ProtectedRoute allowedRoles={printingRoles}>
-            <MasterData />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/teacher" element={<ProtectedRoute allowedRoles={teacherRoles}><PlatformLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<TeacherDashboard />} /><Route path="profile" element={<Profile />} /><Route path="my-requests" element={<MyRequests />} /><Route path="create-request" element={<CreateRequest />} /><Route path="attachments" element={<Attachments />} /><Route path="reports" element={<TeacherReports />} /><Route path="request-details/:id" element={<RequestDetails />} />
+      </Route>
+      <Route path="/hod" element={<ProtectedRoute allowedRoles={hodRoles}><PlatformLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<HodDashboard />} /><Route path="profile" element={<Profile />} /><Route path="pending-requests" element={<HodRequestsPage type="pending" />} /><Route path="approved-requests" element={<HodRequestsPage type="approved" />} /><Route path="rejected-requests" element={<HodRequestsPage type="rejected" />} /><Route path="returned-requests" element={<HodRequestsPage type="returned" />} /><Route path="my-requests" element={<MyRequests />} /><Route path="create-request" element={<CreateRequest />} /><Route path="attachments" element={<Attachments />} /><Route path="request-details/:id" element={<RequestDetails />} />
+      </Route>
+      <Route path="/hos" element={<ProtectedRoute allowedRoles={hosRoles}><PlatformLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<HosDashboard />} /><Route path="profile" element={<Profile />} /><Route path="subject-allocation" element={<SubjectAllocationPage />} />
+      </Route>
 
       {/* Default */}
       <Route path="/" element={<Navigate to="/login" replace />} />

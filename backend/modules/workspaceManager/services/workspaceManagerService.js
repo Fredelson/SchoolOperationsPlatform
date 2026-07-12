@@ -61,9 +61,10 @@ const normalizePayload = (body) => {
    GET WORKSPACES
 ========================================================= */
 
-const getWorkspaces = async (query) => {
+const getWorkspaces = async (query, actor = null) => {
   const page = Number(query.page) > 0 ? Number(query.page) : 1;
   const limit = Number(query.limit) > 0 ? Number(query.limit) : 10;
+  const actorRole=String(actor?.roleKey||actor?.role||"").replace(/[\s_-]/g,"").toLowerCase();
 
   const filters = {
     search: query.search || "",
@@ -82,11 +83,20 @@ const getWorkspaces = async (query) => {
         : query.isActive === "false"
         ? false
         : null,
-    page,
-    limit,
+    page: actor&&actorRole!=="superadmin"?1:page,
+    limit: actor&&actorRole!=="superadmin"?1000:limit,
   };
 
   const result = await workspaceManagerRepository.getWorkspaces(filters);
+  if(actor&&actorRole!=="superadmin") {
+    const actorId=Number(actor?.id||actor?.UserId);
+    const visible=[];
+    for(const workspace of result.rows) {
+      if(workspace.WorkspaceKey!=="super-admin"&&await workspaceManagerRepository.canPreviewWorkspace(actorId,workspace.WorkspaceId)) visible.push(workspace);
+    }
+    result.rows=visible.slice((page-1)*limit,page*limit);
+    result.total=visible.length;
+  }
 
   return {
     data: result.rows,
@@ -103,7 +113,7 @@ const getWorkspaces = async (query) => {
    GET WORKSPACE BY ID
 ========================================================= */
 
-const getWorkspaceById = async (workspaceId) => {
+const getWorkspaceById = async (workspaceId, actor = null) => {
   const workspace = await workspaceManagerRepository.getWorkspaceById(
     Number(workspaceId)
   );
@@ -112,6 +122,11 @@ const getWorkspaceById = async (workspaceId) => {
     throwError("Workspace not found.", 404);
   }
 
+  const actorRole=String(actor?.roleKey||actor?.role||"").replace(/[\s_-]/g,"").toLowerCase();
+  if(actor&&actorRole!=="superadmin") {
+    const allowed=workspace.WorkspaceKey!=="super-admin"&&await workspaceManagerRepository.canPreviewWorkspace(Number(actor?.id||actor?.UserId),workspace.WorkspaceId);
+    if(!allowed) throwError("This workspace is outside your inspection scope.",403);
+  }
   return workspace;
 };
 
@@ -212,14 +227,14 @@ const getWorkspaceLookups = async () => {
   return await workspaceManagerRepository.getWorkspaceLookups();
 };
 
-const getWorkspaceConfiguration = async (workspaceId) => {
-  await getWorkspaceById(workspaceId);
+const getWorkspaceConfiguration = async (workspaceId, actor = null) => {
+  await getWorkspaceById(workspaceId, actor);
   return workspaceManagerRepository.getWorkspaceConfiguration(Number(workspaceId));
 };
 
 const replaceAssignments = async (workspaceId, assignmentType, body) => {
   await getWorkspaceById(workspaceId);
-  if(!["modules","buttons","widgets","profiles"].includes(assignmentType)) throwError("Unsupported workspace assignment type.");
+  if(!["modules","navigation","buttons","widgets","profiles"].includes(assignmentType)) throwError("Unsupported workspace assignment type.");
   const items=Array.isArray(body?.items)?body.items:[];
   const ids=items.map(item=>Number(item.id));
   if (ids.some(id=>!Number.isInteger(id)||id<=0)) throwError("Every assignment requires a valid ID.");
@@ -227,15 +242,33 @@ const replaceAssignments = async (workspaceId, assignmentType, body) => {
   return workspaceManagerRepository.replaceAssignments(Number(workspaceId),assignmentType,items);
 };
 
-const getUserPreview = async (userId) => {
+const getUserPreview = async (userId, actor = null) => {
   const user=await workspaceManagerRepository.getPreviewUser(Number(userId));
   if (!user) throwError("Preview user not found or inactive.",404);
+  const actorRole=String(actor?.roleKey||actor?.role||"").replace(/[\s_-]/g,"").toLowerCase();
+  if(actorRole!=="superadmin") {
+    if(["SuperAdmin","PlatformAdmin"].includes(user.RoleKey)) throwError("This user is outside your Preview scope.",403);
+    const allowed=user.WorkspaceId&&await workspaceManagerRepository.canPreviewWorkspace(Number(actor?.id||actor?.UserId),user.WorkspaceId);
+    if(!allowed) throwError("This user's workspace is outside your Preview scope.",403);
+  }
   const [permissions,sidebar,configuration]=await Promise.all([
     permissionResolverService.resolveUserPermissions(user.UserId),
     navigationService.getMySidebar({id:user.UserId}),
     user.WorkspaceId ? workspaceManagerRepository.getWorkspaceConfiguration(user.WorkspaceId) : null,
   ]);
   return {mode:"preview",readOnly:true,user,workspace:configuration?.workspace||null,sidebar,configuration,permissions};
+};
+const searchPreviewUsers = async (actor,query={}) => workspaceManagerRepository.searchPreviewUsers(Number(actor?.id||actor?.UserId),String(query.search||"").trim());
+const setWorkspaceDashboard = async (workspaceId,body) => {
+  const configuration=await getWorkspaceConfiguration(workspaceId);
+  const dashboardId=body?.dashboardId?Number(body.dashboardId):null;
+  if(dashboardId && !configuration.dashboards.some(item=>item.DashboardId===dashboardId)) throwError("Dashboard is not assigned to this workspace.");
+  const defaultRoute=String(body?.defaultRoute||"").trim();
+  if(!defaultRoute.startsWith("/")) throwError("Default landing route must start with '/'.");
+  const permittedRoutes=new Set(configuration.navigation.filter(item=>item.IsAssigned).map(item=>item.Route).filter(Boolean));
+  if(!permittedRoutes.has(defaultRoute)) throwError("Default landing route must be an assigned workspace menu route.");
+  await workspaceManagerRepository.setWorkspaceDashboard(Number(workspaceId),dashboardId,defaultRoute);
+  return getWorkspaceConfiguration(workspaceId);
 };
 
 const startLiveMode = async (actor, body) => {
@@ -266,6 +299,8 @@ module.exports = {
   getWorkspaceConfiguration,
   replaceAssignments,
   getUserPreview,
+  searchPreviewUsers,
+  setWorkspaceDashboard,
   startLiveMode,
   exitLiveMode,
 };

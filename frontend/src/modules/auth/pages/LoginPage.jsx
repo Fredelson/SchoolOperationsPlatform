@@ -46,7 +46,11 @@ export default function LoginPage() {
   // Redirect User Based On Role
   // ============================================
 
-  const redirectByRole = (role) => {
+  const redirectByRole = (role, defaultWorkspaceRoute) => {
+    if (defaultWorkspaceRoute?.startsWith("/")) {
+      navigate(defaultWorkspaceRoute);
+      return;
+    }
     switch (role) {
       case "Teacher":
       case "TeachingAssistant":
@@ -87,7 +91,7 @@ export default function LoginPage() {
 
     try {
       const loggedUser = await login(employeeId.trim(), password.trim());
-      redirectByRole(loggedUser.role);
+      redirectByRole(loggedUser.role, loggedUser.defaultWorkspaceRoute);
     } catch (err) {
       console.error(err);
       setError("Invalid employee ID or password");

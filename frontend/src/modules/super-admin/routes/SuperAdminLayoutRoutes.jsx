@@ -75,12 +75,6 @@ import AuditLogs from "../audit-logs/pages/AuditLogs";
 import SystemSettings from "../settings/pages/SystemSettings";
 
 // ============================================
-// Temporary Placeholder Page
-// ============================================
-
-import SuperAdminComingSoon from "../pages/SuperAdminComingSoon";
-
-// ============================================
 // Super Admin Nested Layout Routes
 // ============================================
 
@@ -177,39 +171,11 @@ const superAdminLayoutRoutes = [
       // Operations Modules
       {
         path: "printing",
-        element: <SuperAdminComingSoon title="Printing Management" />,
-      },
-      {
-        path: "inventory",
-        element: <SuperAdminComingSoon title="Inventory Management" />,
-      },
-      {
-        path: "it-tickets",
-        element: <SuperAdminComingSoon title="IT Service Desk" />,
+        element: <Navigate to="/printing/dashboard" replace />,
       },
       {
         path: "assets",
-        element: <SuperAdminComingSoon title="IT Asset Management" />,
-      },
-      {
-        path: "academic",
-        element: <SuperAdminComingSoon title="Academic Operations" />,
-      },
-      {
-        path: "observations",
-        element: <SuperAdminComingSoon title="Teacher Observations" />,
-      },
-      {
-        path: "communication",
-        element: <SuperAdminComingSoon title="Communication Center" />,
-      },
-      {
-        path: "reports",
-        element: <SuperAdminComingSoon title="Reports & Analytics" />,
-      },
-      {
-        path: "hr",
-        element: <SuperAdminComingSoon title="HR Management" />,
+        element: <Navigate to="/it-assets/assets" replace />,
       },
 
       // Monitoring
@@ -217,27 +183,11 @@ const superAdminLayoutRoutes = [
         path: "audit-logs",
         element: <AuditLogs />,
       },
-      {
-        path: "activity-logs",
-        element: <SuperAdminComingSoon title="Activity Logs" />,
-      },
 
       // System Control
       {
         path: "settings",
         element: <SystemSettings />,
-      },
-      {
-        path: "backups",
-        element: <SuperAdminComingSoon title="Backup & Restore" />,
-      },
-      {
-        path: "integrations",
-        element: <SuperAdminComingSoon title="Integrations" />,
-      },
-      {
-        path: "database-tools",
-        element: <SuperAdminComingSoon title="Database Tools" />,
       },
     ],
   },

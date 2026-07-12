@@ -32,11 +32,7 @@ import {
   Divider,
 } from "@mui/material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 
-import { useAuth } from "../../../context/AuthContext";
 
 import {
   getDistributions,
@@ -45,7 +41,6 @@ import {
 } from "../../../services/distributionService";
 
 export default function PaperDistributions() {
-  const { user } = useAuth();
 
   const [distributions, setDistributions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,15 +198,7 @@ export default function PaperDistributions() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "Printing Admin"}
-          role={user?.displayRole || user?.role || user?.Role || "Printing Admin"}
-        />
-      }
-    >
+    <>
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" fontWeight={700} mb={3}>
           Paper Distributions
@@ -422,6 +409,6 @@ export default function PaperDistributions() {
           </TableContainer>
         )}
       </Box>
-    </DashboardLayout>
+    </>
   );
 }

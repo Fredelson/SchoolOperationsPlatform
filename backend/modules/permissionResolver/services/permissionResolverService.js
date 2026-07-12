@@ -103,6 +103,7 @@ async function resolveUserPermissions(userId) {
 
   const rolePermissions = await repository.getRolePermissions(userProfile.RoleId);
   const userOverrides = await repository.getUserPermissionOverrides(numericUserId);
+  const assignmentScopes = await repository.getActiveAssignmentScopes(numericUserId);
 
   const permissionMap = buildPermissionMap(rolePermissions);
   applyUserOverrides(permissionMap, userOverrides);
@@ -127,6 +128,7 @@ async function resolveUserPermissions(userId) {
     },
     permissions,
     allowedPermissionKeys,
+    assignmentScopes,
   };
 }
 

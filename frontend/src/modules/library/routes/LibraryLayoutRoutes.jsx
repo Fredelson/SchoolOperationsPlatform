@@ -1,0 +1,2 @@
+import {Navigate} from "react-router-dom";import PlatformLayout from "@layouts/PlatformLayout";import LibraryDashboard from "../pages/LibraryDashboard";import LibraryResourcePage from "../pages/LibraryResourcePage";
+export default [{path:"/library",element:<PlatformLayout/>,children:[{index:true,element:<Navigate to="/library/dashboard" replace/>},{path:"dashboard",element:<LibraryDashboard/>},...['books','categories','members','borrowing','returns','reservations','overdue','inventory','reports','settings'].map(path=>({path,element:<LibraryResourcePage/>}))]}];

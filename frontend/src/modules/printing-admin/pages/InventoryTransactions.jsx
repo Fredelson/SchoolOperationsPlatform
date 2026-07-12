@@ -2,7 +2,7 @@
 // ARAB UNITY SCHOOL
 // Printing Admin - Inventory Transaction Logs
 // Shows all stock movements: deductions, purchases, adjustments
-// Includes Sidebar + Topbar using DashboardLayout
+// Rendered inside the shared PlatformLayout.
 // ============================================
 
 import { useEffect, useState } from "react";
@@ -25,9 +25,6 @@ import {
   Typography,
 } from "@mui/material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import api from "../../../services/api";
@@ -113,12 +110,7 @@ const InventoryTransactions = () => {
     };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="printing" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <PageHeader
         title="Inventory Transaction Logs"
         subtitle="View all paper stock movements including print deductions and future purchases."
@@ -260,7 +252,7 @@ const InventoryTransactions = () => {
           </TableContainer>
         )}
       </Paper>
-    </DashboardLayout>
+    </>
   );
 };
 

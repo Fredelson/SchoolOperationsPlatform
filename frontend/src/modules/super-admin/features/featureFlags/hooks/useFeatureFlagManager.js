@@ -98,6 +98,8 @@ export const useFeatureFlagManager = () => {
 
   useEffect(() => {
     loadFeatureFlags();
+    // Filters and pagination below are the intended reload triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, moduleId, visibilityStatusId, isEnabled, page, limit]);
 
   const openCreateDialog = () => {

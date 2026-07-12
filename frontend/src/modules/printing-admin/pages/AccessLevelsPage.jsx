@@ -34,9 +34,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SecurityIcon from "@mui/icons-material/Security";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import {
@@ -281,12 +278,7 @@ const AccessLevelsPage = () => {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="printing" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <PageHeader
         title="Access Levels"
         subtitle="Manage role master data and access level records used by the system."
@@ -557,7 +549,7 @@ const AccessLevelsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </DashboardLayout>
+    </>
   );
 };
 

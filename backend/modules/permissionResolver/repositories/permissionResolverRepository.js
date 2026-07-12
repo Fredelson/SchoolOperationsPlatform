@@ -148,6 +148,11 @@ async function getUserPermissionOverrides(userId) {
   return rows(result);
 }
 
+async function getActiveAssignmentScopes(userId) {
+  const result = await executeQuery(`SELECT ua.UserAssignmentId,ua.AssignmentTypeId,at.AssignmentKey,at.AssignmentName,ua.IsPrimary,s.ScopeType,s.ScopeEntityId FROM dbo.UserAssignments ua INNER JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId INNER JOIN dbo.UserAssignmentScopes s ON s.UserAssignmentId=ua.UserAssignmentId AND s.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 ORDER BY ua.IsPrimary DESC,ua.UserAssignmentId,s.ScopeType,s.ScopeEntityId;`, [{name:"UserId",type:sql.Int,value:userId}]);
+  return rows(result);
+}
+
 // ============================================================
 // Export Repository Functions
 // ============================================================
@@ -156,4 +161,5 @@ module.exports = {
   getUserSecurityProfile,
   getRolePermissions,
   getUserPermissionOverrides,
+  getActiveAssignmentScopes,
 };

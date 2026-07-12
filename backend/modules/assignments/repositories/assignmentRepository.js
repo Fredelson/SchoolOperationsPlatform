@@ -26,6 +26,14 @@ const {
   firstOrNull,
   insertedId,
 } = require("../../../shared/database");
+const {poolPromise}=require("../../../config/db");
+
+async function getAssignmentScopeRules(assignmentTypeId=null){const r=await executeQuery(`SELECT ats.AssignmentTypeId,ats.ScopeType,ats.IsRequired,ats.SortOrder FROM dbo.AssignmentTypeScopeTypes ats WHERE ats.IsActive=1 AND (@Id IS NULL OR ats.AssignmentTypeId=@Id) ORDER BY ats.AssignmentTypeId,ats.SortOrder;`,[{name:"Id",type:sql.Int,value:assignmentTypeId}]);return rows(r);}
+const scopeSelect=`SELECT s.AssignmentScopeId,s.UserAssignmentId,s.ScopeType,s.ScopeEntityId,s.ScopeVersion,s.IsActive,s.CreatedAt,s.DeactivatedAt,CASE s.ScopeType WHEN 'School' THEN sch.SchoolName WHEN 'Department' THEN d.DepartmentName WHEN 'Section' THEN sec.SectionName WHEN 'YearGroup' THEN yl.YearLevelName WHEN 'Subject' THEN sub.SubjectName WHEN 'Location' THEN l.LocationName WHEN 'Class' THEN c.ClassName WHEN 'Room' THEN rm.RoomName END ScopeName FROM dbo.UserAssignmentScopes s LEFT JOIN dbo.Schools sch ON s.ScopeType='School' AND sch.SchoolId=s.ScopeEntityId LEFT JOIN dbo.Departments d ON s.ScopeType='Department' AND d.DepartmentId=s.ScopeEntityId LEFT JOIN dbo.Sections sec ON s.ScopeType='Section' AND sec.SectionId=s.ScopeEntityId LEFT JOIN dbo.YearLevels yl ON s.ScopeType='YearGroup' AND yl.YearLevelId=s.ScopeEntityId LEFT JOIN dbo.Subjects sub ON s.ScopeType='Subject' AND sub.SubjectId=s.ScopeEntityId LEFT JOIN dbo.Locations l ON s.ScopeType='Location' AND l.LocationId=s.ScopeEntityId LEFT JOIN dbo.Classes c ON s.ScopeType='Class' AND c.ClassId=s.ScopeEntityId LEFT JOIN dbo.Rooms rm ON s.ScopeType='Room' AND rm.RoomId=s.ScopeEntityId`;
+async function getScopes(userAssignmentId){const r=await executeQuery(`${scopeSelect} WHERE s.UserAssignmentId=@Id AND s.ScopeVersion=(SELECT MAX(ScopeVersion) FROM dbo.UserAssignmentScopes WHERE UserAssignmentId=@Id) ORDER BY s.ScopeType,ScopeName;`,[{name:"Id",type:sql.Int,value:userAssignmentId}]);return rows(r);}
+async function getScopeHistory(userAssignmentId){const r=await executeQuery(`${scopeSelect} WHERE s.UserAssignmentId=@Id ORDER BY s.ScopeVersion DESC,s.ScopeType,ScopeName;`,[{name:"Id",type:sql.Int,value:userAssignmentId}]);return rows(r);}
+async function replaceScopes(userAssignmentId,scopes){const pool=await poolPromise,tx=pool.transaction();await tx.begin();try{const versionResult=await tx.request().input("Id",sql.Int,userAssignmentId).query(`SELECT ISNULL(MAX(ScopeVersion),0)+1 ScopeVersion FROM dbo.UserAssignmentScopes WITH(UPDLOCK,HOLDLOCK) WHERE UserAssignmentId=@Id;`),version=versionResult.recordset[0].ScopeVersion;await tx.request().input("Id",sql.Int,userAssignmentId).query(`UPDATE dbo.UserAssignmentScopes SET IsActive=0,DeactivatedAt=GETDATE(),UpdatedAt=GETDATE() WHERE UserAssignmentId=@Id AND IsActive=1;`);for(const scope of scopes)await tx.request().input("Id",sql.Int,userAssignmentId).input("Type",sql.NVarChar(50),scope.scopeType).input("EntityId",sql.Int,scope.scopeEntityId).input("Version",sql.Int,version).query(`INSERT dbo.UserAssignmentScopes(UserAssignmentId,ScopeType,ScopeValue,ScopeEntityId,ScopeVersion,IsActive,CreatedAt) VALUES(@Id,@Type,CONVERT(nvarchar(50),@EntityId),@EntityId,@Version,1,GETDATE());`);await tx.commit();}catch(e){await tx.rollback();throw e;}}
+async function scopeEntityExists(type,id){const map={School:["Schools","SchoolId"],Department:["Departments","DepartmentId"],Section:["Sections","SectionId"],YearGroup:["YearLevels","YearLevelId"],Subject:["Subjects","SubjectId"],Location:["Locations","LocationId"],Class:["Classes","ClassId"],Room:["Rooms","RoomId"]};const d=map[type];if(!d)return false;return Boolean(firstOrNull(await executeQuery(`SELECT TOP 1 ${d[1]} Id FROM dbo.${d[0]} WHERE ${d[1]}=@Id;`,[{name:"Id",type:sql.Int,value:id}])));}
 
 /**
  * Gets all active assignment types.
@@ -160,12 +168,16 @@ async function getAssignmentLookups() {
     SELECT YearLevelId,YearLevelName,SectionId FROM dbo.YearLevels WHERE IsActive=1 ORDER BY SortOrder,YearLevelName;
     SELECT ClassId,ClassName,AcademicYearId,SectionId,YearLevelId,RoomId FROM dbo.Classes WHERE IsActive=1 ORDER BY ClassName;
     SELECT RoomId,RoomName FROM dbo.Rooms WHERE IsActive=1 ORDER BY RoomName;
+    SELECT SchoolId,SchoolName FROM dbo.Schools WHERE IsActive=1 ORDER BY SchoolName;
+    SELECT LocationId,LocationName FROM dbo.Locations WHERE IsActive=1 ORDER BY LocationName;
+    SELECT AssignmentTypeId,ScopeType,IsRequired,SortOrder FROM dbo.AssignmentTypeScopeTypes WHERE IsActive=1 ORDER BY AssignmentTypeId,SortOrder;
   `);
-  return { users: result.recordsets?.[0] || [], assignmentTypes: result.recordsets?.[1] || [], academicYears: result.recordsets?.[2] || [], departments: result.recordsets?.[3] || [], sections: result.recordsets?.[4] || [], subjects: result.recordsets?.[5] || [], yearLevels: result.recordsets?.[6] || [], classes: result.recordsets?.[7] || [], rooms: result.recordsets?.[8] || [] };
+  return { users: result.recordsets?.[0] || [], assignmentTypes: result.recordsets?.[1] || [], academicYears: result.recordsets?.[2] || [], departments: result.recordsets?.[3] || [], sections: result.recordsets?.[4] || [], subjects: result.recordsets?.[5] || [], yearLevels: result.recordsets?.[6] || [], classes: result.recordsets?.[7] || [], rooms: result.recordsets?.[8] || [],schools:result.recordsets?.[9]||[],locations:result.recordsets?.[10]||[],assignmentTypeScopeTypes:result.recordsets?.[11]||[] };
 }
 
 async function activateUserAssignment(userAssignmentId) {
   await executeQuery(`UPDATE dbo.UserAssignments SET IsActive=1,EndDate=NULL,UpdatedAt=GETDATE() WHERE UserAssignmentId=@Id;`, [{name:"Id",type:sql.Int,value:userAssignmentId}]);
+  await executeQuery(`UPDATE dbo.UserAssignmentScopes SET IsActive=1,DeactivatedAt=NULL,UpdatedAt=GETDATE() WHERE UserAssignmentId=@Id AND ScopeVersion=(SELECT MAX(ScopeVersion) FROM dbo.UserAssignmentScopes WHERE UserAssignmentId=@Id);`, [{name:"Id",type:sql.Int,value:userAssignmentId}]);
 }
 
 /**
@@ -302,12 +314,6 @@ async function findDuplicateAssignment(userId, data, excludeUserAssignmentId = n
     WHERE UserId = @UserId
       AND AssignmentTypeId = @AssignmentTypeId
       AND AcademicYearId = @AcademicYearId
-      AND ISNULL(DepartmentId, 0) = ISNULL(@DepartmentId, 0)
-      AND ISNULL(SectionId, 0) = ISNULL(@SectionId, 0)
-      AND ISNULL(SubjectId, 0) = ISNULL(@SubjectId, 0)
-      AND ISNULL(YearLevelId, 0) = ISNULL(@YearLevelId, 0)
-      AND ISNULL(ClassId, 0) = ISNULL(@ClassId, 0)
-      AND ISNULL(RoomId, 0) = ISNULL(@RoomId, 0)
       AND IsActive = 1
       AND (
         @ExcludeUserAssignmentId IS NULL
@@ -491,6 +497,7 @@ async function softDeleteUserAssignment(userAssignmentId) {
       },
     ]
   );
+  await executeQuery(`UPDATE dbo.UserAssignmentScopes SET IsActive=0,DeactivatedAt=GETDATE(),UpdatedAt=GETDATE() WHERE UserAssignmentId=@Id AND IsActive=1;`,[{name:"Id",type:sql.Int,value:userAssignmentId}]);
 }
 
 /**
@@ -540,5 +547,6 @@ module.exports = {
   getAssignments,
   getAssignmentLookups,
   activateUserAssignment,
+  getAssignmentScopeRules,getScopes,getScopeHistory,replaceScopes,scopeEntityExists,
   listAssignmentTypes,findAssignmentTypeAny,findAssignmentTypeDuplicate,createAssignmentType,updateAssignmentType,setAssignmentTypeActive,assignmentTypeUsage,removeAssignmentType,
 };

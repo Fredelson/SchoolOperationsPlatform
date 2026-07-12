@@ -43,6 +43,8 @@ async function getAllOverrides(query = {}) {
   return repository.getAll({search:String(query.search||"").trim(),userId:Number(query.userId)||null,moduleId:Number(query.moduleId)||null,
     permissionId:Number(query.permissionId)||null,isAllowed:allowed==="grant"?true:allowed==="revoke"?false:null,page,pageSize});
 }
+const SUPER_ADMIN_ONLY_PERMISSIONS=new Set(["workspace.configure","workspace.live_mode","workspace.live_as_user"]);
+function enforceProtectedPermission(user,permission){if(SUPER_ADMIN_ONLY_PERMISSIONS.has(permission.PermissionKey)&&user.RoleKey!=="SuperAdmin") throw serviceError.badRequest("This permission is permanently restricted to Super Admin.");}
 
 async function getLookups(){return repository.getLookups();}
 
@@ -95,8 +97,9 @@ async function createOverride(payload, currentUserId = null) {
   const permissionId = Number(payload.permissionId);
   const isAllowed = normalizeBoolean(payload.isAllowed);
 
-  await ensureActive(repository.findUserById, userId, "User");
-  await ensureActive(repository.findPermissionById, permissionId, "Permission");
+  const user=await ensureActive(repository.findUserById, userId, "User");
+  const permission=await ensureActive(repository.findPermissionById, permissionId, "Permission");
+  enforceProtectedPermission(user,permission);
 
   await preventDuplicate(
     () => repository.findDuplicate(userId, permissionId),
@@ -131,8 +134,9 @@ async function updateOverride(userPermissionOverrideId, payload) {
   const permissionId = Number(payload.permissionId);
   const isAllowed = normalizeBoolean(payload.isAllowed);
 
-  await ensureActive(repository.findUserById, userId, "User");
-  await ensureActive(repository.findPermissionById, permissionId, "Permission");
+  const user=await ensureActive(repository.findUserById, userId, "User");
+  const permission=await ensureActive(repository.findPermissionById, permissionId, "Permission");
+  enforceProtectedPermission(user,permission);
 
   await preventDuplicate(
     () =>

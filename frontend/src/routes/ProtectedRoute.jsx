@@ -5,6 +5,7 @@
 // ============================================
 
 import { Navigate } from "react-router-dom";
+import { Alert, Typography } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 
 const normalizeRole = (role = "") =>
@@ -16,9 +17,6 @@ const normalizeRole = (role = "") =>
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
-  console.log("AUTH USER:", user);
-console.log("AUTH LOADING:", loading);
-
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -39,14 +37,8 @@ console.log("AUTH LOADING:", loading);
   const allowed = allowedRoles?.map(normalizeRole) || [];
 
   if (allowedRoles && !allowed.includes(userRole)) {
-    console.log("BLOCKED ROLE:", userRole);
-    console.log("ALLOWED ROLES:", allowed);
-    console.log("USER:", user);
-
-    return <Navigate to="/login" replace />;
+    return <Alert severity="error" sx={{m:3}}><Typography fontWeight={700}>Access Denied</Typography>Your role is not authorized to open this workspace.</Alert>;
   }
-  console.log("NORMALIZED USER ROLE:", userRole);
-console.log("ALLOWED ROLES:", allowed);
 
   return children;
 }

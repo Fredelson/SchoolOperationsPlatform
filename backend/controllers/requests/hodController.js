@@ -410,6 +410,7 @@ const approveHodRequest = async (req, res) => {
           RequestId,
           TotalSheets,
           DepartmentId,
+          SectionId,
           SubjectId
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
@@ -427,6 +428,7 @@ const approveHodRequest = async (req, res) => {
     const request = requestResult.recordset[0];
     const totalSheets = request.TotalSheets;
     const departmentId = request.DepartmentId;
+    const sectionId = request.SectionId;
     const subjectId = request.SubjectId;
 
     // ============================================
@@ -512,12 +514,13 @@ const approveHodRequest = async (req, res) => {
       const hosResult = await pool
         .request()
         .input("departmentId", sql.Int, departmentId)
+        .input("sectionId", sql.Int, sectionId)
         .query(`
-          SELECT TOP 1 UserId
-          FROM Users
-          WHERE Role = 'HOS'
-            AND DepartmentId = @departmentId
-            AND IsActive = 1
+          SELECT TOP 1 u.UserId
+          FROM dbo.Users u JOIN dbo.UserAssignments ua ON ua.UserId=u.UserId AND ua.IsActive=1
+          JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId AND at.AssignmentKey='HOS'
+          WHERE u.IsActive=1 AND EXISTS(SELECT 1 FROM dbo.UserAssignmentScopes s WHERE s.UserAssignmentId=ua.UserAssignmentId AND s.IsActive=1 AND ((s.ScopeType='Section' AND s.ScopeEntityId=@sectionId) OR (s.ScopeType='Department' AND s.ScopeEntityId=@departmentId)))
+          ORDER BY ua.IsPrimary DESC,ua.CreatedAt
         `);
 
       if (hosResult.recordset.length === 0) {

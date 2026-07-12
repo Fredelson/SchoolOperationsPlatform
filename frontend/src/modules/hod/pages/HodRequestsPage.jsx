@@ -8,16 +8,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Alert, Typography } from "@mui/material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import HodPendingRequestsTable from "../../../components/tables/HodPendingRequestsTable";
 import RequestDetailsDialog from "../../../components/dialogs/RequestDetailsDialog";
 
 
-import { useAuth } from "../../../context/AuthContext";
 
 import {
   getHodRequests,
@@ -26,7 +22,6 @@ import {
 } from "../../../services/hodService";
 
 export default function HodRequestsPage({ type = "pending" }) {
-  const { user } = useAuth();
 
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -83,6 +78,8 @@ export default function HodRequestsPage({ type = "pending" }) {
 
   useEffect(() => {
     loadRequests();
+    // Request loader intentionally runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pageConfig = {
@@ -207,15 +204,7 @@ export default function HodRequestsPage({ type = "pending" }) {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "HOD"}
-          role={user?.displayRole || user?.role || user?.Role || "HOD"}
-        />
-      }
-    >
+    <>
       <PageHeader
         title={pageConfig[type]?.title || "HOD Requests"}
         subtitle={pageConfig[type]?.subtitle || "Manage HOD requests."}
@@ -247,6 +236,6 @@ export default function HodRequestsPage({ type = "pending" }) {
         onReject={handleReject}
         actionLoading={actionLoading}
       />
-    </DashboardLayout>
+    </>
   );
 }

@@ -52,32 +52,32 @@ async function getSidebarMenusForUser(userId) {
   const result = await executeQuery(
     `
     DECLARE @WorkspaceId int = COALESCE(
+      (SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),
       (SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),
       (SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId
        JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId AND w.IsActive=1
        WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,w.SortOrder),
       (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1)
     );
-    DECLARE @NavigationWorkspaceId int = CASE WHEN EXISTS(
-      SELECT 1 FROM dbo.MenuGroups WHERE WorkspaceId=@WorkspaceId
-    ) THEN @WorkspaceId ELSE (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1) END;
+    DECLARE @NavigationWorkspaceId int = CASE WHEN EXISTS(SELECT 1 FROM dbo.WorkspaceMenus WHERE WorkspaceId=@WorkspaceId)
+      THEN @WorkspaceId ELSE (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1) END;
 
     SELECT
         -- Sidebar section / group
-        mg.MenuGroupId,
-        mg.GroupKey,
-        mg.GroupName,
-        mg.SortOrder AS GroupSortOrder,
+        NULL MenuGroupId,
+        wm.GroupKey,
+        wm.GroupName,
+        wm.GroupSortOrder,
 
         -- Menu item
         m.MenuId,
         m.ModuleId,
-        m.ParentMenuId,
+        wm.ParentMenuId,
         m.MenuKey,
         m.MenuName,
         m.Route,
         m.Icon,
-        m.SortOrder AS MenuSortOrder,
+        wm.SortOrder AS MenuSortOrder,
 
         -- Visibility status
         fvs.StatusKey AS VisibilityStatusKey,
@@ -91,17 +91,11 @@ async function getSidebarMenusForUser(userId) {
     INNER JOIN dbo.Modules module
         ON module.ModuleId = m.ModuleId
 
+    INNER JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@NavigationWorkspaceId
+
     -- Root menus are assigned to sidebar groups.
     -- Child menus must not be assigned to groups directly.
     -- This keeps nested dropdowns organized correctly.
-    LEFT JOIN dbo.MenuGroupItems mgi
-        ON m.MenuId = mgi.MenuId
-        AND m.ParentMenuId IS NULL
-
-    LEFT JOIN dbo.MenuGroups mg
-        ON mgi.MenuGroupId = mg.MenuGroupId
-        AND mg.WorkspaceId = @NavigationWorkspaceId
-
     INNER JOIN dbo.FeatureVisibilityStatuses fvs
         ON m.VisibilityStatusId = fvs.VisibilityStatusId
 
@@ -111,6 +105,7 @@ async function getSidebarMenusForUser(userId) {
 
     WHERE
         ISNULL(ump.IsHidden, 0) = 0
+    AND wm.IsVisible=1 AND wm.IsEnabled=1
     AND LOWER(fvs.StatusKey) = 'enabled'
     AND module.IsActive = 1
     AND LOWER((SELECT StatusKey FROM dbo.FeatureVisibilityStatuses WHERE VisibilityStatusId = module.VisibilityStatusId)) = 'enabled'
@@ -137,15 +132,15 @@ async function getSidebarMenusForUser(userId) {
     -- Root menus that are not assigned to any sidebar group.
     AND
     (
-        m.ParentMenuId IS NOT NULL
-        OR mg.MenuGroupId IS NOT NULL
+        wm.ParentMenuId IS NOT NULL
+        OR wm.GroupKey IS NOT NULL
     )
 
     ORDER BY
-        ISNULL(mg.SortOrder, 999),
-        ISNULL(ump.SortOrder, m.SortOrder),
-        m.ParentMenuId,
-        m.SortOrder,
+        ISNULL(wm.GroupSortOrder, 999),
+        ISNULL(ump.SortOrder, wm.SortOrder),
+        wm.ParentMenuId,
+        wm.SortOrder,
         m.MenuName;
     `,
     [
@@ -162,7 +157,7 @@ async function getSidebarMenusForUser(userId) {
 
 async function getRuntimeControlsForUser(userId) {
   const result=await executeQuery(`
-    DECLARE @WorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC),(SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1));
+    DECLARE @WorkspaceId int=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),(SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC),(SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1));
     DECLARE @IsSuper bit=CASE WHEN EXISTS(SELECT 1 FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND r.RoleKey='SuperAdmin') THEN 1 ELSE 0 END;
     SELECT b.ButtonId,b.ButtonKey,b.ButtonName,b.ModuleId,p.PermissionKey,wb.IsEnabled,wb.SortOrder FROM dbo.WorkspaceButtons wb JOIN dbo.Buttons b ON b.ButtonId=wb.ButtonId LEFT JOIN dbo.Permissions p ON p.PermissionId=b.PermissionId
     WHERE wb.WorkspaceId=@WorkspaceId AND wb.IsVisible=1 AND wb.IsEnabled=1 AND (@IsSuper=1 OR b.PermissionId IS NULL OR COALESCE((SELECT TOP 1 CONVERT(int,IsAllowed) FROM dbo.UserPermissionOverrides WHERE UserId=@UserId AND PermissionId=b.PermissionId),(SELECT TOP 1 CONVERT(int,rp.IsAllowed) FROM dbo.Users u JOIN dbo.RolePermissions rp ON rp.RoleId=u.RoleId WHERE u.UserId=@UserId AND rp.PermissionId=b.PermissionId),0)=1)

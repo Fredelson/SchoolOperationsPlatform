@@ -66,9 +66,6 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { getTeacherReportsData } from "../../../services/teacherReportService";
@@ -188,7 +185,7 @@ export default function TeacherReports() {
   // Backend values
   // ============================================
 
-  const stats = reportData?.stats || {};
+  const stats = useMemo(() => reportData?.stats || {}, [reportData?.stats]);
   const filters = reportData?.filters || {};
   const monthlyTrend = reportData?.monthlyTrend || [];
   const statusSummary = reportData?.statusSummary || [];
@@ -196,7 +193,7 @@ export default function TeacherReports() {
   const purposeBreakdown = reportData?.purposeBreakdown || [];
   const paperUsage = reportData?.paperUsage || [];
   const insights = reportData?.insights || {};
-  const requests = reportData?.requests || [];
+  const requests = useMemo(() => reportData?.requests || [], [reportData?.requests]);
 
   // ============================================
   // KPI totals
@@ -413,10 +410,7 @@ export default function TeacherReports() {
   };
 
   return (
-      <DashboardLayout
-        sidebar={<Sidebar role="teacher" />}
-        topbar={<Topbar />}
-      >
+      <>
       <Box
         ref={reportRef}
         sx={{
@@ -702,7 +696,7 @@ export default function TeacherReports() {
           />
         </Box>
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 

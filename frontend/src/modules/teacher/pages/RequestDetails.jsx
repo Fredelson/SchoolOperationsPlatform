@@ -48,9 +48,6 @@ import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { useAuth } from "../../../context/AuthContext";
@@ -70,7 +67,7 @@ export default function RequestDetails() {
   usePageTitle("RequestDetails");
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
 
   const [request, setRequest] = useState(null);
   const [approvals, setApprovals] = useState([]);
@@ -136,15 +133,7 @@ export default function RequestDetails() {
   }, [request]);
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="teacher" />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || "Teacher"}
-          role={user?.role || "Teacher"}
-        />
-      }
-    >
+    <>
       <Box sx={{ bgcolor: BG, minHeight: "100vh", p: { xs: 2, md: 3 } }}>
         <PageTitle onBack={() => navigate("/teacher/my-requests")} />
 
@@ -193,7 +182,7 @@ export default function RequestDetails() {
           </>
         )}
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -1,0 +1,2 @@
+const service=require("../services/libraryService");const asyncHandler=require("../../../shared/helpers/asyncHandler");const {sendSuccess}=require("../../../shared/helpers/apiResponse");
+const list=asyncHandler(async(req,res)=>sendSuccess(res,"Library records loaded.",await service.list(req.params.resource,req.query)));const dashboard=asyncHandler(async(req,res)=>sendSuccess(res,"Library dashboard loaded.",await service.dashboard()));module.exports={list,dashboard};

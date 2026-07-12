@@ -34,9 +34,6 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import {
@@ -96,6 +93,8 @@ const MasterData = () => {
 
   useEffect(() => {
     fetchData();
+    // Reload only when the selected master-data type changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentType]);
 
   useEffect(() => {
@@ -198,12 +197,7 @@ const MasterData = () => {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="printing" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <PageHeader
         title="Master Data"
         subtitle="Manage subjects, sections, and purposes used in photocopy requests."
@@ -405,7 +399,7 @@ const MasterData = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </DashboardLayout>
+    </>
   );
 };
 

@@ -6,9 +6,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import {
@@ -262,10 +259,7 @@ export default function TeacherDashboard() {
   ];
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="teacher" />}
-      topbar={(handleMenuClick) => <Topbar onMenuClick={handleMenuClick} />}
-    >
+    <>
       <Box sx={{ px: { xs: 1, md: 2 }, pb: 3, color: TEXT_DARK }}>
         {/* Header */}
         <Box
@@ -384,7 +378,7 @@ export default function TeacherDashboard() {
           </>
         )}
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 

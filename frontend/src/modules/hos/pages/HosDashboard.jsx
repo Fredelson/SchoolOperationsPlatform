@@ -8,11 +8,8 @@
 
 import { useEffect, useState } from "react";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
 
-import Sidebar from "../../../components/sidebar/Sidebar";
 
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 import DateFilter from "../../../components/common/DateFilter";
 
@@ -200,6 +197,8 @@ export default function HosDashboard() {
 
   useEffect(() => {
     fetchHosData();
+    // Dashboard loader intentionally runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================
@@ -344,12 +343,7 @@ export default function HosDashboard() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="hos" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <PageHeader
         title={`${user?.displayRole || "HOS"} Dashboard`}
         subtitle={`Welcome back, ${
@@ -435,6 +429,6 @@ export default function HosDashboard() {
         onReturn={handleReturn}
         onReject={handleReject}
       />
-    </DashboardLayout>
+    </>
   );
 }

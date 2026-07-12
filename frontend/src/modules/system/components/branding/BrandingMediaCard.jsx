@@ -99,7 +99,7 @@ const MEDIA_ITEMS = [
 // ============================================
 
 export default function BrandingMediaCard({ branding, refreshBranding }) {
-  const brandingData = branding?.branding || {};
+  const brandingData = useMemo(() => branding?.branding || {}, [branding?.branding]);
 
   const [selectedFiles, setSelectedFiles] = useState({});
   const [uploadingKey, setUploadingKey] = useState("");

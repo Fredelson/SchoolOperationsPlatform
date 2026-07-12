@@ -399,7 +399,7 @@ const getWorkspaceConfiguration = async (workspaceId) => {
       ISNULL(wm.IsEnabled,0) IsEnabled,ISNULL(wm.SortOrder,m.SortOrder) SortOrder
     FROM dbo.Modules m LEFT JOIN dbo.WorkspaceModules wm ON wm.ModuleId=m.ModuleId AND wm.WorkspaceId=@WorkspaceId
     ORDER BY ISNULL(wm.SortOrder,m.SortOrder),m.ModuleName;
-    SELECT mg.MenuGroupId,mg.GroupKey,mg.GroupName,mg.SortOrder,m.MenuId,m.ParentMenuId,m.MenuKey,m.MenuName,m.Route,m.Icon,m.PermissionId FROM dbo.MenuGroups mg JOIN dbo.MenuGroupItems mgi ON mgi.MenuGroupId=mg.MenuGroupId JOIN dbo.Menus m ON m.MenuId=mgi.MenuId WHERE mg.WorkspaceId=@WorkspaceId ORDER BY mg.SortOrder,mgi.SortOrder,m.SortOrder;
+    SELECT m.MenuId,m.MenuKey,m.MenuName,m.Route,m.Icon,m.PermissionId,m.ModuleId,COALESCE(wm.ParentMenuId,m.ParentMenuId) ParentMenuId,wm.GroupKey,wm.GroupName,wm.GroupSortOrder,wm.SortOrder,wm.IsEnabled,CONVERT(bit,CASE WHEN wm.WorkspaceMenuId IS NULL THEN 0 ELSE wm.IsVisible END) IsAssigned FROM dbo.Menus m LEFT JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@WorkspaceId ORDER BY ISNULL(wm.GroupSortOrder,999),ISNULL(wm.SortOrder,m.SortOrder),m.MenuName;
     SELECT b.*,ISNULL(wb.IsVisible,0) IsAssigned,ISNULL(wb.IsEnabled,0) IsEnabled FROM dbo.Buttons b LEFT JOIN dbo.WorkspaceButtons wb ON wb.ButtonId=b.ButtonId AND wb.WorkspaceId=@WorkspaceId ORDER BY b.ButtonName;
     SELECT w.*,ISNULL(ww.IsVisible,0) IsAssigned,ISNULL(ww.IsEnabled,0) IsEnabled FROM dbo.Widgets w LEFT JOIN dbo.WorkspaceWidgets ww ON ww.WidgetId=w.WidgetId AND ww.WorkspaceId=@WorkspaceId ORDER BY w.SortOrder,w.WidgetName;
     SELECT * FROM dbo.Dashboards WHERE WorkspaceId=@WorkspaceId;
@@ -414,6 +414,7 @@ const replaceAssignments = async (workspaceId, assignmentType, items) => {
     buttons: { table:"WorkspaceButtons", id:"ButtonId", extra:",IsVisible,IsEnabled,SortOrder", values:",@IsVisible,@IsEnabled,@SortOrder" },
     widgets: { table:"WorkspaceWidgets", id:"WidgetId", extra:",IsVisible,IsEnabled,SortOrder", values:",@IsVisible,@IsEnabled,@SortOrder" },
     profiles: { table:"WorkspaceRoles", id:"RoleId", extra:",IsDefault,CreatedAt", values:",@IsDefault,GETDATE()" },
+    navigation: { table:"WorkspaceMenus", id:"MenuId", extra:",GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder", values:",@GroupKey,@GroupName,@GroupSortOrder,@ParentMenuId,@IsVisible,@IsEnabled,@SortOrder" },
   };
   const definition=definitions[assignmentType];
   if (!definition) throw new Error("Unsupported workspace assignment type.");
@@ -423,7 +424,10 @@ const replaceAssignments = async (workspaceId, assignmentType, items) => {
     for (const item of items) {
       const request=transaction.request().input("WorkspaceId",sql.Int,workspaceId).input("ItemId",sql.Int,Number(item.id));
       if (assignmentType === "profiles") request.input("IsDefault",sql.Bit,item.isDefault!==false);
-      else request.input("IsVisible",sql.Bit,item.isVisible!==false).input("IsEnabled",sql.Bit,item.isEnabled!==false).input("SortOrder",sql.Int,Number(item.sortOrder||0));
+      else {
+        request.input("IsVisible",sql.Bit,item.isVisible!==false).input("IsEnabled",sql.Bit,item.isEnabled!==false).input("SortOrder",sql.Int,Number(item.sortOrder||0));
+        if(assignmentType === "navigation") request.input("GroupKey",sql.NVarChar(100),String(item.groupKey||"MAIN")).input("GroupName",sql.NVarChar(150),String(item.groupName||"Main")).input("GroupSortOrder",sql.Int,Number(item.groupSortOrder||0)).input("ParentMenuId",sql.Int,item.parentMenuId?Number(item.parentMenuId):null);
+      }
       await request.query(`INSERT dbo.${definition.table}(WorkspaceId,${definition.id}${definition.extra}) VALUES(@WorkspaceId,@ItemId${definition.values})`);
     }
     await transaction.commit(); return getWorkspaceConfiguration(workspaceId);
@@ -437,6 +441,34 @@ const getPreviewUser = async (userId) => {
       COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
     FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND u.IsActive=1 AND ISNULL(u.IsDeleted,0)=0;
   `);
+  return result.recordset[0];
+};
+const canPreviewWorkspace = async (actorUserId,targetWorkspaceId) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("ActorUserId",sql.Int,actorUserId).input("TargetWorkspaceId",sql.Int,targetWorkspaceId).query(`
+    DECLARE @ActorWorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
+    SELECT CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.WorkspaceModules actor JOIN dbo.WorkspaceModules target ON target.ModuleId=actor.ModuleId AND target.WorkspaceId=@TargetWorkspaceId AND target.IsVisible=1 AND target.IsEnabled=1 WHERE actor.WorkspaceId=@ActorWorkspaceId AND actor.IsVisible=1 AND actor.IsEnabled=1) THEN 1 ELSE 0 END) IsAllowed;
+  `);
+  return Boolean(result.recordset[0]?.IsAllowed);
+};
+const searchPreviewUsers = async (actorUserId,search="") => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("ActorUserId",sql.Int,actorUserId).input("Search",sql.NVarChar(150),`%${search}%`).query(`
+    DECLARE @IsSuper bit=CASE WHEN EXISTS(SELECT 1 FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@ActorUserId AND r.RoleKey='SuperAdmin') THEN 1 ELSE 0 END;
+    DECLARE @ActorWorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
+    SELECT TOP 20 u.UserId,u.EmployeeId,u.FullName,r.RoleKey,r.RoleName,COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
+    FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId
+    WHERE u.IsActive=1 AND ISNULL(u.IsDeleted,0)=0 AND (u.FullName LIKE @Search OR u.EmployeeId LIKE @Search OR ISNULL(u.SchoolEmail,'') LIKE @Search)
+    AND (@IsSuper=1 OR (r.RoleKey NOT IN ('SuperAdmin','PlatformAdmin') AND EXISTS(
+      SELECT 1 FROM dbo.WorkspaceModules actor JOIN dbo.WorkspaceModules target ON target.ModuleId=actor.ModuleId AND target.WorkspaceId=COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) AND target.IsVisible=1 AND target.IsEnabled=1
+      WHERE actor.WorkspaceId=@ActorWorkspaceId AND actor.IsVisible=1 AND actor.IsEnabled=1)))
+    ORDER BY u.FullName;
+  `);
+  return result.recordset;
+};
+const setWorkspaceDashboard = async (workspaceId,dashboardId,defaultRoute) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("WorkspaceId",sql.Int,workspaceId).input("DashboardId",sql.Int,dashboardId).input("DefaultRoute",sql.NVarChar(300),defaultRoute).query(`UPDATE dbo.Workspaces SET DefaultDashboardId=@DashboardId,DefaultRoute=@DefaultRoute,UpdatedAt=GETDATE() OUTPUT INSERTED.* WHERE WorkspaceId=@WorkspaceId`);
   return result.recordset[0];
 };
 
@@ -477,6 +509,9 @@ module.exports = {
   getWorkspaceConfiguration,
   replaceAssignments,
   getPreviewUser,
+  canPreviewWorkspace,
+  searchPreviewUsers,
+  setWorkspaceDashboard,
   createLiveSession,
   closeLiveSession,
   touchLiveSession,

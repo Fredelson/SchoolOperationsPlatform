@@ -7,9 +7,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 import {
@@ -189,12 +186,7 @@ export default function SubjectAllocationPage() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar role="hos" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <PageHeader
         title="Subject Allocation"
         subtitle="Distribute your department monthly print limit to subjects"
@@ -375,6 +367,6 @@ export default function SubjectAllocationPage() {
           )}
         </CardContent>
       </Card>
-    </DashboardLayout>
+    </>
   );
 }

@@ -283,9 +283,10 @@ async function findUserById(userId) {
         FullName,
         EmployeeId,
         SchoolEmail,
-        IsActive
-      FROM dbo.Users
-      WHERE UserId = @UserId;
+        u.IsActive,
+        r.RoleKey
+      FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId
+      WHERE u.UserId = @UserId;
     `,
     [{ name: "UserId", type: sql.Int, value: userId }]
   );

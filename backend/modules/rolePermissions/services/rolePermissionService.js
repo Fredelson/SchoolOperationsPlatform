@@ -40,6 +40,11 @@ function validateRolePermissionId(rolePermissionId) {
   return parsed;
 }
 
+const SUPER_ADMIN_ONLY_PERMISSIONS=new Set(["workspace.configure","workspace.live_mode","workspace.live_as_user"]);
+function enforceProtectedPermission(role,permission){
+  if(SUPER_ADMIN_ONLY_PERMISSIONS.has(permission.PermissionKey)&&role.RoleKey!=="SuperAdmin") throw new BadRequestError("This permission is permanently restricted to Super Admin.");
+}
+
 // ============================================================
 // Get All Role Permissions
 // ============================================================
@@ -93,6 +98,7 @@ const createRolePermission = async (payload) => {
   if (!permission) {
     throw new BadRequestError("Invalid Permission.");
   }
+  enforceProtectedPermission(role,permission);
 
   const duplicate = await rolePermissionRepository.findRolePermissionPair(
     data.roleId,
@@ -140,6 +146,7 @@ const updateRolePermission = async (rolePermissionId, payload) => {
   if (!permission) {
     throw new BadRequestError("Invalid Permission.");
   }
+  enforceProtectedPermission(role,permission);
 
   const duplicate = await rolePermissionRepository.findRolePermissionPair(
     data.roleId,

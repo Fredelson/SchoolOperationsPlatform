@@ -36,13 +36,8 @@ import PaperPurchases from "../pages/PaperPurchases";
 import PaperDistributions from "../pages/PaperDistributions";
 import MasterData from "../pages/MasterData";
 import AccessLevelsPage from "../pages/AccessLevelsPage";
+import DepartmentLimitsPage from "../pages/DepartmentLimitsPage";
 import { UserManagement } from "../../admin/pages";
-
-// ============================================
-// Shared Placeholder Page
-// ============================================
-
-import SuperAdminComingSoon from "../../super-admin/pages/SuperAdminComingSoon";
 
 // ============================================
 // Printing Admin Routes
@@ -92,22 +87,6 @@ const printingAdminLayoutRoutes = [
       // Printing Management
       // ======================================
 
-      {
-        path: "queue",
-        element: permitted("printing.queue.view",
-          <SuperAdminComingSoon
-            title="Print Queue"
-          />),
-      },
-
-      {
-        path: "completed",
-        element: permitted("printing.queue.view",
-          <SuperAdminComingSoon
-            title="Completed Jobs"
-          />),
-      },
-
       // ======================================
       // Paper Inventory
       // ======================================
@@ -115,6 +94,10 @@ const printingAdminLayoutRoutes = [
       {
         path: "paper-stock",
         element: permitted("printing.inventory.view",<PaperStockPage />),
+      },
+      {
+        path: "department-limits",
+        element: permitted("printing.limits.view",<DepartmentLimitsPage />),
       },
 
       {
@@ -137,58 +120,13 @@ const printingAdminLayoutRoutes = [
       // ======================================
 
       {
-        path: "tickets",
-        element: (
-          <SuperAdminComingSoon
-            title="IT Service Desk"
-          />
-        ),
-      },
-
-      {
         path: "assets",
         element: <Navigate to="/it-assets/assets" replace />,
-      },
-
-      {
-        path: "academic",
-        element: (
-          <SuperAdminComingSoon
-            title="Academic Operations"
-          />
-        ),
-      },
-
-      {
-        path: "observations",
-        element: (
-          <SuperAdminComingSoon
-            title="Teacher Observations"
-          />
-        ),
-      },
-
-      {
-        path: "communication",
-        element: (
-          <SuperAdminComingSoon
-            title="Communication Center"
-          />
-        ),
       },
 
       // ======================================
       // Administration
       // ======================================
-
-      {
-        path: "reports",
-        element: (
-          <SuperAdminComingSoon
-            title="Reports & Analytics"
-          />
-        ),
-      },
 
       {
         path: "user-management",

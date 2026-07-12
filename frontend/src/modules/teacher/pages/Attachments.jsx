@@ -31,9 +31,6 @@ import TagIcon from "@mui/icons-material/Tag";
 import ArticleIcon from "@mui/icons-material/Article";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { useAuth } from "../../../context/AuthContext";
@@ -95,7 +92,7 @@ const getFileMeta = (fileName = "") => {
 export default function Attachments() {
   usePageTitle("Attachments");
 
-  const { token, user } = useAuth();
+  const { token } = useAuth();
 
   const [attachments, setAttachments] = useState([]);
   const [search, setSearch] = useState("");
@@ -192,15 +189,7 @@ export default function Attachments() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "User"}
-          role={user?.role || user?.Role || "Teacher"}
-        />
-      }
-    >
+    <>
       <Box sx={{ pb: 4 }}>
         {/* Page Header */}
         <Box
@@ -421,7 +410,7 @@ export default function Attachments() {
           </CardContent>
         </Card>
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 

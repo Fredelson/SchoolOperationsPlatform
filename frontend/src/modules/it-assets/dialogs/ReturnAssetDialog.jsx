@@ -26,7 +26,7 @@ const ReturnAssetDialog = ({
 }) => {
   const [form, setForm] = useState(initialForm);
 
-  const conditions = lookups.conditions || [];
+  const conditions = useMemo(() => lookups.conditions || [], [lookups.conditions]);
   const issueTypes = lookups.issueTypes || [];
 
   useEffect(() => {

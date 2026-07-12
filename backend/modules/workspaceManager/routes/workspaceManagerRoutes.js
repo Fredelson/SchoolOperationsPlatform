@@ -17,9 +17,11 @@ router.use(protect);
 router.get("/lookups", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaceLookups);
 router.get("/:id/configuration", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaceConfiguration);
 router.get("/preview/users/:userId", requirePermission("workspace.preview_user"), workspaceManagerController.getUserPreview);
+router.get("/preview/users", requirePermission("workspace.preview_user"), workspaceManagerController.searchPreviewUsers);
 router.post("/live-mode", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.startLiveMode);
 router.post("/live-mode/:sessionId/exit", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.exitLiveMode);
 router.put("/:id/assignments/:assignmentType", requirePermission("workspace.configure"), workspaceManagerController.replaceAssignments);
+router.put("/:id/dashboard", requirePermission("workspace.configure"), workspaceManagerController.setWorkspaceDashboard);
 
 router.get("/", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaces);
 

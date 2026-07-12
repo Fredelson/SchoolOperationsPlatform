@@ -26,11 +26,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 
-import { useAuth } from "../../../context/AuthContext";
 
 import {
   getPurchases,
@@ -38,7 +34,6 @@ import {
 } from "../../../services/purchaseService";
 
 export default function PaperPurchases() {
-  const { user } = useAuth();
 
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,15 +112,7 @@ export default function PaperPurchases() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || user?.FullName || "Printing Admin"}
-          role={user?.displayRole || user?.role || user?.Role || "Printing Admin"}
-        />
-      }
-    >
+    <>
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" fontWeight={700} mb={3}>
           Paper Purchases
@@ -254,6 +241,6 @@ export default function PaperPurchases() {
           </TableContainer>
         )}
       </Box>
-    </DashboardLayout>
+    </>
   );
 }

@@ -2,7 +2,7 @@
 // ARAB UNITY SCHOOL
 // Printing Admin - Department Limits Page
 // Allows Printing Admin to assign monthly sheet limits
-// Includes DashboardLayout, Sidebar, and Topbar
+// Rendered inside the shared PlatformLayout.
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -30,15 +30,11 @@ import { AccountBalance, Save, Refresh } from "@mui/icons-material";
 // ============================================
 // Layout Components
 // ============================================
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 import PageHeader from "../../../components/common/PageHeader";
 
 // ============================================
 // Auth Context
 // ============================================
-import { useAuth } from "../../../context/AuthContext";
 
 // ============================================
 // API Services
@@ -58,7 +54,6 @@ export default function DepartmentLimitsPage() {
   // ============================================
   // Logged-in User
   // ============================================
-  const { user } = useAuth();
 
   // ============================================
   // Current Month and Year
@@ -197,22 +192,7 @@ export default function DepartmentLimitsPage() {
   };
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={
-        <Topbar
-          userName={
-            user?.fullName || user?.FullName || "Printing Admin"
-          }
-          role={
-            user?.displayRole ||
-            user?.role ||
-            user?.Role ||
-            "Printing Admin"
-          }
-        />
-      }
-    >
+    <>
       <Box sx={{ p: 3 }}>
         {/* Page Header */}
         <PageHeader
@@ -472,6 +452,6 @@ export default function DepartmentLimitsPage() {
           </CardContent>
         </Card>
       </Box>
-    </DashboardLayout>
+    </>
   );
 }

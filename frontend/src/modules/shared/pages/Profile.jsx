@@ -12,9 +12,6 @@ import WorkIcon from "@mui/icons-material/Work";
 import SchoolIcon from "@mui/icons-material/School";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 
-import DashboardLayout from "../../../components/layout/DashboardLayout";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import Topbar from "../../../components/common/Topbar";
 
 import { useAuth } from "../../../context/AuthContext";
 
@@ -39,12 +36,7 @@ export default function Profile() {
     .toUpperCase();
 
   return (
-    <DashboardLayout
-      sidebar={<Sidebar />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
-    >
+    <>
       <Box sx={{ maxWidth: 900, mx: "auto" }}>
         <Typography
           sx={{
@@ -108,7 +100,7 @@ export default function Profile() {
           </CardContent>
         </Card>
       </Box>
-    </DashboardLayout>
+    </>
   );
 }
 
