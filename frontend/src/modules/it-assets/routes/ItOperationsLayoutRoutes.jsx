@@ -9,7 +9,7 @@ import { Navigate } from "react-router-dom";
 import PlatformLayout from "@layouts/PlatformLayout";
 import PermissionRoute from "../../../routes/PermissionRoute";
 
-const permitted=(key,element)=><PermissionRoute permissionKey={key}>{element}</PermissionRoute>;
+const permitted=(key,element,requireVisible=true)=><PermissionRoute permissionKey={key} requireVisible={requireVisible}>{element}</PermissionRoute>;
 
 import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetDetails from "../pages/AssetDetails";
@@ -102,7 +102,7 @@ const itOperationsLayoutRoutes = [
 
       {
         path: ":assetId",
-        element: permitted("it_assets.assets.view",<AssetDetails />),
+        element: permitted("it_assets.assets.view",<AssetDetails />,false),
       },
     ],
   },

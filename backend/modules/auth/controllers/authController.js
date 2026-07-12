@@ -73,8 +73,10 @@ async function getMe(req, res, next) {
     next(error);
   }
 }
+async function changePassword(req,res,next){try{const result=await authService.changePassword(req.user.id,req.body?.currentPassword,req.body?.newPassword);return res.status(200).json({success:true,message:"Password changed successfully.",data:result});}catch(error){next(error);}}
 
 module.exports = {
   login,
   getMe,
+  changePassword,
 };

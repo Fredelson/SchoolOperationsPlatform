@@ -12,7 +12,7 @@ const {
 } = require("../../controllers/superadmin/permissionController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const { requirePermission } = require("../../middleware/permissionMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // ============================================
 // Get logged-in user's final permissions

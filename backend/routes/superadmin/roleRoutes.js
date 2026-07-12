@@ -14,7 +14,7 @@ const {
 } = require("../../controllers/superadmin/roleController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const { requirePermission } = require("../../middleware/permissionMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/superadmin/roles
 router.get(

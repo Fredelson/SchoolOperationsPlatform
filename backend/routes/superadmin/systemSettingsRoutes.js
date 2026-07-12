@@ -12,7 +12,7 @@ const {
 } = require("../../controllers/superadmin/systemSettingsController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const { requirePermission } = require("../../middleware/permissionMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/superadmin/system-settings
 router.get(

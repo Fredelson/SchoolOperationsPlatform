@@ -26,8 +26,9 @@ import { Navigate } from "react-router-dom";
 import ProtectedRoute from "../../../routes/ProtectedRoute";
 import PlatformLayout from "../../../platform/layout/PlatformLayout";
 import PermissionRoute from "../../../routes/PermissionRoute";
+import Profile from "../../shared/pages/Profile";
 
-const permitted=(key,element)=><PermissionRoute permissionKey={key}>{element}</PermissionRoute>;
+const permitted=(key,element)=><PermissionRoute permissionKey={key} requireVisible>{element}</PermissionRoute>;
 
 import PrintingAdminDashboard from "../pages/PrintingAdminDashboard";
 import PaperStockPage from "../pages/PaperStockPage";
@@ -142,6 +143,7 @@ const printingAdminLayoutRoutes = [
         path: "access-levels",
         element: permitted("printing.access-levels.view",<AccessLevelsPage />),
       },
+      { path: "profile", element: <Profile /> },
     ],
   },
 ];

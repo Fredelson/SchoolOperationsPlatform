@@ -132,6 +132,14 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("activeWorkspace");
+    localStorage.removeItem("activeWorkspaceId");
+    localStorage.removeItem("previewMode");
+    sessionStorage.removeItem("liveModeToken");
+    sessionStorage.removeItem("liveModeSessionId");
+    sessionStorage.removeItem("previewMode");
+    sessionStorage.clear();
 
     setToken(null);
     setUser(null);

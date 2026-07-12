@@ -13,7 +13,7 @@ const {
 } = require("../../controllers/superadmin/buttonController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const { requirePermission } = require("../../middleware/permissionMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/superadmin/buttons
 router.get(

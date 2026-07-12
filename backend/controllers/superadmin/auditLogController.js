@@ -12,22 +12,26 @@ const getAuditLogs = async (req, res) => {
   try {
     const pool = await poolPromise;
 
-    const result = await pool.request().query(`
-      SELECT TOP 200
-        a.AuditId,
+    const role=String(req.user?.roleKey||req.user?.role||"").replace(/[\s_-]/g,"").toLowerCase();
+    const limit=Math.min(Math.max(Number(req.query.limit)||50,1),200);
+    const result = await pool.request().input("Limit",sql.Int,limit).input("UserId",sql.Int,req.user?.id||req.user?.UserId).input("IsSuper",sql.Bit,role==="superadmin").query(`
+      SELECT TOP (@Limit)
+        a.AuditLogId,
         a.UserId,
         u.FullName,
         u.EmployeeId,
-        a.Action,
-        a.ModuleKey,
-        a.RecordId,
+        a.ActionType,
+        a.EntityType,
+        a.EntityId,
+        a.Description,
         a.OldValue,
         a.NewValue,
-        a.IPAddress,
+        a.IpAddress,
         a.CreatedAt
-      FROM AuditLogs a
-      LEFT JOIN Users u
+      FROM dbo.AuditLogs a
+      LEFT JOIN dbo.Users u
         ON u.UserId = a.UserId
+      WHERE @IsSuper=1 OR a.UserId=@UserId
       ORDER BY a.CreatedAt DESC;
     `);
 

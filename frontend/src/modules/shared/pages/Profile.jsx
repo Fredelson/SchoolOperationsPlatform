@@ -1,147 +1,19 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// Reusable Profile Page
-// Works for Teacher, HOD, HOS, Printing Admin, SuperAdmin
-// ============================================
+import {useState} from "react";
+import {Alert,Avatar,Button,Card,CardContent,Dialog,DialogActions,DialogContent,DialogTitle,Divider,Grid,Stack,TextField,Typography} from "@mui/material";
+import {useNavigate} from "react-router-dom";
+import {useAuth} from "../../../context/AuthContext";
+import {changeCurrentPassword} from "../../../services/authService";
 
-import { Box, Card, CardContent, Typography, Avatar, Divider } from "@mui/material";
-
-import BadgeIcon from "@mui/icons-material/Badge";
-import EmailIcon from "@mui/icons-material/Email";
-import WorkIcon from "@mui/icons-material/Work";
-import SchoolIcon from "@mui/icons-material/School";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-
-
-import { useAuth } from "../../../context/AuthContext";
-
-const AUS_GREEN = "#2E6F37";
-const AUS_NAVY = "#29233D";
-
-export default function Profile() {
-  const { user } = useAuth();
-
-  const fullName = user?.fullName || user?.FullName || "Unknown User";
-  const employeeId = user?.employeeId || user?.EmployeeId || "N/A";
-  const email = user?.schoolEmail || user?.SchoolEmail || user?.email || "N/A";
-  const role = user?.displayRole || user?.role || user?.Role || "Guest";
-  const department = user?.departmentName || user?.DepartmentName || "N/A";
-  const subject = user?.subjectName || user?.SubjectName || user?.subject || "N/A";
-
-  const initials = fullName
-    .split(" ")
-    .map((name) => name[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-
-  return (
-    <>
-      <Box sx={{ maxWidth: 900, mx: "auto" }}>
-        <Typography
-          sx={{
-            fontSize: 30,
-            fontWeight: 900,
-            color: AUS_NAVY,
-            mb: 3,
-          }}
-        >
-          My Profile
-        </Typography>
-
-        <Card
-          sx={{
-            borderRadius: 4,
-            boxShadow: "0 10px 30px rgba(15,23,42,0.08)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header */}
-          <Box
-            sx={{
-              p: 4,
-              bgcolor: AUS_GREEN,
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              gap: 3,
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 90,
-                height: 90,
-                bgcolor: AUS_NAVY,
-                fontSize: 34,
-                fontWeight: 900,
-              }}
-            >
-              {initials}
-            </Avatar>
-
-            <Box>
-              <Typography sx={{ fontSize: 28, fontWeight: 900 }}>
-                {fullName}
-              </Typography>
-
-              <Typography sx={{ fontSize: 16, opacity: 0.9 }}>
-                {role}
-              </Typography>
-            </Box>
-          </Box>
-
-          <CardContent sx={{ p: 4 }}>
-            <ProfileRow icon={<BadgeIcon />} label="Employee ID" value={employeeId} />
-            <ProfileRow icon={<EmailIcon />} label="School Email" value={email} />
-            <ProfileRow icon={<WorkIcon />} label="Role" value={role} />
-            <ProfileRow icon={<SchoolIcon />} label="Department" value={department} />
-            <ProfileRow icon={<SchoolIcon />} label="Subject" value={subject} />
-            <ProfileRow icon={<VerifiedUserIcon />} label="Account Status" value="Active" />
-          </CardContent>
-        </Card>
-      </Box>
-    </>
-  );
-}
-
-function ProfileRow({ icon, label, value }) {
-  return (
-    <>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          py: 2,
-          gap: 2,
-        }}
-      >
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            bgcolor: "rgba(46,111,55,0.08)",
-            color: AUS_GREEN,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {icon}
-        </Box>
-
-        <Box>
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {label}
-          </Typography>
-
-          <Typography sx={{ fontSize: 16, fontWeight: 700 }}>
-            {value}
-          </Typography>
-        </Box>
-      </Box>
-
-      <Divider />
-    </>
-  );
+export default function Profile(){
+  const{user,logout}=useAuth(),navigate=useNavigate(),[open,setOpen]=useState(false),[form,setForm]=useState({currentPassword:"",newPassword:"",confirmPassword:""}),[message,setMessage]=useState(null),[busy,setBusy]=useState(false);
+  const fullName=user?.fullName||"Unknown User",assignments=user?.assignmentScopes||[],workspace=user?.defaultWorkspaceName||user?.defaultWorkspaceRoute||"Not assigned";
+  const doLogout=()=>{logout();navigate("/login",{replace:true});};
+  const changePassword=async()=>{if(form.newPassword!==form.confirmPassword){setMessage({severity:"error",text:"New password confirmation does not match."});return;}setBusy(true);try{await changeCurrentPassword({currentPassword:form.currentPassword,newPassword:form.newPassword});setMessage({severity:"success",text:"Password changed successfully."});setForm({currentPassword:"",newPassword:"",confirmPassword:""});setOpen(false);}catch(e){setMessage({severity:"error",text:e.response?.data?.message||e.message});}finally{setBusy(false)}};
+  return <Stack spacing={3} sx={{maxWidth:1000,mx:"auto"}}>
+    <Stack direction={{xs:"column",sm:"row"}} justifyContent="space-between" gap={2}><Stack direction="row" spacing={2} alignItems="center"><Avatar sx={{width:72,height:72,fontSize:28}}>{fullName.split(/\s+/).map(x=>x[0]).slice(0,2).join("")}</Avatar><div><Typography variant="h4" fontWeight={800}>{fullName}</Typography><Typography color="text.secondary">{user?.roleName||user?.role}</Typography></div></Stack><Stack direction="row" gap={1} alignItems="center"><Button variant="outlined" onClick={()=>setOpen(true)}>Change Password</Button><Button color="error" variant="contained" onClick={doLogout}>Logout</Button></Stack></Stack>
+    {message&&<Alert severity={message.severity} onClose={()=>setMessage(null)}>{message.text}</Alert>}
+    <Card><CardContent><Typography variant="h6" gutterBottom>Account</Typography><Grid container spacing={2}>{[["Employee ID",user?.employeeId],["Email",user?.email],["Role",user?.roleName||user?.role],["Active Workspace",workspace]].map(([label,value])=><Grid item xs={12} sm={6} key={label}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography fontWeight={700}>{value||"N/A"}</Typography></Grid>)}</Grid></CardContent></Card>
+    <Card><CardContent><Typography variant="h6">Assignments</Typography><Divider sx={{my:1.5}}/>{assignments.length?<Stack spacing={1}>{assignments.map((a,i)=><Stack key={`${a.UserAssignmentId}-${a.ScopeType}-${a.ScopeEntityId}-${i}`} direction={{xs:"column",sm:"row"}} justifyContent="space-between"><Typography fontWeight={700}>{a.AssignmentName||a.AssignmentKey}</Typography><Typography color="text.secondary">{a.ScopeType?`${a.ScopeType} #${a.ScopeEntityId}`:"Workspace assignment"}{a.IsPrimary?" · Primary":""}</Typography></Stack>)}</Stack>:<Typography color="text.secondary">No active assignments.</Typography>}</CardContent></Card>
+    <Dialog open={open} onClose={()=>!busy&&setOpen(false)} fullWidth maxWidth="xs"><DialogTitle>Change Password</DialogTitle><DialogContent><Stack spacing={2} sx={{pt:1}}><TextField type="password" label="Current password" value={form.currentPassword} onChange={e=>setForm({...form,currentPassword:e.target.value})}/><TextField type="password" label="New password" helperText="At least 10 characters with uppercase, lowercase, and a number." value={form.newPassword} onChange={e=>setForm({...form,newPassword:e.target.value})}/><TextField type="password" label="Confirm new password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})}/></Stack></DialogContent><DialogActions><Button onClick={()=>setOpen(false)} disabled={busy}>Cancel</Button><Button variant="contained" onClick={changePassword} disabled={busy||!form.currentPassword||!form.newPassword}>{busy?"Changing...":"Change Password"}</Button></DialogActions></Dialog>
+  </Stack>;
 }

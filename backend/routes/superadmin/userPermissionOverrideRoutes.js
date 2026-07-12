@@ -14,7 +14,7 @@ const {
 } = require("../../controllers/superadmin/userPermissionOverrideController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const { requirePermission } = require("../../middleware/permissionMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/superadmin/user-overrides/:userId
 router.get(

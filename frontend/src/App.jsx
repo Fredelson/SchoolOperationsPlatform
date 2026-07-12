@@ -60,6 +60,7 @@ import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayou
 import itOperationsLayoutRoutes from "./modules/it-assets/routes/ItOperationsLayoutRoutes";
 import LiveModeHomePage from "./modules/super-admin/workspaces/pages/LiveModeHomePage";
 import libraryLayoutRoutes from "./modules/library/routes/LibraryLayoutRoutes";
+import PlatformAdminDashboard from "./modules/platform-admin/pages/PlatformAdminDashboard";
 
 // ============================================
 // Shared
@@ -76,13 +77,12 @@ const hodRoles = ["HOD", "SuperAdmin"];
 const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
 
 const printingRoles = ["PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
-const itOperationsRoles = ["ITAdmin", "PlatformAdmin", "SuperAdmin"];
+const itOperationsRoles = ["ITAdmin", "PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
 const libraryRoles = ["Librarian", "LibraryAdmin", "SuperAdmin"];
 const platformAdminRoles = [
   "SuperAdmin",
   "Super Admin",
   "super-admin",
-  "PrintingAdmin",
   "PlatformAdmin",
 ];
 
@@ -109,7 +109,8 @@ const superAdminRoutePermissions = {
 const guardChildRoute=(parentPath,childPath,element)=>{
   if(!parentPath?.startsWith("/super-admin")) return element;
   const permissionKey=superAdminRoutePermissions[childPath];
-  return permissionKey?<PermissionRoute permissionKey={permissionKey}>{element}</PermissionRoute>:element;
+  const secondary=new Set(["settings","audit-logs","workspace-preview"]);
+  return permissionKey?<PermissionRoute permissionKey={permissionKey} requireVisible={!secondary.has(childPath)}>{element}</PermissionRoute>:element;
 };
 
 // ============================================
@@ -169,6 +170,7 @@ export default function App() {
 
       {/* Platform Foundation */}
       <Route path="/live-workspace" element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}><Route index element={<LiveModeHomePage />}/></Route>
+      <Route path="/platform-admin" element={<ProtectedRoute allowedRoles={["PlatformAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace/>}/><Route path="dashboard" element={<PermissionRoute permissionKey="platform_admin.dashboard.view"><PlatformAdminDashboard/></PermissionRoute>}/><Route path="profile" element={<Profile/>}/></Route>
       <Route
         path="/system"
         element={
@@ -177,7 +179,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="branding" element={<OrganizationBranding />} />
+        <Route path="branding" element={<PermissionRoute permissionKey="Branding.View" requireVisible><OrganizationBranding /></PermissionRoute>} />
       </Route>
 
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={teacherRoles}><PlatformLayout /></ProtectedRoute>}>

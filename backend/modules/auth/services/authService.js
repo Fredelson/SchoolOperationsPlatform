@@ -60,6 +60,7 @@ function buildUserPayload(user) {
     sectionName: user.SectionName,
 
     defaultWorkspaceId: user.DefaultWorkspaceId,
+    defaultWorkspaceName: user.DefaultWorkspaceName,
     defaultWorkspaceRoute: user.DefaultWorkspaceRoute,
     legacyRole: user.LegacyRole,
     mustChangePassword: user.MustChangePassword,
@@ -170,8 +171,16 @@ async function getMe(userId) {
 
   return buildUserPayload(user);
 }
+async function changePassword(userId,currentPassword,newPassword){
+  if(!currentPassword||!newPassword)throw Object.assign(new Error("Current and new passwords are required."),{statusCode:400});
+  if(String(newPassword).length<10||!/[A-Z]/.test(newPassword)||!/[a-z]/.test(newPassword)||!/\d/.test(newPassword))throw Object.assign(new Error("New password must be at least 10 characters and include uppercase, lowercase, and a number."),{statusCode:400});
+  const currentHash=await authRepository.getPasswordHash(userId);if(!currentHash||!await bcrypt.compare(currentPassword,currentHash))throw Object.assign(new Error("Current password is incorrect."),{statusCode:400});
+  if(await bcrypt.compare(newPassword,currentHash))throw Object.assign(new Error("New password must be different from the current password."),{statusCode:400});
+  await authRepository.updatePassword(userId,await bcrypt.hash(newPassword,12));return{changed:true};
+}
 
 module.exports = {
   login,
   getMe,
+  changePassword,
 };

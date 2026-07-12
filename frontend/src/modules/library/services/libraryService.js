@@ -1,1 +1,11 @@
-import api from "@services/api";export const getLibraryDashboard=async()=>(await api.get("/library/dashboard")).data?.data;export const getLibraryResource=async(resource,params)=>(await api.get(`/library/${resource}`,{params})).data?.data;
+import api from "@services/api";
+export const getLibraryDashboard=async()=>(await api.get("/library/dashboard")).data?.data;
+export const getLibraryResource=async(resource,params)=>(await api.get(`/library/${resource}`,{params})).data?.data;
+export const getLibraryLookups=async()=>(await api.get("/library/lookups")).data?.data;
+export const createLibraryResource=async(resource,payload)=>(await api.post(`/library/${resource}`,payload)).data?.data;
+export const updateLibraryResource=async(resource,id,payload)=>(await api.put(`/library/${resource}/${id}`,payload)).data?.data;
+export const setLibraryResourceActive=async(resource,id,active)=>(await api.patch(`/library/${resource}/${id}/${active?"activate":"deactivate"}`)).data?.data;
+export const issueLibraryLoan=async(payload)=>(await api.post("/library/loans/issue",payload)).data?.data;
+export const returnLibraryLoan=async(id,payload)=>(await api.patch(`/library/loans/${id}/return`,payload)).data?.data;
+export const renewLibraryLoan=async(id,payload)=>(await api.patch(`/library/loans/${id}/renew`,payload)).data?.data;
+export const updateLibraryReservationStatus=async(id,status)=>(await api.patch(`/library/reservations/${id}/status`,{status})).data?.data;

@@ -26,3 +26,4 @@ export const getCurrentUser = async () => {
 
   return payload?.user || payload?.data?.user || payload?.data || payload;
 };
+export const changeCurrentPassword=async(payload)=>(await api.post("/auth/change-password",payload)).data;

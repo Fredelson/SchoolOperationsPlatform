@@ -34,8 +34,8 @@ export function PermissionProvider({ children }) {
     }
     try {
       setLoading(true);
-      const [response,controlsResponse] = await Promise.all([api.get("/permission-resolver/me"),api.get("/navigation/runtime-controls")]);
-      setProfile({...response?.data?.data || response?.data || {},runtimeControls:controlsResponse?.data?.data||{buttons:[],widgets:[]}});
+      const [response,controlsResponse,sidebarResponse] = await Promise.all([api.get("/permission-resolver/me"),api.get("/navigation/runtime-controls"),api.get("/navigation/sidebar")]);
+      setProfile({...response?.data?.data || response?.data || {},runtimeControls:controlsResponse?.data?.data||{buttons:[],widgets:[]},sidebar:sidebarResponse?.data?.data||[]});
     } catch (error) {
       console.error("Failed to resolve permissions:", error);
       setProfile({ permissions: [], allowedPermissionKeys: [] });
@@ -55,6 +55,7 @@ export function PermissionProvider({ children }) {
     const isSuperAdmin=normalizedRole==="superadmin";
     const allowedButtons=new Set((profile.runtimeControls?.buttons||[]).map(item=>item.ButtonKey));
     const allowedWidgets=new Set((profile.runtimeControls?.widgets||[]).map(item=>item.WidgetKey));
+    const visibleRoutes=new Set();const collect=items=>(items||[]).forEach(item=>{if(item.path||item.route)visibleRoutes.add(item.path||item.route);collect(item.children)});(profile.sidebar||[]).forEach(section=>collect(section.items));
     const actionKeys = {
       View: "it_assets.assets.view", Assign: "it_assets.assignment.manage",
       Borrow: "it_assets.borrow.manage",
@@ -77,6 +78,7 @@ export function PermissionProvider({ children }) {
         : allowed.has(`${moduleName}.${actionName}`),
       hasButtonAccess: (key) => allowedButtons.has(key),
       hasWidgetAccess: (key) => allowedWidgets.has(key),
+      isRouteVisible: (route) => visibleRoutes.has(route),
       isFeatureEnabled: () => true,
       reloadPermissions: loadPermissions,
     };

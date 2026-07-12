@@ -73,6 +73,7 @@ import {
 
 import AuditLogs from "../audit-logs/pages/AuditLogs";
 import SystemSettings from "../settings/pages/SystemSettings";
+import Profile from "../../shared/pages/Profile";
 
 // ============================================
 // Super Admin Nested Layout Routes
@@ -189,6 +190,7 @@ const superAdminLayoutRoutes = [
         path: "settings",
         element: <SystemSettings />,
       },
+      { path: "profile", element: <Profile /> },
     ],
   },
 ];

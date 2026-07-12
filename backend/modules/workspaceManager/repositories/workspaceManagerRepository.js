@@ -438,7 +438,7 @@ const getPreviewUser = async (userId) => {
   const pool=await poolPromise;
   const result=await pool.request().input("UserId",sql.Int,userId).query(`
     SELECT u.UserId,u.FullName,u.EmployeeId,u.DefaultWorkspaceId,u.DepartmentId,u.SectionId,u.SchoolId,r.RoleId,r.RoleKey,r.RoleName,
-      COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
+      COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=u.UserId AND ua.IsActive=1 AND ua.IsPrimary=1),u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
     FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND u.IsActive=1 AND ISNULL(u.IsDeleted,0)=0;
   `);
   return result.recordset[0];
@@ -446,7 +446,7 @@ const getPreviewUser = async (userId) => {
 const canPreviewWorkspace = async (actorUserId,targetWorkspaceId) => {
   const pool=await poolPromise;
   const result=await pool.request().input("ActorUserId",sql.Int,actorUserId).input("TargetWorkspaceId",sql.Int,targetWorkspaceId).query(`
-    DECLARE @ActorWorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
+    DECLARE @ActorWorkspaceId int=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@ActorUserId AND ua.IsActive=1 AND ua.IsPrimary=1),(SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
     SELECT CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.WorkspaceModules actor JOIN dbo.WorkspaceModules target ON target.ModuleId=actor.ModuleId AND target.WorkspaceId=@TargetWorkspaceId AND target.IsVisible=1 AND target.IsEnabled=1 WHERE actor.WorkspaceId=@ActorWorkspaceId AND actor.IsVisible=1 AND actor.IsEnabled=1) THEN 1 ELSE 0 END) IsAllowed;
   `);
   return Boolean(result.recordset[0]?.IsAllowed);
@@ -455,12 +455,12 @@ const searchPreviewUsers = async (actorUserId,search="") => {
   const pool=await poolPromise;
   const result=await pool.request().input("ActorUserId",sql.Int,actorUserId).input("Search",sql.NVarChar(150),`%${search}%`).query(`
     DECLARE @IsSuper bit=CASE WHEN EXISTS(SELECT 1 FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@ActorUserId AND r.RoleKey='SuperAdmin') THEN 1 ELSE 0 END;
-    DECLARE @ActorWorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
-    SELECT TOP 20 u.UserId,u.EmployeeId,u.FullName,r.RoleKey,r.RoleName,COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
+    DECLARE @ActorWorkspaceId int=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@ActorUserId AND ua.IsActive=1 AND ua.IsPrimary=1),(SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@ActorUserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@ActorUserId ORDER BY wr.IsDefault DESC));
+    SELECT TOP 20 u.UserId,u.EmployeeId,u.FullName,r.RoleKey,r.RoleName,COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=u.UserId AND ua.IsActive=1 AND ua.IsPrimary=1),u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) WorkspaceId
     FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId
     WHERE u.IsActive=1 AND ISNULL(u.IsDeleted,0)=0 AND (u.FullName LIKE @Search OR u.EmployeeId LIKE @Search OR ISNULL(u.SchoolEmail,'') LIKE @Search)
     AND (@IsSuper=1 OR (r.RoleKey NOT IN ('SuperAdmin','PlatformAdmin') AND EXISTS(
-      SELECT 1 FROM dbo.WorkspaceModules actor JOIN dbo.WorkspaceModules target ON target.ModuleId=actor.ModuleId AND target.WorkspaceId=COALESCE(u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) AND target.IsVisible=1 AND target.IsEnabled=1
+      SELECT 1 FROM dbo.WorkspaceModules actor JOIN dbo.WorkspaceModules target ON target.ModuleId=actor.ModuleId AND target.WorkspaceId=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=u.UserId AND ua.IsActive=1 AND ua.IsPrimary=1),u.DefaultWorkspaceId,(SELECT TOP 1 WorkspaceId FROM dbo.WorkspaceRoles WHERE RoleId=u.RoleId ORDER BY IsDefault DESC)) AND target.IsVisible=1 AND target.IsEnabled=1
       WHERE actor.WorkspaceId=@ActorWorkspaceId AND actor.IsVisible=1 AND actor.IsEnabled=1)))
     ORDER BY u.FullName;
   `);

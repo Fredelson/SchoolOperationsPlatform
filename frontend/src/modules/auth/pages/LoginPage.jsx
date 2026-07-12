@@ -46,39 +46,12 @@ export default function LoginPage() {
   // Redirect User Based On Role
   // ============================================
 
-  const redirectByRole = (role, defaultWorkspaceRoute) => {
+  const redirectToWorkspace = (defaultWorkspaceRoute) => {
     if (defaultWorkspaceRoute?.startsWith("/")) {
-      navigate(defaultWorkspaceRoute);
+      navigate(defaultWorkspaceRoute,{replace:true});
       return;
     }
-    switch (role) {
-      case "Teacher":
-      case "TeachingAssistant":
-        navigate("/teacher/dashboard");
-        break;
-
-      case "HOD":
-        navigate("/hod/dashboard");
-        break;
-
-      case "HOS":
-      case "Secretary":
-        navigate("/hos/dashboard");
-        break;
-
-      case "PrintingAdmin":
-      case "Admin":
-        navigate("/printing/dashboard");
-        break;
-
-      case "SuperAdmin":
-        navigate("/super-admin/dashboard");
-        break;
-
-      default:
-        navigate("/login");
-        break;
-    }
+    throw new Error("No active workspace landing page is configured for this account.");
   };
 
   // ============================================
@@ -91,10 +64,10 @@ export default function LoginPage() {
 
     try {
       const loggedUser = await login(employeeId.trim(), password.trim());
-      redirectByRole(loggedUser.role, loggedUser.defaultWorkspaceRoute);
+      redirectToWorkspace(loggedUser.defaultWorkspaceRoute);
     } catch (err) {
       console.error(err);
-      setError("Invalid employee ID or password");
+      setError(err.response?.data?.message||err.message||"Unable to sign in.");
     }
   };
 
