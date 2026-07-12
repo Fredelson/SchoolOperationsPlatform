@@ -219,6 +219,7 @@ const getWorkspaceConfiguration = async (workspaceId) => {
 
 const replaceAssignments = async (workspaceId, assignmentType, body) => {
   await getWorkspaceById(workspaceId);
+  if(!["modules","buttons","widgets","profiles"].includes(assignmentType)) throwError("Unsupported workspace assignment type.");
   const items=Array.isArray(body?.items)?body.items:[];
   const ids=items.map(item=>Number(item.id));
   if (ids.some(id=>!Number.isInteger(id)||id<=0)) throwError("Every assignment requires a valid ID.");

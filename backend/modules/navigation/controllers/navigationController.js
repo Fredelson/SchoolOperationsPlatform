@@ -18,7 +18,9 @@ const getMySidebar = asyncHandler(async (req, res) => {
     sidebar
   );
 });
+const getMyRuntimeControls=asyncHandler(async(req,res)=>sendSuccess(res,"Runtime controls retrieved successfully.",await navigationService.getMyRuntimeControls(req.user)));
 
 module.exports = {
   getMySidebar,
+  getMyRuntimeControls,
 };

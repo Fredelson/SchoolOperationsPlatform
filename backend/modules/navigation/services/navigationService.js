@@ -170,10 +170,16 @@ async function getMySidebar(user) {
   return sidebar;
 }
 
+async function getMyRuntimeControls(user) {
+  const userId=user?.UserId||user?.userId||user?.id;
+  return navigationRepository.getRuntimeControlsForUser(userId);
+}
+
 // ============================================
 // Service Exports
 // ============================================
 
 module.exports = {
   getMySidebar,
+  getMyRuntimeControls,
 };

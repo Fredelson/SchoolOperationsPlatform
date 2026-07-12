@@ -26,11 +26,13 @@ import { usePermissions } from "../../context/PermissionContext";
 export default function ActionButton({
   children,
   actionKey,
+  buttonKey,
   disabled = false,
   ...props
 }) {
-  const { hasPermission, loading } = usePermissions();
+  const { hasPermission, hasButtonAccess, loading } = usePermissions();
   if (actionKey && (loading || !hasPermission(actionKey))) return null;
+  if (buttonKey && (loading || !hasButtonAccess(buttonKey))) return null;
 
   return (
     <Button

@@ -25,6 +25,9 @@ import { Navigate } from "react-router-dom";
 
 import ProtectedRoute from "../../../routes/ProtectedRoute";
 import PlatformLayout from "../../../platform/layout/PlatformLayout";
+import PermissionRoute from "../../../routes/PermissionRoute";
+
+const permitted=(key,element)=><PermissionRoute permissionKey={key}>{element}</PermissionRoute>;
 
 import PrintingAdminDashboard from "../pages/PrintingAdminDashboard";
 import PaperStockPage from "../pages/PaperStockPage";
@@ -82,7 +85,7 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "dashboard",
-        element: <PrintingAdminDashboard />,
+        element: permitted("printing.dashboard.view",<PrintingAdminDashboard />),
       },
 
       // ======================================
@@ -91,20 +94,18 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "queue",
-        element: (
+        element: permitted("printing.queue.view",
           <SuperAdminComingSoon
             title="Print Queue"
-          />
-        ),
+          />),
       },
 
       {
         path: "completed",
-        element: (
+        element: permitted("printing.queue.view",
           <SuperAdminComingSoon
             title="Completed Jobs"
-          />
-        ),
+          />),
       },
 
       // ======================================
@@ -113,22 +114,22 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "paper-stock",
-        element: <PaperStockPage />,
+        element: permitted("printing.inventory.view",<PaperStockPage />),
       },
 
       {
         path: "inventory-transactions",
-        element: <InventoryTransactions />,
+        element: permitted("printing.inventory.view",<InventoryTransactions />),
       },
 
       {
         path: "purchases",
-        element: <PaperPurchases />,
+        element: permitted("printing.purchases.view",<PaperPurchases />),
       },
 
       {
         path: "distributions",
-        element: <PaperDistributions />,
+        element: permitted("printing.distributions.view",<PaperDistributions />),
       },
 
       // ======================================
@@ -146,11 +147,7 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "assets",
-        element: (
-          <SuperAdminComingSoon
-            title="IT Asset Management"
-          />
-        ),
+        element: <Navigate to="/it-assets/assets" replace />,
       },
 
       {
@@ -195,17 +192,17 @@ const printingAdminLayoutRoutes = [
 
       {
         path: "user-management",
-        element: <UserManagement />,
+        element: permitted("users.view",<UserManagement />),
       },
 
       {
         path: "master-data",
-        element: <MasterData />,
+        element: permitted("printing.master-data.view",<MasterData />),
       },
 
       {
         path: "access-levels",
-        element: <AccessLevelsPage />,
+        element: permitted("printing.access-levels.view",<AccessLevelsPage />),
       },
     ],
   },

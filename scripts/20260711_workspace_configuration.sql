@@ -87,6 +87,21 @@ MERGE dbo.WorkspaceModules t USING (
 ) s ON t.WorkspaceId=s.WorkspaceId AND t.ModuleId=s.ModuleId
 WHEN NOT MATCHED THEN INSERT(WorkspaceId,ModuleId,SortOrder) VALUES(s.WorkspaceId,s.ModuleId,s.SortOrder);
 
+;WITH RequiredModuleMap AS (
+ SELECT w.WorkspaceId,m.ModuleId,m.SortOrder FROM dbo.Workspaces w CROSS JOIN dbo.Modules m WHERE
+ (w.WorkspaceKey='super-admin') OR
+ (w.WorkspaceKey IN ('platform-admin','printing-admin') AND m.ModuleKey IN ('printing_management','it_operations','it_service_desk','reports_analytics')) OR
+ (w.WorkspaceKey IN ('teacher','hod','hos-secretary') AND m.ModuleKey IN ('academic_operations','printing_management','communication','communication_center')) OR
+ (w.WorkspaceKey='library-admin' AND m.ModuleKey IN ('communication','communication_center'))
+)
+MERGE dbo.WorkspaceModules t USING RequiredModuleMap s ON t.WorkspaceId=s.WorkspaceId AND t.ModuleId=s.ModuleId
+WHEN NOT MATCHED THEN INSERT(WorkspaceId,ModuleId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.ModuleId,1,1,s.SortOrder);
+
+MERGE dbo.WorkspaceButtons t USING (SELECT wm.WorkspaceId,b.ButtonId,b.ButtonId SortOrder FROM dbo.WorkspaceModules wm JOIN dbo.Buttons b ON b.ModuleId=wm.ModuleId WHERE wm.IsVisible=1 AND wm.IsEnabled=1) s ON t.WorkspaceId=s.WorkspaceId AND t.ButtonId=s.ButtonId
+WHEN NOT MATCHED THEN INSERT(WorkspaceId,ButtonId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.ButtonId,1,1,s.SortOrder);
+MERGE dbo.WorkspaceWidgets t USING (SELECT wm.WorkspaceId,w.WidgetId,w.SortOrder FROM dbo.WorkspaceModules wm JOIN dbo.Widgets w ON w.ModuleId=wm.ModuleId WHERE wm.IsVisible=1 AND wm.IsEnabled=1) s ON t.WorkspaceId=s.WorkspaceId AND t.WidgetId=s.WidgetId
+WHEN NOT MATCHED THEN INSERT(WorkspaceId,WidgetId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.WidgetId,1,1,s.SortOrder);
+
 DECLARE @FoundationModuleId int=(SELECT TOP 1 ModuleId FROM dbo.Modules WHERE ModuleKey='platform_foundation');
 DECLARE @WorkspacePermissions TABLE(PermissionKey nvarchar(200),PermissionName nvarchar(200));
 INSERT @WorkspacePermissions VALUES

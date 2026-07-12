@@ -34,8 +34,8 @@ export function PermissionProvider({ children }) {
     }
     try {
       setLoading(true);
-      const response = await api.get("/permission-resolver/me");
-      setProfile(response?.data?.data || response?.data || {});
+      const [response,controlsResponse] = await Promise.all([api.get("/permission-resolver/me"),api.get("/navigation/runtime-controls")]);
+      setProfile({...response?.data?.data || response?.data || {},runtimeControls:controlsResponse?.data?.data||{buttons:[],widgets:[]}});
     } catch (error) {
       console.error("Failed to resolve permissions:", error);
       setProfile({ permissions: [], allowedPermissionKeys: [] });
@@ -51,6 +51,8 @@ export function PermissionProvider({ children }) {
 
   const value = useMemo(() => {
     const allowed = new Set(profile.allowedPermissionKeys || []);
+    const allowedButtons=new Set((profile.runtimeControls?.buttons||[]).map(item=>item.ButtonKey));
+    const allowedWidgets=new Set((profile.runtimeControls?.widgets||[]).map(item=>item.WidgetKey));
     const actionKeys = {
       View: "it_assets.assets.view", Assign: "it_assets.assignment.manage",
       Borrow: "it_assets.borrow.manage",
@@ -62,7 +64,7 @@ export function PermissionProvider({ children }) {
     return {
       loading,
       permissions: profile.permissions || [], modules: [], actions: profile.allowedPermissionKeys || [],
-      widgets: [], featureFlags: {},
+      buttons: profile.runtimeControls?.buttons||[], widgets: profile.runtimeControls?.widgets||[], featureFlags: {},
       hasRole: (role) => [user?.Role, user?.role, profile.user?.roleKey].includes(role),
       hasPermission: (key) => allowed.has(key),
       hasModuleAccess: (moduleName) => moduleName === "ITAssets"
@@ -71,7 +73,8 @@ export function PermissionProvider({ children }) {
       hasActionAccess: (moduleName, actionName) => moduleName === "ITAssets"
         ? allowed.has(actionKeys[actionName])
         : allowed.has(`${moduleName}.${actionName}`),
-      hasWidgetAccess: () => true,
+      hasButtonAccess: (key) => allowedButtons.has(key),
+      hasWidgetAccess: (key) => allowedWidgets.has(key),
       isFeatureEnabled: () => true,
       reloadPermissions: loadPermissions,
     };

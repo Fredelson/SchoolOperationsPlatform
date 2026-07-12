@@ -160,10 +160,25 @@ async function getSidebarMenusForUser(userId) {
   return rows(result);
 }
 
+async function getRuntimeControlsForUser(userId) {
+  const result=await executeQuery(`
+    DECLARE @WorkspaceId int=COALESCE((SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC),(SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1));
+    DECLARE @IsSuper bit=CASE WHEN EXISTS(SELECT 1 FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND r.RoleKey='SuperAdmin') THEN 1 ELSE 0 END;
+    SELECT b.ButtonId,b.ButtonKey,b.ButtonName,b.ModuleId,p.PermissionKey,wb.IsEnabled,wb.SortOrder FROM dbo.WorkspaceButtons wb JOIN dbo.Buttons b ON b.ButtonId=wb.ButtonId LEFT JOIN dbo.Permissions p ON p.PermissionId=b.PermissionId
+    WHERE wb.WorkspaceId=@WorkspaceId AND wb.IsVisible=1 AND wb.IsEnabled=1 AND (@IsSuper=1 OR b.PermissionId IS NULL OR COALESCE((SELECT TOP 1 CONVERT(int,IsAllowed) FROM dbo.UserPermissionOverrides WHERE UserId=@UserId AND PermissionId=b.PermissionId),(SELECT TOP 1 CONVERT(int,rp.IsAllowed) FROM dbo.Users u JOIN dbo.RolePermissions rp ON rp.RoleId=u.RoleId WHERE u.UserId=@UserId AND rp.PermissionId=b.PermissionId),0)=1)
+    ORDER BY wb.SortOrder,b.ButtonName;
+    SELECT w.WidgetId,w.WidgetKey,w.WidgetName,w.WidgetType,w.DataSourceKey,w.ModuleId,p.PermissionKey,ww.SortOrder FROM dbo.WorkspaceWidgets ww JOIN dbo.Widgets w ON w.WidgetId=ww.WidgetId LEFT JOIN dbo.Permissions p ON p.PermissionId=w.PermissionId
+    WHERE ww.WorkspaceId=@WorkspaceId AND ww.IsVisible=1 AND ww.IsEnabled=1 AND (@IsSuper=1 OR w.PermissionId IS NULL OR COALESCE((SELECT TOP 1 CONVERT(int,IsAllowed) FROM dbo.UserPermissionOverrides WHERE UserId=@UserId AND PermissionId=w.PermissionId),(SELECT TOP 1 CONVERT(int,rp.IsAllowed) FROM dbo.Users u JOIN dbo.RolePermissions rp ON rp.RoleId=u.RoleId WHERE u.UserId=@UserId AND rp.PermissionId=w.PermissionId),0)=1)
+    ORDER BY ww.SortOrder,w.WidgetName;
+  `,[{name:"UserId",type:sql.Int,value:userId}]);
+  return {buttons:result.recordsets?.[0]||[],widgets:result.recordsets?.[1]||[]};
+}
+
 // ============================================
 // Repository Exports
 // ============================================
 
 module.exports = {
   getSidebarMenusForUser,
+  getRuntimeControlsForUser,
 };

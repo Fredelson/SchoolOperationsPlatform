@@ -7,6 +7,9 @@
 import { Navigate } from "react-router-dom";
 
 import PlatformLayout from "@layouts/PlatformLayout";
+import PermissionRoute from "../../../routes/PermissionRoute";
+
+const permitted=(key,element)=><PermissionRoute permissionKey={key}>{element}</PermissionRoute>;
 
 import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetDetails from "../pages/AssetDetails";
@@ -34,12 +37,12 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "dashboard",
-        element: <ItAssetDashboard />,
+        element: permitted("it_assets.dashboard.view",<ItAssetDashboard />),
       },
 
       {
         path: "assets",
-        element: <AssetExplorer />,
+        element: permitted("it_assets.assets.view",<AssetExplorer />),
       },
 
       // ============================================
@@ -53,42 +56,42 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "asset-tag-printer",
-        element: <AssetTagPrinter />,
+        element: permitted("it_assets.tags.print",<AssetTagPrinter />),
       },
 
       {
         path: "assignments",
-        element: <Assignments />,
+        element: permitted("it_assets.assignment.manage",<Assignments />),
       },
 
       {
         path: "borrow",
-        element: <BorrowedAssets />,
+        element: permitted("it_assets.borrow.manage",<BorrowedAssets />),
       },
 
       {
         path: "transfers",
-        element: <Transfers />,
+        element: permitted("it_assets.transfer.manage",<Transfers />),
       },
 
       {
         path: "issues",
-        element: <Issues />,
+        element: permitted("it_assets.issues.manage",<Issues />),
       },
 
       {
         path: "maintenance",
-        element: <Maintenance />,
+        element: permitted("it_assets.maintenance.manage",<Maintenance />),
       },
 
       {
         path: "disposals",
-        element: <Disposals />,
+        element: permitted("it_assets.disposal.manage",<Disposals />),
       },
 
       {
         path: "reports",
-        element: <Reports />,
+        element: permitted("it_assets.reports.view",<Reports />),
       },
 
       // ============================================
@@ -99,7 +102,7 @@ const itOperationsLayoutRoutes = [
 
       {
         path: ":assetId",
-        element: <AssetDetails />,
+        element: permitted("it_assets.assets.view",<AssetDetails />),
       },
     ],
   },
