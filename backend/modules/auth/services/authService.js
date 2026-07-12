@@ -143,6 +143,7 @@ async function login(employeeId, password) {
 
   await authRepository.markLoginSuccess(user.UserId);
   user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
+  if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return {
     token: generateToken(user),
@@ -168,6 +169,7 @@ async function getMe(userId) {
     throw error;
   }
   user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
+  if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return buildUserPayload(user);
 }

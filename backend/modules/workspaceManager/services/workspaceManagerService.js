@@ -44,6 +44,9 @@ const normalizePayload = (body) => {
     throwError("Workspace key, workspace name, and visibility status are required.");
   }
 
+  const workspaceCategory=String(body.workspaceCategory||"CORE").trim().toUpperCase();
+  if(!["CORE","ASSIGNMENT","LEGACY"].includes(workspaceCategory))throwError("Workspace category must be CORE, ASSIGNMENT, or LEGACY.");
+
   return {
     workspaceKey,
     workspaceName,
@@ -54,6 +57,7 @@ const normalizePayload = (body) => {
     isDefault: normalizeBoolean(body.isDefault, false),
     sortOrder: Number(body.sortOrder || 0),
     isActive: normalizeBoolean(body.isActive, true),
+    workspaceCategory,
   };
 };
 
@@ -77,12 +81,8 @@ const getWorkspaces = async (query, actor = null) => {
         : query.isDefault === "false"
         ? false
         : null,
-    isActive:
-      query.isActive === "true"
-        ? true
-        : query.isActive === "false"
-        ? false
-        : null,
+    isActive: query.status === "all" ? null : query.status === "inactive" ? false : query.isActive === "false" ? false : true,
+    workspaceCategory:["CORE","ASSIGNMENT","LEGACY"].includes(String(query.category||"").toUpperCase())?String(query.category).toUpperCase():null,
     page: actor&&actorRole!=="superadmin"?1:page,
     limit: actor&&actorRole!=="superadmin"?1000:limit,
   };

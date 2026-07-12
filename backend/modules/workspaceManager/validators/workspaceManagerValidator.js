@@ -26,6 +26,8 @@ const validateWorkspacePayload = (req, res, next) => {
     });
   }
 
+  if(req.body.workspaceCategory&&!['CORE','ASSIGNMENT','LEGACY'].includes(String(req.body.workspaceCategory).toUpperCase()))return res.status(400).json({success:false,message:"Workspace category must be CORE, ASSIGNMENT, or LEGACY."});
+
   next();
 };
 

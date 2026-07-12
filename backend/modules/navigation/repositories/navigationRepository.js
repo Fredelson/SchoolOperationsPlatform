@@ -52,8 +52,8 @@ async function getSidebarMenusForUser(userId) {
   const result = await executeQuery(
     `
     DECLARE @WorkspaceId int = COALESCE(
-      (SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),
-      (SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),
+      (SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 JOIN dbo.Workspaces aw ON aw.WorkspaceId=atw.WorkspaceId AND aw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),
+      (SELECT u.DefaultWorkspaceId FROM dbo.Users u JOIN dbo.Workspaces dw ON dw.WorkspaceId=u.DefaultWorkspaceId AND dw.IsActive=1 WHERE u.UserId=@UserId),
       (SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId
        JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId AND w.IsActive=1
        WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,w.SortOrder),
@@ -157,7 +157,7 @@ async function getSidebarMenusForUser(userId) {
 
 async function getRuntimeControlsForUser(userId) {
   const result=await executeQuery(`
-    DECLARE @WorkspaceId int=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),(SELECT DefaultWorkspaceId FROM dbo.Users WHERE UserId=@UserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC),(SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1));
+    DECLARE @WorkspaceId int=COALESCE((SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 JOIN dbo.Workspaces aw ON aw.WorkspaceId=atw.WorkspaceId AND aw.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1),(SELECT u.DefaultWorkspaceId FROM dbo.Users u JOIN dbo.Workspaces dw ON dw.WorkspaceId=u.DefaultWorkspaceId AND dw.IsActive=1 WHERE u.UserId=@UserId),(SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId JOIN dbo.Workspaces rw ON rw.WorkspaceId=wr.WorkspaceId AND rw.IsActive=1 WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,rw.SortOrder));
     DECLARE @IsSuper bit=CASE WHEN EXISTS(SELECT 1 FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE u.UserId=@UserId AND r.RoleKey='SuperAdmin') THEN 1 ELSE 0 END;
     SELECT b.ButtonId,b.ButtonKey,b.ButtonName,b.ModuleId,p.PermissionKey,wb.IsEnabled,wb.SortOrder FROM dbo.WorkspaceButtons wb JOIN dbo.Buttons b ON b.ButtonId=wb.ButtonId LEFT JOIN dbo.Permissions p ON p.PermissionId=b.PermissionId
     WHERE wb.WorkspaceId=@WorkspaceId AND wb.IsVisible=1 AND wb.IsEnabled=1 AND (@IsSuper=1 OR b.PermissionId IS NULL OR COALESCE((SELECT TOP 1 CONVERT(int,IsAllowed) FROM dbo.UserPermissionOverrides WHERE UserId=@UserId AND PermissionId=b.PermissionId),(SELECT TOP 1 CONVERT(int,rp.IsAllowed) FROM dbo.Users u JOIN dbo.RolePermissions rp ON rp.RoleId=u.RoleId WHERE u.UserId=@UserId AND rp.PermissionId=b.PermissionId),0)=1)

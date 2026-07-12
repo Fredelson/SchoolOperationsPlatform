@@ -18,6 +18,7 @@ const getWorkspaces = async ({
   visibilityStatusId = null,
   isDefault = null,
   isActive = null,
+  workspaceCategory = null,
   page = 1,
   limit = 10,
 }) => {
@@ -30,6 +31,7 @@ const getWorkspaces = async ({
   request.input("VisibilityStatusId", sql.Int, visibilityStatusId);
   request.input("IsDefault", sql.Bit, isDefault);
   request.input("IsActive", sql.Bit, isActive);
+  request.input("WorkspaceCategory",sql.NVarChar(30),workspaceCategory);
   request.input("Offset", sql.Int, offset);
   request.input("Limit", sql.Int, limit);
 
@@ -49,6 +51,7 @@ const getWorkspaces = async ({
       w.CreatedAt,
       w.UpdatedAt,
       w.IsActive
+      ,w.WorkspaceCategory
     FROM dbo.Workspaces w
     INNER JOIN dbo.FeatureVisibilityStatuses fvs
       ON w.VisibilityStatusId = fvs.VisibilityStatusId
@@ -64,6 +67,7 @@ const getWorkspaces = async ({
       AND (@VisibilityStatusId IS NULL OR w.VisibilityStatusId = @VisibilityStatusId)
       AND (@IsDefault IS NULL OR w.IsDefault = @IsDefault)
       AND (@IsActive IS NULL OR w.IsActive = @IsActive)
+      AND (@WorkspaceCategory IS NULL OR w.WorkspaceCategory=@WorkspaceCategory)
     ORDER BY
       w.SortOrder ASC,
       w.WorkspaceName ASC
@@ -85,7 +89,8 @@ const getWorkspaces = async ({
       )
       AND (@VisibilityStatusId IS NULL OR w.VisibilityStatusId = @VisibilityStatusId)
       AND (@IsDefault IS NULL OR w.IsDefault = @IsDefault)
-      AND (@IsActive IS NULL OR w.IsActive = @IsActive);
+      AND (@IsActive IS NULL OR w.IsActive = @IsActive)
+      AND (@WorkspaceCategory IS NULL OR w.WorkspaceCategory=@WorkspaceCategory);
   `);
 
   return {
@@ -119,7 +124,8 @@ const getWorkspaceById = async (workspaceId) => {
         w.SortOrder,
         w.CreatedAt,
         w.UpdatedAt,
-        w.IsActive
+        w.IsActive,
+        w.WorkspaceCategory
       FROM dbo.Workspaces w
       INNER JOIN dbo.FeatureVisibilityStatuses fvs
         ON w.VisibilityStatusId = fvs.VisibilityStatusId
@@ -198,6 +204,7 @@ const createWorkspace = async (data) => {
       .input("IsDefault", sql.Bit, data.isDefault)
       .input("SortOrder", sql.Int, data.sortOrder)
       .input("IsActive", sql.Bit, data.isActive)
+      .input("WorkspaceCategory",sql.NVarChar(30),data.workspaceCategory)
       .query(`
         INSERT INTO dbo.Workspaces
         (
@@ -211,7 +218,8 @@ const createWorkspace = async (data) => {
           SortOrder,
           CreatedAt,
           UpdatedAt,
-          IsActive
+          IsActive,
+          WorkspaceCategory
         )
         OUTPUT INSERTED.*
         VALUES
@@ -226,7 +234,8 @@ const createWorkspace = async (data) => {
           @SortOrder,
           GETDATE(),
           NULL,
-          @IsActive
+          @IsActive,
+          @WorkspaceCategory
         );
       `);
 
@@ -275,6 +284,7 @@ const updateWorkspace = async (workspaceId, data) => {
       .input("IsDefault", sql.Bit, data.isDefault)
       .input("SortOrder", sql.Int, data.sortOrder)
       .input("IsActive", sql.Bit, data.isActive)
+      .input("WorkspaceCategory",sql.NVarChar(30),data.workspaceCategory)
       .query(`
         UPDATE dbo.Workspaces
         SET
@@ -288,6 +298,7 @@ const updateWorkspace = async (workspaceId, data) => {
           SortOrder = @SortOrder,
           UpdatedAt = GETDATE(),
           IsActive = @IsActive
+          ,WorkspaceCategory=@WorkspaceCategory
         OUTPUT INSERTED.*
         WHERE WorkspaceId = @WorkspaceId;
       `);
@@ -404,8 +415,9 @@ const getWorkspaceConfiguration = async (workspaceId) => {
     SELECT w.*,ISNULL(ww.IsVisible,0) IsAssigned,ISNULL(ww.IsEnabled,0) IsEnabled FROM dbo.Widgets w LEFT JOIN dbo.WorkspaceWidgets ww ON ww.WidgetId=w.WidgetId AND ww.WorkspaceId=@WorkspaceId ORDER BY w.SortOrder,w.WidgetName;
     SELECT * FROM dbo.Dashboards WHERE WorkspaceId=@WorkspaceId;
     SELECT r.RoleId,r.RoleKey,r.RoleName,CONVERT(bit,CASE WHEN wr.WorkspaceRoleId IS NULL THEN 0 ELSE 1 END) IsAssigned FROM dbo.Roles r LEFT JOIN dbo.WorkspaceRoles wr ON wr.RoleId=r.RoleId AND wr.WorkspaceId=@WorkspaceId ORDER BY r.RoleName;
+    SELECT a.AssignmentTypeId,a.AssignmentKey,a.AssignmentName,atw.IsActive,CONVERT(bit,CASE WHEN atw.AssignmentTypeWorkspaceId IS NULL THEN 0 ELSE 1 END) IsAssigned FROM dbo.AssignmentTypes a LEFT JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=a.AssignmentTypeId AND atw.WorkspaceId=@WorkspaceId ORDER BY a.SortOrder,a.AssignmentName;
   `);
-  return { workspace:result.recordsets[0][0],modules:result.recordsets[1],navigation:result.recordsets[2],buttons:result.recordsets[3],widgets:result.recordsets[4],dashboards:result.recordsets[5],profiles:result.recordsets[6] };
+  return { workspace:result.recordsets[0][0],modules:result.recordsets[1],navigation:result.recordsets[2],buttons:result.recordsets[3],widgets:result.recordsets[4],dashboards:result.recordsets[5],profiles:result.recordsets[6],assignmentTypes:result.recordsets[7] };
 };
 
 const replaceAssignments = async (workspaceId, assignmentType, items) => {

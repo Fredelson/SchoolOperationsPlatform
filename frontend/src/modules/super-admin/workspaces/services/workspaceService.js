@@ -1,7 +1,7 @@
 import api from "@services/api";
 
-export async function listWorkspaces() {
-  const response = await api.get("/workspace-manager", { params: { limit: 100 } });
+export async function listWorkspaces(params={status:"active"}) {
+  const response = await api.get("/workspace-manager", { params: { limit: 100,...params } });
   return response.data?.data || [];
 }
 
@@ -9,6 +9,7 @@ export async function getWorkspaceConfiguration(id) {
   const response = await api.get(`/workspace-manager/${id}/configuration`);
   return response.data?.data;
 }
+export async function updateWorkspace(id,payload){const response=await api.put(`/workspace-manager/${id}`,payload);return response.data?.data;}
 
 export async function saveWorkspaceAssignments(id, type, items) {
   const response=await api.put(`/workspace-manager/${id}/assignments/${type}`,{items});
