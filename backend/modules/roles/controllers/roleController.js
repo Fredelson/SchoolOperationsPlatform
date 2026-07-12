@@ -51,6 +51,8 @@ const getRoles = asyncHandler(async (req, res) => {
 
 });
 
+const getMainRoles = asyncHandler(async (req,res) => sendSuccess(res,"Main roles retrieved successfully.",await roleService.getMainRoles()));
+
 // ============================================================
 // Get Role By ID
 // ============================================================
@@ -154,6 +156,7 @@ const deleteRole = asyncHandler(async (req, res) => {
 module.exports = {
 
     getRoles,
+    getMainRoles,
     getRoleById,
 
     createRole,

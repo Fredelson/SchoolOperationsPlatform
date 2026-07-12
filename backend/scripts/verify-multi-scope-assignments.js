@@ -48,7 +48,7 @@ async function main() {
     assert(history.length === 3 && history.filter((x) => x.ScopeVersion === 1).length === 2, "Scope history was not preserved.");
 
     const profile = await authRepository.findActiveUserById(userId);
-    assert(profile.DefaultWorkspaceRoute === "/year-leader/dashboard", "Workspace was not resolved from the Year Leader assignment type.");
+    assert(profile.DefaultWorkspaceRoute === "/year-leader/dashboard", `Workspace resolved ${profile.DefaultWorkspaceRoute} instead of /year-leader/dashboard for user ${userId}.`);
     const permissionScopes = await permissionRepository.getActiveAssignmentScopes(userId);
     assert(permissionScopes.some((x) => x.UserAssignmentId === assignmentId && x.ScopeEntityId === years[1]), "Permission resolver did not receive the active Year Group scope.");
     const sidebar = await navigationService.getMySidebar({ UserId: userId });

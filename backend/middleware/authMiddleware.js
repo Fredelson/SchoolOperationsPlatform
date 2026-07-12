@@ -79,7 +79,17 @@ const authorizeRoles = (...roles) => {
     }
 
     // Check user role against allowed roles
-    if (!roles.includes(req.user.role)) {
+    const assignmentKeys = new Set((req.user.assignmentScopes || []).map((item) => item.AssignmentKey));
+    const compatibilityAssignments = {
+      HOD: "HOD",
+      HOS: "HOS",
+      Secretary: "SECRETARY",
+      Librarian: "LIBRARIAN",
+      LibraryAdmin: "LIBRARY_ADMIN",
+      TeachingAssistant: "TEACHING_ASSISTANT",
+    };
+    const assignmentMatches = roles.some((role) => compatibilityAssignments[role] && assignmentKeys.has(compatibilityAssignments[role]));
+    if (!roles.includes(req.user.role) && !assignmentMatches) {
       return res.status(403).json({
         success: false,
         message: "Access denied. You do not have permission.",

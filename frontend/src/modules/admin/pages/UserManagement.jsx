@@ -5,6 +5,7 @@
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Alert,
@@ -34,6 +35,7 @@ import {
   ToggleOff,
   ToggleOn,
   UploadFile,
+  AssignmentInd,
 } from "@mui/icons-material";
 
 import { AppPageHeader } from "../../../platform/ui";
@@ -50,19 +52,13 @@ import {
   downloadExcelUserTemplate,
 } from "../../../services/userService";
 
-import {
-  getDepartments,
-  getSubjects,
-  getRoles,
-} from "../../../services/lookupService";
+import { getRoles } from "../../../services/lookupService";
 
 const initialForm = {
   fullName: "",
   employeeId: "",
   schoolEmail: "",
   role: "Teacher",
-  departmentId: "",
-  subject: "",
 };
 
 const getUserId = (user) =>
@@ -74,9 +70,8 @@ const getUserId = (user) =>
   user?.UserID;
 
 export default function UserManagement() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [subjects, setSubjects] = useState([]);
   const [roles, setRoles] = useState([]);
 
   const [search, setSearch] = useState("");
@@ -118,12 +113,7 @@ export default function UserManagement() {
 
   const loadLookups = async () => {
     try {
-      const deptData = await getDepartments();
-      const subjectData = await getSubjects();
       const roleData = await getRoles();
-
-      setDepartments(deptData.departments || deptData.data || deptData || []);
-      setSubjects(subjectData.subjects || subjectData.data || subjectData || []);
       setRoles(roleData.roles || roleData.data || roleData || []);
     } catch (error) {
       console.error("Load lookup error:", error);
@@ -155,16 +145,6 @@ export default function UserManagement() {
     });
   }, [users, search, roleFilter]);
 
-  const showDepartment = [
-    "Teacher",
-    "TeachingAssistant",
-    "HOD",
-    "HOS",
-    "Secretary",
-  ].includes(form.role);
-
-  const showSubject = ["HOD"].includes(form.role);
-
   const handleAdd = () => {
     setEditingUser(null);
     setForm(initialForm);
@@ -182,8 +162,6 @@ export default function UserManagement() {
       employeeId: user.EmployeeId || user.employeeId || "",
       schoolEmail: user.SchoolEmail || user.schoolEmail || "",
       role: user.Role || user.role || user.RoleName || "Teacher",
-      departmentId: user.DepartmentId || user.departmentId || "",
-      subject: user.Subject || user.subject || "",
     });
 
     setOpen(true);
@@ -193,16 +171,6 @@ export default function UserManagement() {
     setForm({
       ...form,
       role,
-      departmentId: [
-        "Teacher",
-        "TeachingAssistant",
-        "HOD",
-        "HOS",
-        "Secretary",
-      ].includes(role)
-        ? form.departmentId
-        : "",
-      subject: role === "HOD" ? form.subject : "",
     });
   };
 
@@ -218,8 +186,6 @@ export default function UserManagement() {
         employeeId: form.employeeId,
         schoolEmail: form.schoolEmail,
         role: form.role,
-        departmentId: showDepartment ? form.departmentId || null : null,
-        subject: showSubject ? form.subject || null : null,
       };
 
       if (editingUser) {
@@ -326,7 +292,7 @@ export default function UserManagement() {
     <Box>
       <AppPageHeader
         title="User Management"
-        subtitle="Manage teachers, HOD, HOS, admin, and printing users"
+        subtitle="Manage platform users and their main access roles"
       />
 
       <Paper
@@ -513,9 +479,8 @@ export default function UserManagement() {
                 <TableCell>User</TableCell>
                 <TableCell>Employee ID</TableCell>
                 <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Subject</TableCell>
+                <TableCell>Main Role</TableCell>
+                <TableCell>Assignment Summary</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -528,8 +493,7 @@ export default function UserManagement() {
                 const employeeId = user.EmployeeId || user.employeeId || "-";
                 const schoolEmail = user.SchoolEmail || user.schoolEmail || "-";
                 const role = user.Role || user.role || user.RoleName || "-";
-                const department = user.DepartmentName || user.departmentName || "-";
-                const subject = user.Subject || user.subject || "-";
+                const assignmentSummary = user.AssignmentSummary || user.assignmentSummary || "None";
                 const isActive = user.IsActive ?? user.isActive;
 
                 return (
@@ -545,8 +509,7 @@ export default function UserManagement() {
                       <Chip label={role} size="small" />
                     </TableCell>
 
-                    <TableCell>{department}</TableCell>
-                    <TableCell>{subject}</TableCell>
+                    <TableCell>{assignmentSummary}</TableCell>
 
                     <TableCell>
                       <Chip
@@ -559,6 +522,10 @@ export default function UserManagement() {
                     <TableCell align="right">
                       <IconButton onClick={() => handleEdit(user)}>
                         <Edit />
+                      </IconButton>
+
+                      <IconButton title="Manage Assignments" onClick={() => navigate(`/super-admin/user-assignments?userId=${userId}`)}>
+                        <AssignmentInd />
                       </IconButton>
 
                       <IconButton onClick={() => handleToggleStatus(user)}>
@@ -645,45 +612,6 @@ export default function UserManagement() {
               ))}
             </TextField>
 
-            {showDepartment && (
-              <TextField
-                select
-                fullWidth
-                label="Department"
-                value={form.departmentId}
-                onChange={(e) =>
-                  setForm({ ...form, departmentId: e.target.value })
-                }
-              >
-                {departments.map((dept) => (
-                  <MenuItem
-                    key={dept.DepartmentId || dept.departmentId}
-                    value={dept.DepartmentId || dept.departmentId}
-                  >
-                    {dept.DepartmentName || dept.departmentName}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-
-            {showSubject && (
-              <TextField
-                select
-                fullWidth
-                label="Subject"
-                value={form.subject}
-                onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              >
-                {subjects.map((subject) => (
-                  <MenuItem
-                    key={subject.SubjectId || subject.subjectId}
-                    value={subject.SubjectName || subject.subjectName}
-                  >
-                    {subject.SubjectName || subject.subjectName}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
           </Box>
         </DialogContent>
 

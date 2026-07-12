@@ -19,7 +19,7 @@
 // - Module Permissions
 // ============================================
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import {
   loginUser,
@@ -72,9 +72,9 @@ export function AuthProvider({ children }) {
   // is implemented.
   // ==========================================
 
-  const loadPermissions = async () => {
-    setPermissions([]);
-  };
+  const loadPermissions = useCallback(async (resolvedUser) => {
+    setPermissions(resolvedUser?.permissions || []);
+  }, []);
 
   // ==========================================
   // Load Logged-in User
@@ -91,8 +91,7 @@ export function AuthProvider({ children }) {
         const currentUser = await getCurrentUser();
 
         setUser(currentUser);
-
-        await loadPermissions();
+        await loadPermissions(currentUser);
       } catch (error) {
         console.error("Failed to load user:", error);
 
@@ -107,7 +106,7 @@ export function AuthProvider({ children }) {
     };
 
     loadUser();
-  }, [token]);
+  }, [token, loadPermissions]);
 
   // ==========================================
   // Login
@@ -121,7 +120,7 @@ export function AuthProvider({ children }) {
     setToken(data.token);
     setUser(data.user);
 
-    await loadPermissions();
+    await loadPermissions(data.user);
 
     return data.user;
   };
@@ -161,7 +160,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
 
-        reloadPermissions: loadPermissions,
+        reloadPermissions: () => loadPermissions(user),
       }}
     >
       {children}

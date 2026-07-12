@@ -8,6 +8,7 @@ const router = express.Router();
 
 const {
   getRoles,
+  getMainRoles,
   getRoleById,
   createRole,
   updateRole,
@@ -21,6 +22,7 @@ const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 router.use(...platformAdministrationAccess);
 
 router.get("/", requirePermission(PERMISSIONS.ROLES.VIEW), getRoles);
+router.get("/main", requirePermission(PERMISSIONS.ROLES.VIEW), getMainRoles);
 router.get("/:roleId", requirePermission(PERMISSIONS.ROLES.VIEW), getRoleById);
 router.post("/", requirePermission(PERMISSIONS.ROLES.CREATE), createRole);
 router.put("/:roleId", requirePermission(PERMISSIONS.ROLES.UPDATE), updateRole);

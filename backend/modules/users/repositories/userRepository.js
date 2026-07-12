@@ -78,7 +78,8 @@ async function findAllUsers() {
       u.LockedUntil,
       u.LastLoginAt,
       u.CreatedAt,
-      u.UpdatedAt
+      u.UpdatedAt,
+      ISNULL(a.AssignmentSummary, 'None') AS AssignmentSummary
     FROM dbo.Users u
     INNER JOIN dbo.Roles r
       ON u.RoleId = r.RoleId
@@ -86,6 +87,12 @@ async function findAllUsers() {
       ON u.DepartmentId = d.DepartmentId
     LEFT JOIN dbo.Sections s
       ON u.SectionId = s.SectionId
+    OUTER APPLY (
+      SELECT STRING_AGG(at.AssignmentName, '; ') AS AssignmentSummary
+      FROM dbo.UserAssignments ua
+      JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId
+      WHERE ua.UserId=u.UserId AND ua.IsActive=1
+    ) a
     ORDER BY u.FullName;
   `);
 

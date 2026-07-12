@@ -17,6 +17,7 @@
  */
 
 const path = require("path");
+const { MAIN_ROLE_KEYS, SPECIALIZED_ROLE_MESSAGE } = require("../../../shared/constants/mainRoles");
 
 /**
  * Required import columns.
@@ -101,12 +102,15 @@ function normalizeRoleKey(role) {
   if (value === "printingadmin") return "PrintingAdmin";
   if (value === "platformadmin") return "PlatformAdmin";
   if (value === "superadmin") return "SuperAdmin";
-  if (value === "hod") return "HOD";
-  if (value === "hos") return "HOS";
-  if (value === "secretary") return "Secretary";
-  if (value === "teachingassistant") return "TeachingAssistant";
-
   return String(role || "").trim();
+}
+
+function validateMainRole(role) {
+  const specialized = new Set(["hod", "hos", "secretary", "librarian", "libraryadmin", "itadmin", "yearleader", "homeroomteacher", "deputyhead", "headofoperations", "nurse", "teachingassistant"]);
+  const compact = String(role || "").toLowerCase().replace(/[\s_-]/g, "");
+  if (specialized.has(compact)) return SPECIALIZED_ROLE_MESSAGE;
+  if (!MAIN_ROLE_KEYS.includes(role)) return `Role not found: ${role}`;
+  return null;
 }
 
 /**
@@ -171,6 +175,7 @@ module.exports = {
   validateRowCount,
   normalizeRoleKey,
   normalizeRow,
+  validateMainRole,
   validateRequiredFields,
   validateEmail,
 };

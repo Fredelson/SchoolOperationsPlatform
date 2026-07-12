@@ -25,6 +25,26 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const authRepository = require("../repositories/authRepository");
+const permissionResolver = require("../../permissionResolver/services/permissionResolverService");
+
+function groupAssignments(scopes) {
+  const grouped = new Map();
+  for (const row of scopes || []) {
+    if (!grouped.has(row.UserAssignmentId)) grouped.set(row.UserAssignmentId, {
+      userAssignmentId: row.UserAssignmentId,
+      assignmentKey: row.AssignmentKey,
+      assignmentName: row.AssignmentName,
+      isPrimary: Boolean(row.IsPrimary),
+      scopes: [],
+    });
+    if (row.ScopeType) grouped.get(row.UserAssignmentId).scopes.push({
+      scopeType: row.ScopeType,
+      scopeEntityId: row.ScopeEntityId,
+      scopeName: row.ScopeName,
+    });
+  }
+  return [...grouped.values()];
+}
 
 /**
  * Builds a safe user object for frontend use.
@@ -38,6 +58,8 @@ const authRepository = require("../repositories/authRepository");
  * @returns {object} Safe user payload.
  */
 function buildUserPayload(user) {
+  const assignments = groupAssignments(user.AssignmentScopes);
+  const primaryAssignment = assignments.find((item) => item.isPrimary) || null;
   return {
     id: user.UserId,
     employeeId: user.EmployeeId,
@@ -68,6 +90,13 @@ function buildUserPayload(user) {
     isRegistrationCompleted: user.IsRegistrationCompleted,
     isProtectedRole: user.IsProtectedRole,
     assignmentScopes: user.AssignmentScopes || [],
+    mainRole: { id: user.RoleId, key: user.RoleKey, name: user.RoleDisplayName || user.RoleName },
+    resolvedWorkspace: { id: user.DefaultWorkspaceId, name: user.DefaultWorkspaceName, defaultRoute: user.DefaultWorkspaceRoute },
+    primaryAssignment,
+    assignments,
+    scopes: assignments.flatMap((assignment) => assignment.scopes.map((scope) => ({ ...scope, userAssignmentId: assignment.userAssignmentId, assignmentKey: assignment.assignmentKey }))),
+    permissions: user.EffectivePermissions || [],
+    defaultRoute: user.DefaultWorkspaceRoute,
   };
 }
 
@@ -143,6 +172,7 @@ async function login(employeeId, password) {
 
   await authRepository.markLoginSuccess(user.UserId);
   user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
+  user.EffectivePermissions=(await permissionResolver.resolveUserPermissions(user.UserId)).allowedPermissionKeys;
   if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return {
@@ -169,6 +199,7 @@ async function getMe(userId) {
     throw error;
   }
   user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
+  user.EffectivePermissions=(await permissionResolver.resolveUserPermissions(user.UserId)).allowedPermissionKeys;
   if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return buildUserPayload(user);

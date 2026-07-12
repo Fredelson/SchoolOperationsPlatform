@@ -67,6 +67,7 @@ import PlatformAdminDashboard from "./modules/platform-admin/pages/PlatformAdmin
 // ============================================
 
 import { Profile } from "./modules/shared/pages";
+import AssignmentWorkspaceDashboard from "./modules/shared/pages/AssignmentWorkspaceDashboard";
 
 // ============================================
 // Role Groups
@@ -191,6 +192,12 @@ export default function App() {
       <Route path="/hos" element={<ProtectedRoute allowedRoles={hosRoles}><PlatformLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<HosDashboard />} /><Route path="profile" element={<Profile />} /><Route path="subject-allocation" element={<SubjectAllocationPage />} />
       </Route>
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={["Admin","SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Administration Dashboard" subtitle="School administration, assignments, and operational access." />} /><Route path="profile" element={<Profile />} /></Route>
+      <Route path="/year-leader" element={<ProtectedRoute allowedRoles={["SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Year Leader Dashboard" subtitle="Year-group leadership within assigned organizational scopes." />} /><Route path="profile" element={<Profile />} /></Route>
+      <Route path="/homeroom" element={<ProtectedRoute allowedRoles={["SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Homeroom Dashboard" subtitle="Class oversight within assigned class scopes." />} /><Route path="profile" element={<Profile />} /></Route>
+      <Route path="/deputy-head" element={<ProtectedRoute allowedRoles={["SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Deputy Head Dashboard" subtitle="Academic leadership within assigned scopes." />} /><Route path="profile" element={<Profile />} /></Route>
+      <Route path="/head-of-operations" element={<ProtectedRoute allowedRoles={["SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Operations Dashboard" subtitle="Operational oversight within assigned locations and departments." />} /><Route path="profile" element={<Profile />} /></Route>
+      <Route path="/clinic" element={<ProtectedRoute allowedRoles={["SuperAdmin"]}><PlatformLayout /></ProtectedRoute>}><Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<AssignmentWorkspaceDashboard title="Clinic Dashboard" subtitle="Clinic operations within assigned school and section scopes." />} /><Route path="profile" element={<Profile />} /></Route>
 
       {/* Default */}
       <Route path="/" element={<Navigate to="/login" replace />} />

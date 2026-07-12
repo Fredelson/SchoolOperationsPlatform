@@ -1,0 +1,37 @@
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+PRINT 'ARAB UNITY SCHOOL OPERATIONS PLATFORM - POST-DEPLOYMENT VALIDATION';
+DECLARE @Results TABLE(ValidationName nvarchar(150),Result varchar(4),Details nvarchar(500));
+
+INSERT @Results SELECT 'Main Roles',CASE WHEN COUNT(*)=5 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Found ',COUNT(*),' of 5') FROM dbo.Roles WHERE IsActive=1 AND RoleKey IN('SuperAdmin','PlatformAdmin','PrintingAdmin','Admin','Teacher');
+INSERT @Results SELECT 'Compatibility Roles','PASS',CONCAT('Preserved ',COUNT(*)) FROM dbo.Roles WHERE RoleKey IN('HOD','HOS','Secretary','Librarian','LibraryAdmin','ITAdmin');
+INSERT @Results SELECT 'Core Workspaces',CASE WHEN COUNT(*)=5 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Active CORE: ',COUNT(*)) FROM dbo.Workspaces WHERE WorkspaceCategory='CORE' AND IsActive=1 AND WorkspaceKey IN('super-admin','platform-admin','printing-admin','admin','teacher');
+INSERT @Results SELECT 'Assignment Workspaces',CASE WHEN COUNT(*)=8 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Active ASSIGNMENT: ',COUNT(*)) FROM dbo.Workspaces WHERE WorkspaceCategory='ASSIGNMENT' AND IsActive=1 AND WorkspaceKey IN('hod','hos-secretary','year-leader','homeroom-teacher','library-admin','deputy-head','head-of-operations','nurse-clinic');
+INSERT @Results SELECT 'Legacy Workspaces',CASE WHEN COUNT(*)=4 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Inactive LEGACY: ',COUNT(*)) FROM dbo.Workspaces WHERE WorkspaceCategory='LEGACY' AND IsActive=0 AND IsDefault=0 AND WorkspaceKey IN('default','it','printing','academic');
+INSERT @Results SELECT 'Workspace Categories',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Invalid categories: ',COUNT(*)) FROM dbo.Workspaces WHERE WorkspaceCategory NOT IN('CORE','ASSIGNMENT','LEGACY');
+INSERT @Results SELECT 'WorkspaceRoles',CASE WHEN COUNT(*)=5 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Main-role defaults: ',COUNT(*)) FROM dbo.WorkspaceRoles wr JOIN dbo.Roles r ON r.RoleId=wr.RoleId JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId WHERE wr.IsDefault=1 AND r.RoleKey IN('SuperAdmin','PlatformAdmin','PrintingAdmin','Admin','Teacher') AND w.IsActive=1;
+INSERT @Results SELECT 'AssignmentTypeWorkspaces',CASE WHEN COUNT(*)=13 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Required active mappings: ',COUNT(*)) FROM dbo.AssignmentTypeWorkspaces x JOIN dbo.AssignmentTypes a ON a.AssignmentTypeId=x.AssignmentTypeId WHERE x.IsActive=1 AND a.AssignmentKey IN('HOD','HOS','YEAR_LEADER','HOMEROOM_TEACHER','DEPUTY_HEAD','HEAD_OF_OPERATIONS','NURSE','TEACHING_ASSISTANT','IT_COORDINATOR','PRINTING_COORDINATOR','SECRETARY','LIBRARIAN','LIBRARY_ADMIN');
+INSERT @Results SELECT 'UserAssignments','PASS',CONCAT('Active: ',SUM(CASE WHEN IsActive=1 THEN 1 ELSE 0 END),'; history: ',SUM(CASE WHEN IsActive=0 THEN 1 ELSE 0 END)) FROM dbo.UserAssignments;
+INSERT @Results SELECT 'Assignment Scopes','PASS',CONCAT('Active: ',SUM(CASE WHEN IsActive=1 THEN 1 ELSE 0 END),'; historical: ',SUM(CASE WHEN IsActive=0 THEN 1 ELSE 0 END)) FROM dbo.UserAssignmentScopes;
+INSERT @Results SELECT 'Sidebar Configuration',CASE WHEN SUM(CASE WHEN wm.IsVisible=1 AND wm.IsEnabled=1 AND m.PermissionId IS NULL AND m.Route IS NOT NULL THEN 1 ELSE 0 END)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Assigned: ',COUNT(*),'; invalid visible: ',SUM(CASE WHEN wm.IsVisible=1 AND wm.IsEnabled=1 AND m.PermissionId IS NULL AND m.Route IS NOT NULL THEN 1 ELSE 0 END)) FROM dbo.WorkspaceMenus wm JOIN dbo.Menus m ON m.MenuId=wm.MenuId;
+INSERT @Results SELECT 'Module Counts','PASS',CONCAT('Modules: ',(SELECT COUNT(*) FROM dbo.Modules),'; workspace assignments: ',COUNT(*)) FROM dbo.WorkspaceModules;
+INSERT @Results SELECT 'Menu Counts','PASS',CONCAT('Menus: ',(SELECT COUNT(*) FROM dbo.Menus),'; workspace assignments: ',COUNT(*)) FROM dbo.WorkspaceMenus;
+INSERT @Results SELECT 'Button Counts','PASS',CONCAT('Buttons: ',(SELECT COUNT(*) FROM dbo.Buttons),'; workspace assignments: ',COUNT(*)) FROM dbo.WorkspaceButtons;
+INSERT @Results SELECT 'Widget Counts','PASS',CONCAT('Widgets: ',(SELECT COUNT(*) FROM dbo.Widgets),'; workspace assignments: ',COUNT(*)) FROM dbo.WorkspaceWidgets;
+INSERT @Results SELECT 'Dashboard Mappings',CASE WHEN COUNT(*)=0 THEN 'FAIL' ELSE 'PASS' END,CONCAT('Active workspace dashboards: ',COUNT(*)) FROM dbo.Workspaces w JOIN dbo.Dashboards d ON d.DashboardId=w.DefaultDashboardId WHERE w.IsActive=1;
+INSERT @Results SELECT 'Users Migrated',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Specialized main-role users remaining: ',COUNT(*)) FROM dbo.Users u JOIN dbo.Roles r ON r.RoleId=u.RoleId WHERE r.RoleKey IN('HOD','HOS','Secretary','Librarian','LibraryAdmin','ITAdmin');
+INSERT @Results SELECT 'Duplicate Assignments',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Duplicate groups: ',COUNT(*)) FROM(SELECT UserId,AssignmentTypeId,COUNT(*) C FROM dbo.UserAssignments WHERE IsActive=1 GROUP BY UserId,AssignmentTypeId HAVING COUNT(*)>1)x;
+INSERT @Results SELECT 'Duplicate Scopes',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Duplicate groups: ',COUNT(*)) FROM(SELECT UserAssignmentId,ScopeType,ScopeEntityId,COUNT(*) C FROM dbo.UserAssignmentScopes WHERE IsActive=1 GROUP BY UserAssignmentId,ScopeType,ScopeEntityId HAVING COUNT(*)>1)x;
+INSERT @Results SELECT 'Missing Mappings',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Missing assignment mappings: ',COUNT(*)) FROM dbo.AssignmentTypes a WHERE a.IsActive=1 AND a.AssignmentKey IN('HOD','HOS','YEAR_LEADER','HOMEROOM_TEACHER','DEPUTY_HEAD','HEAD_OF_OPERATIONS','NURSE','TEACHING_ASSISTANT','IT_COORDINATOR','PRINTING_COORDINATOR','SECRETARY','LIBRARIAN','LIBRARY_ADMIN') AND NOT EXISTS(SELECT 1 FROM dbo.AssignmentTypeWorkspaces x WHERE x.AssignmentTypeId=a.AssignmentTypeId AND x.IsActive=1);
+INSERT @Results SELECT 'Invalid Workspaces',CASE WHEN COUNT(*)=0 THEN 'PASS' ELSE 'FAIL' END,CONCAT('Invalid active workspaces: ',COUNT(*)) FROM dbo.Workspaces WHERE IsActive=1 AND (DefaultRoute IS NULL OR WorkspaceCategory='LEGACY');
+
+SELECT * FROM @Results ORDER BY ValidationName;
+SELECT 'MAIN ROLES' Section,* FROM dbo.Roles WHERE RoleKey IN('SuperAdmin','PlatformAdmin','PrintingAdmin','Admin','Teacher');
+SELECT 'COMPATIBILITY ROLES' Section,* FROM dbo.Roles WHERE RoleKey IN('HOD','HOS','Secretary','Librarian','LibraryAdmin','ITAdmin');
+SELECT WorkspaceKey,WorkspaceName,WorkspaceCategory,DefaultRoute,IsActive,SortOrder FROM dbo.Workspaces ORDER BY WorkspaceCategory,SortOrder;
+SELECT r.RoleKey,w.WorkspaceKey,wr.IsDefault FROM dbo.WorkspaceRoles wr JOIN dbo.Roles r ON r.RoleId=wr.RoleId JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId ORDER BY r.RoleKey,w.WorkspaceKey;
+SELECT a.AssignmentKey,w.WorkspaceKey,x.IsActive FROM dbo.AssignmentTypeWorkspaces x JOIN dbo.AssignmentTypes a ON a.AssignmentTypeId=x.AssignmentTypeId JOIN dbo.Workspaces w ON w.WorkspaceId=x.WorkspaceId ORDER BY a.AssignmentKey,w.WorkspaceKey;
+SELECT ua.UserAssignmentId,u.EmployeeId,a.AssignmentKey,ua.IsPrimary,ua.IsActive,ua.StartDate,ua.EndDate FROM dbo.UserAssignments ua JOIN dbo.Users u ON u.UserId=ua.UserId JOIN dbo.AssignmentTypes a ON a.AssignmentTypeId=ua.AssignmentTypeId ORDER BY u.EmployeeId,ua.CreatedAt;
+SELECT UserAssignmentId,ScopeType,ScopeEntityId,ScopeVersion,IsActive,CreatedAt,DeactivatedAt FROM dbo.UserAssignmentScopes ORDER BY UserAssignmentId,ScopeVersion,ScopeType,ScopeEntityId;
+IF EXISTS(SELECT 1 FROM @Results WHERE Result='FAIL') THROW 52010,'Post-deployment validation failed. Review FAIL results before release.',1;
+PRINT 'ALL POST-DEPLOYMENT VALIDATIONS PASSED.';

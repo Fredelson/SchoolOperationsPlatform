@@ -4,7 +4,7 @@
 // Protected Route
 // ============================================
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { Alert, Typography } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 
@@ -17,6 +17,7 @@ const normalizeRole = (role = "") =>
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -36,7 +37,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
   const allowed = allowedRoles?.map(normalizeRole) || [];
 
-  if (allowedRoles && !allowed.includes(userRole)) {
+  const resolvedRoot = String(user?.defaultRoute || user?.defaultWorkspaceRoute || user?.resolvedWorkspace?.defaultRoute || "").split("/").filter(Boolean)[0];
+  const requestedRoot = location.pathname.split("/").filter(Boolean)[0];
+  const isResolvedWorkspace = Boolean(resolvedRoot && resolvedRoot === requestedRoot);
+
+  if (allowedRoles && !allowed.includes(userRole) && !isResolvedWorkspace) {
     return <Alert severity="error" sx={{m:3}}><Typography fontWeight={700}>Access Denied</Typography>Your role is not authorized to open this workspace.</Alert>;
   }
 

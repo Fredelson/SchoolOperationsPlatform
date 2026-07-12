@@ -75,6 +75,11 @@ async function getRoles() {
   return rows(result);
 }
 
+async function getMainRoles() {
+  const result = await executeQuery(`SELECT r.RoleId,r.RoleKey,r.RoleName,r.DisplayName,r.Description,r.AccessLevelId,r.IsProtected,r.IsActive FROM dbo.Roles r WHERE r.IsActive=1 AND r.RoleKey IN ('SuperAdmin','PlatformAdmin','PrintingAdmin','Admin','Teacher') ORDER BY CASE r.RoleKey WHEN 'SuperAdmin' THEN 10 WHEN 'PlatformAdmin' THEN 20 WHEN 'PrintingAdmin' THEN 30 WHEN 'Admin' THEN 40 ELSE 50 END;`);
+  return rows(result);
+}
+
 // ============================================================
 // Get Role By Id
 // ============================================================
@@ -577,6 +582,7 @@ module.exports = {
   // Read
   // -------------------------
   getRoles,
+  getMainRoles,
   getRoleById,
 
   // -------------------------

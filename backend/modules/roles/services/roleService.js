@@ -65,6 +65,8 @@ async function getRoles() {
 
 }
 
+async function getMainRoles() { return roleRepository.getMainRoles(); }
+
 // ============================================================
 // Get Role By ID
 // ============================================================
@@ -349,6 +351,7 @@ async function deleteRole(roleId) {
 
 module.exports = {
     getRoles,
+    getMainRoles,
     getRoleById,
     createRole,
     updateRole,

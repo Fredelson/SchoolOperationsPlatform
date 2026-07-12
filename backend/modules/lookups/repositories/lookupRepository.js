@@ -116,6 +116,7 @@ async function getRoles() {
     LEFT JOIN dbo.AccessLevels a
       ON r.AccessLevelId = a.AccessLevelId
     WHERE r.IsActive = 1
+      AND r.RoleKey IN ('SuperAdmin','PlatformAdmin','PrintingAdmin','Admin','Teacher')
     ORDER BY r.DisplayName ASC;
   `);
 

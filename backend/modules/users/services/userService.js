@@ -13,6 +13,15 @@
 
 const userRepository = require("../repositories/userRepository");
 const { hashPassword } = require("../../../shared/security/password");
+const { MAIN_ROLE_KEYS } = require("../../../shared/constants/mainRoles");
+
+function assertMainRole(role) {
+  if (!MAIN_ROLE_KEYS.includes(role.RoleKey)) {
+    const error = new Error("Only a main role can be assigned in User Management. Configure specialized responsibilities in User Assignments.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
 
 /**
  * Checks whether current user is Super Admin.
@@ -58,6 +67,7 @@ function buildUserPayload(user) {
     createdAt: user.CreatedAt,
     updatedAt: user.UpdatedAt,
     isProtectedRole: user.IsProtectedRole,
+    assignmentSummary: user.AssignmentSummary || "None",
   };
 }
 
@@ -118,6 +128,7 @@ async function createUser(payload, currentUser) {
     error.statusCode = 400;
     throw error;
   }
+  assertMainRole(selectedRole);
 
   if (selectedRole.IsProtected && !isCurrentUserSuperAdmin(currentUser)) {
     const error = new Error("Only Super Admin can create protected role users.");
@@ -180,6 +191,7 @@ async function updateUser(userId, payload, currentUser) {
     error.statusCode = 400;
     throw error;
   }
+  assertMainRole(selectedRole);
 
   if (selectedRole.IsProtected && !isCurrentUserSuperAdmin(currentUser)) {
     const error = new Error("Only Super Admin can assign protected roles.");

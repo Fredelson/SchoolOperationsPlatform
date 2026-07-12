@@ -39,6 +39,7 @@ const {
   normalizeRow,
   validateRequiredFields,
   validateEmail,
+  validateMainRole,
 } = require("../validators/userImportValidator");
 
 /**
@@ -180,9 +181,11 @@ async function previewUserImport(file, currentUser) {
       let duplicateUser = null;
 
       if (normalized.role) {
+        const roleError = validateMainRole(normalized.role);
+        if (roleError) validationErrors.push(roleError);
         role = await userImportRepository.findRoleByKey(normalized.role);
 
-        if (!role) {
+        if (!role && !roleError) {
           validationErrors.push(`Role not found: ${normalized.role}`);
         }
       }
@@ -325,6 +328,14 @@ async function commitUserImport(batchId, currentUser) {
       }
 
       const role = await userImportRepository.findRoleByKey(row.DerivedRoleKey);
+
+      const roleError = validateMainRole(row.DerivedRoleKey);
+      if (roleError) {
+        skippedRows++;
+        await userImportRepository.markStagingFailed(row.StaffImportStagingId, roleError);
+        errors.push({ employeeId: row.EmployeeId, message: roleError });
+        continue;
+      }
 
       if (!role) {
         skippedRows++;
