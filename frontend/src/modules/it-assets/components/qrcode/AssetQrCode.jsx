@@ -50,6 +50,8 @@ export default function AssetQrCode({
   size = 82,
   level = "M",
   includeMargin = false,
+  fgColor = "#000000",
+  bgColor = "#ffffff",
   sx = {},
 }) {
   /*
@@ -96,8 +98,8 @@ export default function AssetQrCode({
         size={size}
         level={level}
         includeMargin={includeMargin}
-        bgColor="#ffffff"
-        fgColor="#000000"
+        bgColor={bgColor}
+        fgColor={fgColor}
       />
     </Box>
   );

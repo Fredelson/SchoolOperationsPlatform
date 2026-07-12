@@ -14,6 +14,7 @@ const permitted=(key,element,requireVisible=true)=><PermissionRoute permissionKe
 import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetDetails from "../pages/AssetDetails";
 import AssetTagPrinter from "../pages/AssetTagPrinter";
+import RoundedAssetTagPrinter from "../pages/RoundedAssetTagPrinter";
 import Disposals from "../pages/Disposals";
 import Assignments from "../pages/Assignments";
 import Transfers from "../pages/Transfers";
@@ -56,8 +57,9 @@ const itOperationsLayoutRoutes = [
 
       {
         path: "asset-tag-printer",
-        element: permitted("it_assets.tags.print",<AssetTagPrinter />),
+        element: permitted("asset_tags.rectangular.view",<AssetTagPrinter />),
       },
+      {path:"rounded-asset-tag-printer",element:permitted("asset_tags.rounded.view",<RoundedAssetTagPrinter />)},
 
       {
         path: "assignments",

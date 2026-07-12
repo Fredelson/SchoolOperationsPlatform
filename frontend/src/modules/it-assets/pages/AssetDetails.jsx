@@ -183,6 +183,7 @@ const AssetDetails = () => {
             <AppButton
               variant="outlined"
               startIcon={<LocalPrintshopOutlinedIcon />}
+              actionKey="asset_tags.rectangular.print"
               onClick={() =>
                 navigate(`/it-assets/asset-tag-printer?assetId=${encodeURIComponent(asset.AssetId)}`)
               }

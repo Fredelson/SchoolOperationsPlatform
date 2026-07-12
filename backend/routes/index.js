@@ -32,6 +32,7 @@ router.use("/assignments", require("../modules/assignments"));
 
 router.use("/it-assets", require("../modules/itAssets"));
 router.use("/library", require("../modules/library"));
+router.use("/asset-tag-branding", require("../modules/assetTagBranding/routes"));
 
 router.use("/roles", require("../modules/roles"));
 router.use("/permissions", require("../modules/permissions"));

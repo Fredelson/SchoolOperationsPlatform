@@ -41,6 +41,7 @@ export default function AssetPrinterToolbar({
   onOptionChange,
   onClearSelection,
   onPrint,
+  printPermissionKey,
 }) {
   const currentLayout =
     ASSET_LABEL_LAYOUTS[layoutKey] ||
@@ -269,6 +270,7 @@ export default function AssetPrinterToolbar({
               startIcon={<PrintOutlinedIcon />}
               disabled={!selectedCount}
               onClick={onPrint}
+              actionKey={printPermissionKey}
               sx={{
                 width: {
                   xs: "100%",

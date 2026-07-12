@@ -181,7 +181,7 @@ const buildAssetSearchText = (asset) => {
 // ============================================================
 
 function AssetTagPrinter() {
-  usePageTitle("Asset Tag Printer");
+  usePageTitle("Rectangular Asset Tag Printer");
   const [searchParams] = useSearchParams();
   const requestedAssetId = searchParams.get("assetId") || "";
 
@@ -474,13 +474,13 @@ function AssetTagPrinter() {
             to: "/it-assets/dashboard",
           },
           {
-            label: "Asset Tag Printer",
+            label: "Rectangular Asset Tag Printer",
           },
         ]}
       />
 
       <AppPageHeader
-        title="Asset Tag Printer"
+        title="Rectangular Asset Tag Printer"
         subtitle="Select IT assets and print barcode and QR-code labels on standard A4 paper."
         actions={
           <AppButton
@@ -517,6 +517,7 @@ function AssetTagPrinter() {
             onOptionChange={handleOptionChange}
             onClearSelection={handleClearSelection}
             onPrint={handlePrint}
+            printPermissionKey="asset_tags.rectangular.print"
           />
         )}
 

@@ -47,6 +47,8 @@ function AssetBarcode({
   displayValue = false,
   fontSize = 10,
   margin = 0,
+  lineColor,
+  background,
   sx = {},
 }) {
   const theme = useTheme();
@@ -119,8 +121,8 @@ function AssetBarcode({
         displayValue={displayValue}
         fontSize={fontSize}
         margin={margin}
-        background={theme.palette.common.white}
-        lineColor={theme.palette.common.black}
+        background={background || theme.palette.common.white}
+        lineColor={lineColor || theme.palette.common.black}
         renderer="svg"
       />
     </Box>

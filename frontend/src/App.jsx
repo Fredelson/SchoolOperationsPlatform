@@ -24,6 +24,7 @@ import PermissionRoute from "./routes/PermissionRoute";
 // ============================================
 
 import OrganizationBranding from "./modules/system/pages/OrganizationBranding";
+import AssetTagBrandingPage from "./modules/system/pages/AssetTagBrandingPage";
 import PlatformLayout from "./platform/layout/PlatformLayout";
 
 // ============================================
@@ -181,6 +182,8 @@ export default function App() {
         }
       >
         <Route path="branding" element={<PermissionRoute permissionKey="Branding.View" requireVisible><OrganizationBranding /></PermissionRoute>} />
+        <Route path="rounded-asset-tag-branding" element={<PermissionRoute permissionKey="asset_tag_branding.rounded.view" requireVisible><AssetTagBrandingPage type="rounded" /></PermissionRoute>} />
+        <Route path="rectangular-asset-tag-branding" element={<PermissionRoute permissionKey="asset_tag_branding.rectangular.view" requireVisible><AssetTagBrandingPage type="rectangular" /></PermissionRoute>} />
       </Route>
 
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={teacherRoles}><PlatformLayout /></ProtectedRoute>}>

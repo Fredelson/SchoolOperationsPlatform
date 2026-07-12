@@ -7,6 +7,28 @@ BEGIN TRY
 
  DECLARE @Enabled int=(SELECT TOP 1 VisibilityStatusId FROM dbo.FeatureVisibilityStatuses WHERE LOWER(StatusKey)='enabled');
  IF @Enabled IS NULL THROW 51000,'Enabled visibility status is missing.',1;
+ IF OBJECT_ID('dbo.AssetTagBranding','U') IS NULL
+  CREATE TABLE dbo.AssetTagBranding(
+   AssetTagBrandingId int IDENTITY PRIMARY KEY,
+   BrandingType nvarchar(30) NOT NULL,
+   SettingsJson nvarchar(max) NOT NULL,
+   IsActive bit NOT NULL CONSTRAINT DF_AssetTagBranding_IsActive DEFAULT 1,
+   CreatedBy int NULL REFERENCES dbo.Users(UserId),
+   UpdatedBy int NULL REFERENCES dbo.Users(UserId),
+   CreatedAt datetime NOT NULL CONSTRAINT DF_AssetTagBranding_CreatedAt DEFAULT GETDATE(),
+   UpdatedAt datetime NULL,
+   CONSTRAINT UQ_AssetTagBranding_Type UNIQUE(BrandingType),
+   CONSTRAINT CK_AssetTagBranding_Type CHECK(BrandingType IN('rounded','rectangular')),
+   CONSTRAINT CK_AssetTagBranding_Json CHECK(ISJSON(SettingsJson)=1)
+  );
+
+ DECLARE @RoundedAssetTagDefaults nvarchar(max)=N'{"schoolTagline":"BEST VALUE BRITISH EDUCATION","departmentLabel":"IT DEPARTMENT","propertyLabel":"PROPERTY OF","establishedYear":"1975","websiteQrInstruction":"SCAN FOR SCHOOL WEBSITE","assetQrInstruction":"SCAN FOR ASSET INFORMATION","colors":{"outerRing":"#061B3D","innerRing":"#006B3C","accent":"#E6A000","background":"#FFFFFF","mainText":"#061B3D","secondaryText":"#006B3C","border":"#061B3D","barcode":"#000000","qrForeground":"#000000","qrBackground":"#FFFFFF","propertyText":"#006B3C","assetCode":"#000000","departmentText":"#061B3D"},"visibility":{"showWebsite":true,"showAddress":true,"showEstablishedYear":true,"showPropertyLabel":true,"showSocialIcons":false,"showSchoolLogo":true,"showSchoolTagline":true,"showWebsiteQr":true,"showAssetQr":true,"showBarcode":true},"print":{"templateKey":"FULL_A4","pageSize":"A4","orientation":"portrait","labelDiameter":190,"marginTop":12,"marginBottom":12,"marginLeft":10,"marginRight":10,"horizontalOffset":0,"verticalOffset":0,"printScale":1,"rows":1,"columns":1,"gapHorizontal":0,"gapVertical":0}}';
+ DECLARE @RectangularAssetTagDefaults nvarchar(max)=N'{"contentLabel":"IT ASSET","propertyLabel":"PROPERTY OF","visibility":{"showQrCode":true,"showBarcode":true,"showLogo":true,"showBorder":true},"colors":{"border":"#000000","mainText":"#000000","background":"#FFFFFF","accent":"#E6A000","barcode":"#000000","qrForeground":"#000000","qrBackground":"#FFFFFF"},"print":{"templateKey":"RECTANGULAR_A4_GRID","pageSize":"A4","orientation":"portrait","printScale":1}}';
+ MERGE dbo.AssetTagBranding t
+ USING(VALUES('rounded',@RoundedAssetTagDefaults),('rectangular',@RectangularAssetTagDefaults))s(BrandingType,SettingsJson)
+ ON t.BrandingType=s.BrandingType
+ WHEN MATCHED THEN UPDATE SET IsActive=1,UpdatedAt=COALESCE(t.UpdatedAt,GETDATE())
+ WHEN NOT MATCHED THEN INSERT(BrandingType,SettingsJson,IsActive,CreatedAt,UpdatedAt) VALUES(s.BrandingType,s.SettingsJson,1,GETDATE(),GETDATE());
 
  IF NOT EXISTS(SELECT 1 FROM dbo.Workspaces WHERE WorkspaceKey='homeroom-teacher')
   INSERT dbo.Workspaces(WorkspaceKey,WorkspaceName,Description,Icon,DefaultRoute,WorkspaceCategory,VisibilityStatusId,IsDefault,IsActive,SortOrder,CreatedAt)
@@ -19,6 +41,70 @@ BEGIN TRY
 
  DECLARE @PlatformModuleId int=(SELECT ModuleId FROM dbo.Modules WHERE ModuleKey='platform_foundation');
  IF @PlatformModuleId IS NULL THROW 51002,'Platform foundation module is missing.',1;
+ DECLARE @ItModuleId int=(SELECT ModuleId FROM dbo.Modules WHERE ModuleKey='it_operations');
+ IF @ItModuleId IS NULL THROW 51003,'IT operations module is missing.',1;
+ DECLARE @TagPermissions TABLE(PermissionKey nvarchar(100),PermissionName nvarchar(150),ModuleId int);
+ INSERT @TagPermissions VALUES
+  ('asset_tags.rounded.view','Rounded Printer View',@ItModuleId),
+  ('asset_tags.rounded.print','Rounded Printer Print',@ItModuleId),
+  ('asset_tags.rectangular.view','Rectangular Printer View',@ItModuleId),
+  ('asset_tags.rectangular.print','Rectangular Printer Print',@ItModuleId),
+  ('asset_tag_branding.rounded.view','Rounded Branding View',@PlatformModuleId),
+  ('asset_tag_branding.rounded.manage','Rounded Branding Manage',@PlatformModuleId),
+  ('asset_tag_branding.rectangular.view','Rectangular Branding View',@PlatformModuleId),
+  ('asset_tag_branding.rectangular.manage','Rectangular Branding Manage',@PlatformModuleId);
+ MERGE dbo.Permissions t USING @TagPermissions s ON s.PermissionKey=t.PermissionKey WHEN MATCHED THEN UPDATE SET PermissionName=s.PermissionName,ModuleId=s.ModuleId,IsActive=1,UpdatedAt=GETDATE() WHEN NOT MATCHED THEN INSERT(PermissionKey,PermissionName,ModuleId,Description,IsActive,CreatedAt) VALUES(s.PermissionKey,s.PermissionName,s.ModuleId,'Asset tag printing and branding.',1,GETDATE());
+ INSERT dbo.RolePermissions(RoleId,PermissionId,IsAllowed,CreatedAt) SELECT r.RoleId,p.PermissionId,1,GETDATE() FROM dbo.Roles r JOIN dbo.Permissions p ON p.PermissionKey IN('asset_tags.rounded.view','asset_tags.rounded.print','asset_tags.rectangular.view','asset_tags.rectangular.print','asset_tag_branding.rounded.view','asset_tag_branding.rounded.manage','asset_tag_branding.rectangular.view','asset_tag_branding.rectangular.manage') WHERE r.RoleKey='SuperAdmin' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions x WHERE x.RoleId=r.RoleId AND x.PermissionId=p.PermissionId);
+ INSERT dbo.RolePermissions(RoleId,PermissionId,IsAllowed,CreatedAt) SELECT r.RoleId,p.PermissionId,1,GETDATE() FROM dbo.Roles r JOIN dbo.Permissions p ON p.PermissionKey IN('asset_tags.rounded.view','asset_tags.rounded.print','asset_tags.rectangular.view','asset_tags.rectangular.print') WHERE r.RoleKey IN('PlatformAdmin','PrintingAdmin') AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions x WHERE x.RoleId=r.RoleId AND x.PermissionId=p.PermissionId);
+
+ IF EXISTS(SELECT 1 FROM dbo.Menus WHERE Route='/it-assets/asset-tag-printer' AND MenuKey<>'IT_RECTANGULAR_ASSET_TAG_PRINTER')
+  AND NOT EXISTS(SELECT 1 FROM dbo.Menus WHERE MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER')
+  UPDATE dbo.Menus SET MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER',MenuName='Rectangular Asset Tag Printer',UpdatedAt=GETDATE() WHERE Route='/it-assets/asset-tag-printer';
+
+ DECLARE @AssetTagMenus TABLE(ParentMenuKey nvarchar(100),ModuleId int,MenuKey nvarchar(100),MenuName nvarchar(150),Route nvarchar(150),Icon nvarchar(100),PermissionKey nvarchar(100),SortOrder int);
+ INSERT @AssetTagMenus VALUES
+  ('IT_OPERATIONS_ROOT',@ItModuleId,'IT_RECTANGULAR_ASSET_TAG_PRINTER','Rectangular Asset Tag Printer','/it-assets/asset-tag-printer','print','asset_tags.rectangular.view',25),
+  ('IT_OPERATIONS_ROOT',@ItModuleId,'IT_ROUNDED_ASSET_TAG_PRINTER','Rounded Asset Tag Printer','/it-assets/rounded-asset-tag-printer','print','asset_tags.rounded.view',26),
+  ('SCHOOL_CONFIGURATION_ROOT',@PlatformModuleId,'SCHOOL_ROUNDED_ASSET_TAG_BRANDING','Rounded Asset Tag Branding','/system/rounded-asset-tag-branding','palette','asset_tag_branding.rounded.view',25),
+  ('SCHOOL_CONFIGURATION_ROOT',@PlatformModuleId,'SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING','Rectangular Asset Tag Branding','/system/rectangular-asset-tag-branding','palette','asset_tag_branding.rectangular.view',26);
+
+ MERGE dbo.Menus t
+ USING(
+  SELECT a.*,parent.MenuId ParentMenuId,p.PermissionId
+  FROM @AssetTagMenus a
+  JOIN dbo.Menus parent ON parent.MenuKey=a.ParentMenuKey
+  JOIN dbo.Permissions p ON p.PermissionKey=a.PermissionKey
+ )s ON t.MenuKey=s.MenuKey
+ WHEN MATCHED THEN UPDATE SET ModuleId=s.ModuleId,ParentMenuId=s.ParentMenuId,MenuName=s.MenuName,Route=s.Route,Icon=s.Icon,PermissionId=s.PermissionId,VisibilityStatusId=@Enabled,IsPinned=0,IsCollapsible=0,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
+ WHEN NOT MATCHED THEN INSERT(ModuleId,ParentMenuId,MenuKey,MenuName,Route,Icon,PermissionId,VisibilityStatusId,IsPinned,IsCollapsible,SortOrder,CreatedAt) VALUES(s.ModuleId,s.ParentMenuId,s.MenuKey,s.MenuName,s.Route,s.Icon,s.PermissionId,@Enabled,0,0,s.SortOrder,GETDATE());
+
+ DECLARE @AssetTagRootBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),GroupKey nvarchar(100),GroupName nvarchar(150),GroupSortOrder int,SortOrder int);
+ INSERT @AssetTagRootBindings VALUES
+  ('super-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
+  ('platform-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
+  ('printing-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
+  ('super-admin','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,10);
+ MERGE dbo.WorkspaceMenus t
+ USING(SELECT w.WorkspaceId,m.MenuId,b.GroupKey,b.GroupName,b.GroupSortOrder,b.SortOrder FROM @AssetTagRootBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey)s
+ ON s.WorkspaceId=t.WorkspaceId AND s.MenuId=t.MenuId
+ WHEN MATCHED THEN UPDATE SET GroupKey=s.GroupKey,GroupName=s.GroupName,GroupSortOrder=s.GroupSortOrder,ParentMenuId=NULL,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
+ WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,s.GroupKey,s.GroupName,s.GroupSortOrder,NULL,1,1,s.SortOrder);
+
+ DECLARE @AssetTagChildBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),ParentMenuKey nvarchar(100),SortOrder int);
+ INSERT @AssetTagChildBindings VALUES
+  ('super-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
+  ('platform-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
+  ('printing-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
+  ('super-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
+  ('platform-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
+  ('printing-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
+  ('super-admin','SCHOOL_ROUNDED_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT',25),
+  ('super-admin','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT',26);
+ MERGE dbo.WorkspaceMenus t
+ USING(SELECT w.WorkspaceId,m.MenuId,parent.MenuId ParentMenuId,b.SortOrder FROM @AssetTagChildBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey JOIN dbo.Menus parent ON parent.MenuKey=b.ParentMenuKey)s
+ ON s.WorkspaceId=t.WorkspaceId AND s.MenuId=t.MenuId
+ WHEN MATCHED THEN UPDATE SET GroupKey=NULL,GroupName=NULL,GroupSortOrder=NULL,ParentMenuId=s.ParentMenuId,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
+ WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,NULL,NULL,NULL,s.ParentMenuId,1,1,s.SortOrder);
  DECLARE @DashboardResources TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),MenuName nvarchar(150),Route nvarchar(150),PermissionKey nvarchar(100),PermissionName nvarchar(150));
  INSERT @DashboardResources VALUES
  ('admin','admin_dashboard','Administration Dashboard','/admin/dashboard','workspace.admin.use','Use Administration Workspace'),('year-leader','year_leader_dashboard','Year Leader Dashboard','/year-leader/dashboard','workspace.year_leader.use','Use Year Leader Workspace'),('homeroom-teacher','homeroom_dashboard','Homeroom Dashboard','/homeroom/dashboard','workspace.homeroom.use','Use Homeroom Workspace'),('deputy-head','deputy_head_dashboard','Deputy Head Dashboard','/deputy-head/dashboard','workspace.deputy_head.use','Use Deputy Head Workspace'),('head-of-operations','operations_dashboard','Operations Dashboard','/head-of-operations/dashboard','workspace.operations.use','Use Operations Workspace'),('nurse-clinic','clinic_dashboard','Clinic Dashboard','/clinic/dashboard','workspace.clinic.use','Use Clinic Workspace');

@@ -50,6 +50,8 @@ export default function AssetQrCode({
   size = 82,
   level = "M",
   includeMargin = false,
+  fgColor,
+  bgColor,
   sx = {},
 }) {
   const theme = useTheme();
@@ -97,8 +99,8 @@ export default function AssetQrCode({
         size={size}
         level={level}
         includeMargin={includeMargin}
-        bgColor={theme.palette.common.white}
-        fgColor={theme.palette.common.black}
+        bgColor={bgColor || theme.palette.common.white}
+        fgColor={fgColor || theme.palette.common.black}
       />
     </Box>
   );

@@ -60,7 +60,10 @@ export function PermissionProvider({ children }) {
       View: "it_assets.assets.view", Assign: "it_assets.assignment.manage",
       Borrow: "it_assets.borrow.manage",
       Transfer: "it_assets.transfer.manage", ViewIssues: "it_assets.issues.manage",
-      PrintTags: "it_assets.tags.print", Maintenance: "it_assets.maintenance.manage",
+      PrintTags: "asset_tags.rectangular.print",
+      PrintRoundedTags: "asset_tags.rounded.print",
+      PrintRectangularTags: "asset_tags.rectangular.print",
+      Maintenance: "it_assets.maintenance.manage",
       Disposal: "it_assets.disposal.manage", Reports: "it_assets.reports.view",
       Import: "it_assets.import.manage",
     };
