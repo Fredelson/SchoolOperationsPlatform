@@ -65,6 +65,16 @@ export default function RoundedAssetLabel({
   const hasBarcode = Boolean(assetCode);
   const hasAssetQr = Boolean(assetDetailsUrl);
   const hasWebsiteQr = Boolean(website);
+  const topArcTextLength =
+    schoolName.length <= 6 ? 22 : Math.min(61, Math.max(48, schoolName.length * 2.85));
+  const websiteArcTextLength = Math.min(
+    46,
+    Math.max(34, String(settings.websiteQrInstruction || "").length * 1.65)
+  );
+  const assetArcTextLength = Math.min(
+    46,
+    Math.max(34, String(settings.assetQrInstruction || "").length * 1.65)
+  );
 
   const bottomText = [
     visibility.showWebsite && website,
@@ -95,32 +105,44 @@ export default function RoundedAssetLabel({
     >
       <svg className="rounded-asset-label__arcs" viewBox="0 0 100 100" aria-hidden="true">
         <defs>
-          <path id={`${arcId}-top`} d="M 19 25 A 40 40 0 0 1 81 25" />
-          <path id={`${arcId}-left`} d="M 12 75 A 44 44 0 0 1 22 20" />
-          <path id={`${arcId}-right`} d="M 78 20 A 44 44 0 0 1 88 75" />
-          <path id={`${arcId}-bottom`} d="M 83 78 A 43 43 0 0 1 17 78" />
+          <path id={`${arcId}-top`} d="M 18 24 A 42 42 0 0 1 82 24" />
+          <path id={`${arcId}-left`} d="M 10.6 74.5 A 45 45 0 0 1 22.5 18.5" />
+          <path id={`${arcId}-right`} d="M 77.5 18.5 A 45 45 0 0 1 89.4 74.5" />
+          <path id={`${arcId}-bottom`} d="M 84 78.5 A 44 44 0 0 1 16 78.5" />
         </defs>
 
-        <text className="rounded-asset-label__arc-text rounded-asset-label__arc-text--top" textLength="49" lengthAdjust="spacingAndGlyphs">
+        <text
+          className="rounded-asset-label__arc-text rounded-asset-label__arc-text--top"
+          textLength={topArcTextLength}
+          lengthAdjust="spacingAndGlyphs"
+        >
           <textPath href={`#${arcId}-top`} startOffset="50%" textAnchor="middle">
             {schoolName}
           </textPath>
         </text>
 
-        <text className="rounded-asset-label__arc-text rounded-asset-label__arc-text--side" textLength="42" lengthAdjust="spacingAndGlyphs">
+        <text
+          className="rounded-asset-label__arc-text rounded-asset-label__arc-text--side"
+          textLength={websiteArcTextLength}
+          lengthAdjust="spacingAndGlyphs"
+        >
           <textPath href={`#${arcId}-left`} startOffset="50%" textAnchor="middle">
             {settings.websiteQrInstruction}
           </textPath>
         </text>
 
-        <text className="rounded-asset-label__arc-text rounded-asset-label__arc-text--side" textLength="42" lengthAdjust="spacingAndGlyphs">
+        <text
+          className="rounded-asset-label__arc-text rounded-asset-label__arc-text--side"
+          textLength={assetArcTextLength}
+          lengthAdjust="spacingAndGlyphs"
+        >
           <textPath href={`#${arcId}-right`} startOffset="50%" textAnchor="middle">
             {settings.assetQrInstruction}
           </textPath>
         </text>
 
         {bottomText && (
-          <text className="rounded-asset-label__arc-text rounded-asset-label__arc-text--bottom" textLength="52" lengthAdjust="spacingAndGlyphs">
+          <text className="rounded-asset-label__arc-text rounded-asset-label__arc-text--bottom" textLength="58" lengthAdjust="spacingAndGlyphs">
             <textPath href={`#${arcId}-bottom`} startOffset="50%" textAnchor="middle">
               {toUpper(bottomText)}
             </textPath>
@@ -132,6 +154,10 @@ export default function RoundedAssetLabel({
       <div className="rounded-asset-label__ring rounded-asset-label__ring--green" />
       <div className="rounded-asset-label__accent rounded-asset-label__accent--left" />
       <div className="rounded-asset-label__accent rounded-asset-label__accent--right" />
+      <span className="rounded-asset-label__arc-dot rounded-asset-label__arc-dot--top-left" />
+      <span className="rounded-asset-label__arc-dot rounded-asset-label__arc-dot--top-right" />
+      <span className="rounded-asset-label__arc-dot rounded-asset-label__arc-dot--bottom-left" />
+      <span className="rounded-asset-label__arc-dot rounded-asset-label__arc-dot--bottom-right" />
 
       <div className="rounded-asset-label__center">
         <header className="rounded-asset-label__brand">
@@ -147,7 +173,7 @@ export default function RoundedAssetLabel({
 
           <AutoFitText
             className="rounded-asset-label__school-name"
-            max={42}
+            max={58}
             min={14}
             lines={2}
           >
@@ -159,7 +185,7 @@ export default function RoundedAssetLabel({
               <span />
               <AutoFitText
                 className="rounded-asset-label__tagline"
-                max={15}
+                max={18}
                 min={7}
                 lines={2}
               >
@@ -171,7 +197,7 @@ export default function RoundedAssetLabel({
         </header>
 
         <main className="rounded-asset-label__main">
-          <section className="rounded-asset-label__qr-panel">
+          <section className="rounded-asset-label__qr-panel rounded-asset-label__qr-panel--website">
             {visibility.showWebsiteQr && hasWebsiteQr ? (
               <>
                 <div className="rounded-asset-label__qr-box">
@@ -184,7 +210,7 @@ export default function RoundedAssetLabel({
                   />
                 </div>
                 {visibility.showWebsite && (
-                  <AutoFitText className="rounded-asset-label__qr-caption" max={11} min={6} lines={2}>
+                  <AutoFitText className="rounded-asset-label__qr-caption" max={12} min={6} lines={1}>
                     {website}
                   </AutoFitText>
                 )}
@@ -197,7 +223,7 @@ export default function RoundedAssetLabel({
           <section className="rounded-asset-label__identity">
             <div className="rounded-asset-label__department-row">
               <span />
-              <AutoFitText className="rounded-asset-label__department" max={18} min={8} lines={2}>
+              <AutoFitText className="rounded-asset-label__department" max={22} min={8} lines={2}>
                 {toUpper(settings.departmentLabel)}
               </AutoFitText>
               <span />
@@ -208,7 +234,7 @@ export default function RoundedAssetLabel({
                 <AssetBarcode
                   value={assetCode}
                   width={1}
-                  height={70}
+                  height={86}
                   displayValue={false}
                   margin={0}
                   lineColor={colors.barcode}
@@ -218,13 +244,9 @@ export default function RoundedAssetLabel({
                 <span className="rounded-asset-label__warning">Barcode unavailable</span>
               ) : null}
             </div>
-
-            <AutoFitText className="rounded-asset-label__asset-code" max={48} min={15} lines={2}>
-              {assetCode || (showWarnings ? "ASSET CODE REQUIRED" : "")}
-            </AutoFitText>
           </section>
 
-          <section className="rounded-asset-label__qr-panel">
+          <section className="rounded-asset-label__qr-panel rounded-asset-label__qr-panel--asset">
             {visibility.showAssetQr && hasAssetQr ? (
               <div className="rounded-asset-label__qr-box">
                 <AssetQrCode
@@ -243,16 +265,20 @@ export default function RoundedAssetLabel({
           </section>
         </main>
 
+        <AutoFitText className="rounded-asset-label__asset-code" max={82} min={18} lines={2}>
+          {assetCode || (showWarnings ? "ASSET CODE REQUIRED" : "")}
+        </AutoFitText>
+
         {visibility.showPropertyLabel && (
           <footer className="rounded-asset-label__property">
             <div className="rounded-asset-label__property-rule">
               <span />
-              <AutoFitText className="rounded-asset-label__property-label" max={16} min={8} lines={1}>
+              <AutoFitText className="rounded-asset-label__property-label" max={17} min={8} lines={1}>
                 {toUpper(settings.propertyLabel)}
               </AutoFitText>
               <span />
             </div>
-            <AutoFitText className="rounded-asset-label__property-school" max={28} min={11} lines={2}>
+            <AutoFitText className="rounded-asset-label__property-school" max={32} min={11} lines={2}>
               {schoolName}
             </AutoFitText>
           </footer>

@@ -132,30 +132,28 @@ BEGIN TRY
  WHEN MATCHED THEN UPDATE SET ModuleId=s.ModuleId,ParentMenuId=s.ParentMenuId,MenuName=s.MenuName,Route=s.Route,Icon=s.Icon,PermissionId=s.PermissionId,VisibilityStatusId=@Enabled,IsPinned=0,IsCollapsible=0,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
  WHEN NOT MATCHED THEN INSERT(ModuleId,ParentMenuId,MenuKey,MenuName,Route,Icon,PermissionId,VisibilityStatusId,IsPinned,IsCollapsible,SortOrder,CreatedAt) VALUES(s.ModuleId,s.ParentMenuId,s.MenuKey,s.MenuName,s.Route,s.Icon,s.PermissionId,@Enabled,0,0,s.SortOrder,GETDATE());
 
- DECLARE @AssetTagRootBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),GroupKey nvarchar(100),GroupName nvarchar(150),GroupSortOrder int,SortOrder int);
- INSERT @AssetTagRootBindings VALUES
-  ('super-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
-  ('platform-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
-  ('printing-admin','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,30),
-  ('super-admin','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,10);
- MERGE dbo.WorkspaceMenus t
- USING(SELECT w.WorkspaceId,m.MenuId,b.GroupKey,b.GroupName,b.GroupSortOrder,b.SortOrder FROM @AssetTagRootBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey)s
- ON s.WorkspaceId=t.WorkspaceId AND s.MenuId=t.MenuId
- WHEN MATCHED THEN UPDATE SET GroupKey=s.GroupKey,GroupName=s.GroupName,GroupSortOrder=s.GroupSortOrder,ParentMenuId=NULL,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
- WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,s.GroupKey,s.GroupName,s.GroupSortOrder,NULL,1,1,s.SortOrder);
+ UPDATE wm
+ SET IsVisible=0,
+     IsEnabled=0,
+     UpdatedAt=GETDATE()
+ FROM dbo.WorkspaceMenus wm
+ JOIN dbo.Workspaces w ON w.WorkspaceId=wm.WorkspaceId
+ JOIN dbo.Menus m ON m.MenuId=wm.MenuId
+ WHERE w.WorkspaceKey IN('super-admin','platform-admin','printing-admin')
+   AND m.MenuKey IN('IT_OPERATIONS_ROOT','SCHOOL_CONFIGURATION_ROOT','IT_ASSET_TAG_PRINTER');
 
- DECLARE @AssetTagChildBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),ParentMenuKey nvarchar(100),GroupKey nvarchar(100),GroupName nvarchar(150),GroupSortOrder int,SortOrder int);
+ DECLARE @AssetTagChildBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),ParentMenuKey nvarchar(100) NULL,GroupKey nvarchar(100),GroupName nvarchar(150),GroupSortOrder int,SortOrder int);
  INSERT @AssetTagChildBindings VALUES
-  ('super-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
-  ('platform-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
-  ('printing-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
-  ('super-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
-  ('platform-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
-  ('printing-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
-  ('super-admin','SCHOOL_ROUNDED_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,25),
-  ('super-admin','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,26);
+  ('super-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,30),
+  ('platform-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,30),
+  ('printing-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,30),
+  ('super-admin','IT_ROUNDED_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,31),
+  ('platform-admin','IT_ROUNDED_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,31),
+  ('printing-admin','IT_ROUNDED_ASSET_TAG_PRINTER',NULL,'IT_OPERATIONS','IT Operations',50,31),
+  ('super-admin','SCHOOL_ROUNDED_ASSET_TAG_BRANDING',NULL,'SCHOOL_CONFIGURATION','School Configuration',40,20),
+  ('super-admin','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING',NULL,'SCHOOL_CONFIGURATION','School Configuration',40,21);
  MERGE dbo.WorkspaceMenus t
- USING(SELECT w.WorkspaceId,m.MenuId,parent.MenuId ParentMenuId,b.GroupKey,b.GroupName,b.GroupSortOrder,b.SortOrder FROM @AssetTagChildBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey JOIN dbo.Menus parent ON parent.MenuKey=b.ParentMenuKey)s
+ USING(SELECT w.WorkspaceId,m.MenuId,parent.MenuId ParentMenuId,b.GroupKey,b.GroupName,b.GroupSortOrder,b.SortOrder FROM @AssetTagChildBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey LEFT JOIN dbo.Menus parent ON parent.MenuKey=b.ParentMenuKey)s
  ON s.WorkspaceId=t.WorkspaceId AND s.MenuId=t.MenuId
  WHEN MATCHED THEN UPDATE SET GroupKey=s.GroupKey,GroupName=s.GroupName,GroupSortOrder=s.GroupSortOrder,ParentMenuId=s.ParentMenuId,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
  WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,s.GroupKey,s.GroupName,s.GroupSortOrder,s.ParentMenuId,1,1,s.SortOrder);

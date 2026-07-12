@@ -11,7 +11,7 @@
   border-radius: 50%;
   overflow: hidden;
   background:
-    radial-gradient(circle at center, transparent 0 70%, var(--round-inner, #006b3c) 70.2% 74%, transparent 74.2%),
+    radial-gradient(circle at center, transparent 0 68.3%, var(--round-inner, #006b3c) 68.55% 74.15%, transparent 74.4%),
     var(--round-outer, #061b3d);
   color: var(--round-main, #061b3d);
   font-family: Arial, Helvetica, sans-serif;
@@ -26,13 +26,13 @@
 }
 
 .rounded-asset-label__ring--white {
-  inset: 1.15%;
-  border: clamp(1px, 0.42cqw, 5px) solid #ffffff;
+  inset: 0.85%;
+  border: clamp(1px, 0.36cqw, 5px) solid #ffffff;
 }
 
 .rounded-asset-label__ring--green {
-  inset: 7.35%;
-  border: clamp(3px, 1.05cqw, 13px) solid var(--round-inner, #006b3c);
+  inset: 6.85%;
+  border: clamp(3px, 1.18cqw, 14px) solid var(--round-inner, #006b3c);
 }
 
 .rounded-asset-label__accent {
@@ -57,6 +57,37 @@
   transform-origin: right bottom;
 }
 
+.rounded-asset-label__arc-dot {
+  position: absolute;
+  z-index: 3;
+  width: clamp(5px, 1.35cqw, 15px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: var(--round-accent, #e6a000);
+  box-shadow: 0 0 0 clamp(1px, 0.14cqw, 2px) color-mix(in srgb, #ffffff 28%, transparent);
+  pointer-events: none;
+}
+
+.rounded-asset-label__arc-dot--top-left {
+  top: 14.35%;
+  left: 22.5%;
+}
+
+.rounded-asset-label__arc-dot--top-right {
+  top: 14.35%;
+  right: 22.5%;
+}
+
+.rounded-asset-label__arc-dot--bottom-left {
+  bottom: 13.2%;
+  left: 18.4%;
+}
+
+.rounded-asset-label__arc-dot--bottom-right {
+  bottom: 13.2%;
+  right: 18.4%;
+}
+
 .rounded-asset-label__arcs {
   position: absolute;
   inset: 0;
@@ -74,36 +105,39 @@
 }
 
 .rounded-asset-label__arc-text--top {
-  font-size: 5px;
+  font-size: 5.15px;
 }
 
 .rounded-asset-label__arc-text--side {
-  font-size: 3.45px;
+  font-size: 3.35px;
 }
 
 .rounded-asset-label__arc-text--bottom {
-  font-size: 3.25px;
+  font-size: 3px;
 }
 
 .rounded-asset-label__center {
   position: absolute;
-  inset: 13.4%;
+  inset: 12.55%;
   z-index: 4;
   display: grid;
-  grid-template-rows: minmax(0, 31%) minmax(0, 43%) minmax(0, 26%);
+  grid-template-rows: minmax(0, 39%) minmax(0, 29.5%) minmax(0, 17.5%) minmax(0, 14%);
   min-width: 0;
   min-height: 0;
-  padding: 3.2% 4.6% 4.2%;
-  border: clamp(1px, 0.35cqw, 4px) solid var(--round-border, #061b3d);
+  padding: 2.6% 4.8% 3.15%;
+  border: clamp(1px, 0.3cqw, 4px) solid color-mix(in srgb, var(--round-border, #061b3d) 82%, #ffffff 18%);
   border-radius: 50%;
   background: var(--round-bg, #ffffff);
+  box-shadow: inset 0 0 0 clamp(1px, 0.16cqw, 2px) color-mix(in srgb, var(--round-inner, #006b3c) 16%, transparent);
   text-align: center;
   overflow: hidden;
 }
 
 .rounded-asset-label__brand,
+.rounded-asset-label__main,
 .rounded-asset-label__identity,
 .rounded-asset-label__property,
+.rounded-asset-label__asset-code,
 .rounded-asset-label__qr-panel {
   min-width: 0;
   min-height: 0;
@@ -111,14 +145,14 @@
 
 .rounded-asset-label__brand {
   display: grid;
-  grid-template-rows: minmax(0, 35%) minmax(0, 42%) minmax(0, 23%);
+  grid-template-rows: minmax(0, 38%) minmax(0, 42%) minmax(0, 20%);
   align-items: center;
   justify-items: center;
-  padding: 0 11%;
+  padding: 0 4.5%;
 }
 
 .rounded-asset-label__logo {
-  height: 100%;
+  height: 106%;
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
@@ -127,6 +161,7 @@
   font-size: clamp(10px, 5.5cqw, 64px);
   font-weight: 900;
   line-height: 1;
+  align-self: end;
 }
 
 .rounded-asset-label__logo img {
@@ -144,7 +179,7 @@
   align-content: center;
   color: var(--round-main, #061b3d);
   font-weight: 900;
-  line-height: 0.95;
+  line-height: 0.88;
   overflow: hidden;
   overflow-wrap: anywhere;
   text-transform: uppercase;
@@ -163,7 +198,6 @@
 }
 
 .rounded-asset-label__tagline-row span,
-.rounded-asset-label__department-row span,
 .rounded-asset-label__property-rule span {
   height: clamp(1px, 0.28cqw, 3px);
   background: var(--round-accent, #e6a000);
@@ -184,41 +218,44 @@
 
 .rounded-asset-label__main {
   display: grid;
-  grid-template-columns: minmax(0, 26%) minmax(0, 48%) minmax(0, 26%);
-  gap: 2.4%;
+  grid-template-columns: minmax(0, 26.5%) minmax(0, 47%) minmax(0, 26.5%);
+  gap: 2.8%;
   align-items: stretch;
   min-width: 0;
   min-height: 0;
-  padding: 1% 0 0;
+  padding: 0.8% 0 0;
 }
 
 .rounded-asset-label__qr-panel {
   display: grid;
-  grid-template-rows: minmax(0, 82%) minmax(0, 18%);
+  grid-template-rows: minmax(0, 78%) minmax(0, 18%);
+  row-gap: 4%;
   align-items: center;
   justify-items: center;
-  padding: 4% 0;
-  border-left: clamp(1px, 0.25cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 65%, transparent);
-  border-right: clamp(1px, 0.25cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 65%, transparent);
+  padding: 4% 0 2%;
 }
 
-.rounded-asset-label__qr-panel:first-child {
-  border-left: 0;
+.rounded-asset-label__qr-panel--website {
+  padding-right: 7.5%;
+  border-right: clamp(1px, 0.24cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 62%, transparent);
 }
 
-.rounded-asset-label__qr-panel:last-child {
-  border-right: 0;
+.rounded-asset-label__qr-panel--asset {
+  grid-template-rows: minmax(0, 1fr);
+  padding-left: 7.5%;
+  border-left: clamp(1px, 0.24cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 62%, transparent);
 }
 
 .rounded-asset-label__qr-box {
-  width: min(100%, 20cqw);
+  width: min(100%, 22cqw);
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  padding: 4%;
-  border: clamp(1px, 0.3cqw, 4px) solid color-mix(in srgb, var(--round-border, #061b3d) 70%, transparent);
-  border-radius: clamp(3px, 1cqw, 10px);
+  padding: 4.4%;
+  border: clamp(1px, 0.32cqw, 4px) solid color-mix(in srgb, var(--round-border, #061b3d) 76%, transparent);
+  border-radius: clamp(5px, 1.15cqw, 14px);
   background: var(--round-qr-bg, #ffffff);
+  box-shadow: inset 0 0 0 clamp(1px, 0.11cqw, 2px) color-mix(in srgb, var(--round-inner, #006b3c) 14%, transparent);
   overflow: hidden;
 }
 
@@ -234,19 +271,35 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  color: var(--round-secondary, #006b3c);
-  font-weight: 800;
-  line-height: 1.05;
+  padding: 1.5% 5%;
+  border-radius: clamp(3px, 0.8cqw, 9px);
+  background: var(--round-secondary, #006b3c);
+  color: #ffffff;
+  font-weight: 900;
+  line-height: 1;
   overflow: hidden;
   overflow-wrap: anywhere;
 }
 
 .rounded-asset-label__identity {
   display: grid;
-  grid-template-rows: minmax(0, 22%) minmax(0, 38%) minmax(0, 40%);
+  grid-template-rows: minmax(0, 28%) minmax(0, 72%);
   align-items: center;
   justify-items: stretch;
-  padding: 0 1%;
+  padding: 1.2% 1% 0;
+}
+
+.rounded-asset-label__department-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: center;
+  gap: 4%;
+}
+
+.rounded-asset-label__department-row span {
+  width: clamp(5px, 1.2cqw, 13px);
+  height: clamp(5px, 1.2cqw, 13px);
+  border-radius: 50%;
+  background: var(--round-accent, #e6a000);
 }
 
 .rounded-asset-label__department {
@@ -269,7 +322,7 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  padding: 0 1%;
+  padding: 1% 4% 0;
 }
 
 .rounded-asset-label__barcode svg {
@@ -279,14 +332,16 @@
 }
 
 .rounded-asset-label__asset-code {
-  width: 100%;
+  width: 88%;
   height: 100%;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  align-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 0 1%;
   color: var(--round-asset-code, #000000);
   font-weight: 900;
-  line-height: 0.88;
+  line-height: 0.82;
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -295,9 +350,9 @@
 
 .rounded-asset-label__property {
   display: grid;
-  grid-template-rows: minmax(0, 38%) minmax(0, 62%);
+  grid-template-rows: minmax(0, 36%) minmax(0, 64%);
   align-items: center;
-  padding: 1% 14% 0;
+  padding: 0 13.5%;
 }
 
 .rounded-asset-label__property-label {
@@ -319,7 +374,7 @@
   align-content: center;
   color: var(--round-property, #006b3c);
   font-weight: 900;
-  line-height: 0.95;
+  line-height: 0.92;
   overflow: hidden;
   overflow-wrap: anywhere;
   text-transform: uppercase;
