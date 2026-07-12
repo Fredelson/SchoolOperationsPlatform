@@ -7,6 +7,7 @@ BEGIN TRY
 
  DECLARE @Enabled int=(SELECT TOP 1 VisibilityStatusId FROM dbo.FeatureVisibilityStatuses WHERE LOWER(StatusKey)='enabled');
  IF @Enabled IS NULL THROW 51000,'Enabled visibility status is missing.',1;
+ DECLARE @Hidden int=(SELECT TOP 1 VisibilityStatusId FROM dbo.FeatureVisibilityStatuses WHERE LOWER(StatusKey)='hidden');
  IF OBJECT_ID('dbo.AssetTagBranding','U') IS NULL
   CREATE TABLE dbo.AssetTagBranding(
    AssetTagBrandingId int IDENTITY PRIMARY KEY,
@@ -57,9 +58,62 @@ BEGIN TRY
  INSERT dbo.RolePermissions(RoleId,PermissionId,IsAllowed,CreatedAt) SELECT r.RoleId,p.PermissionId,1,GETDATE() FROM dbo.Roles r JOIN dbo.Permissions p ON p.PermissionKey IN('asset_tags.rounded.view','asset_tags.rounded.print','asset_tags.rectangular.view','asset_tags.rectangular.print','asset_tag_branding.rounded.view','asset_tag_branding.rounded.manage','asset_tag_branding.rectangular.view','asset_tag_branding.rectangular.manage') WHERE r.RoleKey='SuperAdmin' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions x WHERE x.RoleId=r.RoleId AND x.PermissionId=p.PermissionId);
  INSERT dbo.RolePermissions(RoleId,PermissionId,IsAllowed,CreatedAt) SELECT r.RoleId,p.PermissionId,1,GETDATE() FROM dbo.Roles r JOIN dbo.Permissions p ON p.PermissionKey IN('asset_tags.rounded.view','asset_tags.rounded.print','asset_tags.rectangular.view','asset_tags.rectangular.print') WHERE r.RoleKey IN('PlatformAdmin','PrintingAdmin') AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions x WHERE x.RoleId=r.RoleId AND x.PermissionId=p.PermissionId);
 
- IF EXISTS(SELECT 1 FROM dbo.Menus WHERE Route='/it-assets/asset-tag-printer' AND MenuKey<>'IT_RECTANGULAR_ASSET_TAG_PRINTER')
-  AND NOT EXISTS(SELECT 1 FROM dbo.Menus WHERE MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER')
-  UPDATE dbo.Menus SET MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER',MenuName='Rectangular Asset Tag Printer',UpdatedAt=GETDATE() WHERE Route='/it-assets/asset-tag-printer';
+ DECLARE @CanonicalMenuId int;
+
+ SELECT TOP 1 @CanonicalMenuId=MenuId
+ FROM dbo.Menus
+ WHERE MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER'
+    OR MenuKey IN('IT_ASSET_TAG_PRINTER','rectangular_asset_tag_printer')
+    OR Route='/it-assets/asset-tag-printer'
+ ORDER BY CASE MenuKey WHEN 'IT_RECTANGULAR_ASSET_TAG_PRINTER' THEN 0 WHEN 'rectangular_asset_tag_printer' THEN 1 WHEN 'IT_ASSET_TAG_PRINTER' THEN 2 ELSE 3 END,MenuId;
+ IF @CanonicalMenuId IS NOT NULL
+  UPDATE dbo.Menus SET MenuKey='IT_RECTANGULAR_ASSET_TAG_PRINTER',MenuName='Rectangular Asset Tag Printer',Route='/it-assets/asset-tag-printer',Icon='print',VisibilityStatusId=@Enabled,UpdatedAt=GETDATE() WHERE MenuId=@CanonicalMenuId;
+ UPDATE wm SET IsVisible=0,IsEnabled=0,UpdatedAt=GETDATE()
+ FROM dbo.WorkspaceMenus wm JOIN dbo.Menus m ON m.MenuId=wm.MenuId
+ WHERE m.MenuId<>ISNULL(@CanonicalMenuId,-1) AND (m.Route='/it-assets/asset-tag-printer' OR m.MenuKey IN('IT_ASSET_TAG_PRINTER','rectangular_asset_tag_printer','IT_RECTANGULAR_ASSET_TAG_PRINTER'));
+ UPDATE dbo.Menus SET Route=NULL,VisibilityStatusId=COALESCE(@Hidden,@Enabled),UpdatedAt=GETDATE() WHERE MenuId<>ISNULL(@CanonicalMenuId,-1) AND (Route='/it-assets/asset-tag-printer' OR MenuKey IN('IT_ASSET_TAG_PRINTER','rectangular_asset_tag_printer','IT_RECTANGULAR_ASSET_TAG_PRINTER'));
+
+ SET @CanonicalMenuId=NULL;
+ SELECT TOP 1 @CanonicalMenuId=MenuId
+ FROM dbo.Menus
+ WHERE MenuKey='IT_ROUNDED_ASSET_TAG_PRINTER'
+    OR MenuKey='rounded_asset_tag_printer'
+    OR Route='/it-assets/rounded-asset-tag-printer'
+ ORDER BY CASE MenuKey WHEN 'IT_ROUNDED_ASSET_TAG_PRINTER' THEN 0 WHEN 'rounded_asset_tag_printer' THEN 1 ELSE 2 END,MenuId;
+ IF @CanonicalMenuId IS NOT NULL
+  UPDATE dbo.Menus SET MenuKey='IT_ROUNDED_ASSET_TAG_PRINTER',MenuName='Rounded Asset Tag Printer',Route='/it-assets/rounded-asset-tag-printer',Icon='print',VisibilityStatusId=@Enabled,UpdatedAt=GETDATE() WHERE MenuId=@CanonicalMenuId;
+ UPDATE wm SET IsVisible=0,IsEnabled=0,UpdatedAt=GETDATE()
+ FROM dbo.WorkspaceMenus wm JOIN dbo.Menus m ON m.MenuId=wm.MenuId
+ WHERE m.MenuId<>ISNULL(@CanonicalMenuId,-1) AND (m.Route='/it-assets/rounded-asset-tag-printer' OR m.MenuKey IN('rounded_asset_tag_printer','IT_ROUNDED_ASSET_TAG_PRINTER'));
+ UPDATE dbo.Menus SET Route=NULL,VisibilityStatusId=COALESCE(@Hidden,@Enabled),UpdatedAt=GETDATE() WHERE MenuId<>ISNULL(@CanonicalMenuId,-1) AND (Route='/it-assets/rounded-asset-tag-printer' OR MenuKey IN('rounded_asset_tag_printer','IT_ROUNDED_ASSET_TAG_PRINTER'));
+
+ SET @CanonicalMenuId=NULL;
+ SELECT TOP 1 @CanonicalMenuId=MenuId
+ FROM dbo.Menus
+ WHERE MenuKey='SCHOOL_ROUNDED_ASSET_TAG_BRANDING'
+    OR MenuKey='rounded_asset_tag_branding'
+    OR Route='/system/rounded-asset-tag-branding'
+ ORDER BY CASE MenuKey WHEN 'SCHOOL_ROUNDED_ASSET_TAG_BRANDING' THEN 0 WHEN 'rounded_asset_tag_branding' THEN 1 ELSE 2 END,MenuId;
+ IF @CanonicalMenuId IS NOT NULL
+  UPDATE dbo.Menus SET MenuKey='SCHOOL_ROUNDED_ASSET_TAG_BRANDING',MenuName='Rounded Asset Tag Branding',Route='/system/rounded-asset-tag-branding',Icon='palette',VisibilityStatusId=@Enabled,UpdatedAt=GETDATE() WHERE MenuId=@CanonicalMenuId;
+ UPDATE wm SET IsVisible=0,IsEnabled=0,UpdatedAt=GETDATE()
+ FROM dbo.WorkspaceMenus wm JOIN dbo.Menus m ON m.MenuId=wm.MenuId
+ WHERE m.MenuId<>ISNULL(@CanonicalMenuId,-1) AND (m.Route='/system/rounded-asset-tag-branding' OR m.MenuKey IN('rounded_asset_tag_branding','SCHOOL_ROUNDED_ASSET_TAG_BRANDING'));
+ UPDATE dbo.Menus SET Route=NULL,VisibilityStatusId=COALESCE(@Hidden,@Enabled),UpdatedAt=GETDATE() WHERE MenuId<>ISNULL(@CanonicalMenuId,-1) AND (Route='/system/rounded-asset-tag-branding' OR MenuKey IN('rounded_asset_tag_branding','SCHOOL_ROUNDED_ASSET_TAG_BRANDING'));
+
+ SET @CanonicalMenuId=NULL;
+ SELECT TOP 1 @CanonicalMenuId=MenuId
+ FROM dbo.Menus
+ WHERE MenuKey='SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING'
+    OR MenuKey='rectangular_asset_tag_branding'
+    OR Route='/system/rectangular-asset-tag-branding'
+ ORDER BY CASE MenuKey WHEN 'SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING' THEN 0 WHEN 'rectangular_asset_tag_branding' THEN 1 ELSE 2 END,MenuId;
+ IF @CanonicalMenuId IS NOT NULL
+  UPDATE dbo.Menus SET MenuKey='SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING',MenuName='Rectangular Asset Tag Branding',Route='/system/rectangular-asset-tag-branding',Icon='palette',VisibilityStatusId=@Enabled,UpdatedAt=GETDATE() WHERE MenuId=@CanonicalMenuId;
+ UPDATE wm SET IsVisible=0,IsEnabled=0,UpdatedAt=GETDATE()
+ FROM dbo.WorkspaceMenus wm JOIN dbo.Menus m ON m.MenuId=wm.MenuId
+ WHERE m.MenuId<>ISNULL(@CanonicalMenuId,-1) AND (m.Route='/system/rectangular-asset-tag-branding' OR m.MenuKey IN('rectangular_asset_tag_branding','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING'));
+ UPDATE dbo.Menus SET Route=NULL,VisibilityStatusId=COALESCE(@Hidden,@Enabled),UpdatedAt=GETDATE() WHERE MenuId<>ISNULL(@CanonicalMenuId,-1) AND (Route='/system/rectangular-asset-tag-branding' OR MenuKey IN('rectangular_asset_tag_branding','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING'));
 
  DECLARE @AssetTagMenus TABLE(ParentMenuKey nvarchar(100),ModuleId int,MenuKey nvarchar(100),MenuName nvarchar(150),Route nvarchar(150),Icon nvarchar(100),PermissionKey nvarchar(100),SortOrder int);
  INSERT @AssetTagMenus VALUES
@@ -90,21 +144,21 @@ BEGIN TRY
  WHEN MATCHED THEN UPDATE SET GroupKey=s.GroupKey,GroupName=s.GroupName,GroupSortOrder=s.GroupSortOrder,ParentMenuId=NULL,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
  WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,s.GroupKey,s.GroupName,s.GroupSortOrder,NULL,1,1,s.SortOrder);
 
- DECLARE @AssetTagChildBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),ParentMenuKey nvarchar(100),SortOrder int);
+ DECLARE @AssetTagChildBindings TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),ParentMenuKey nvarchar(100),GroupKey nvarchar(100),GroupName nvarchar(150),GroupSortOrder int,SortOrder int);
  INSERT @AssetTagChildBindings VALUES
-  ('super-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
-  ('platform-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
-  ('printing-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',25),
-  ('super-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
-  ('platform-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
-  ('printing-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT',26),
-  ('super-admin','SCHOOL_ROUNDED_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT',25),
-  ('super-admin','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT',26);
+  ('super-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
+  ('platform-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
+  ('printing-admin','IT_RECTANGULAR_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,25),
+  ('super-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
+  ('platform-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
+  ('printing-admin','IT_ROUNDED_ASSET_TAG_PRINTER','IT_OPERATIONS_ROOT','OPERATIONS','Operations',20,26),
+  ('super-admin','SCHOOL_ROUNDED_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,25),
+  ('super-admin','SCHOOL_RECTANGULAR_ASSET_TAG_BRANDING','SCHOOL_CONFIGURATION_ROOT','CONFIGURATION','Configuration',30,26);
  MERGE dbo.WorkspaceMenus t
- USING(SELECT w.WorkspaceId,m.MenuId,parent.MenuId ParentMenuId,b.SortOrder FROM @AssetTagChildBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey JOIN dbo.Menus parent ON parent.MenuKey=b.ParentMenuKey)s
+ USING(SELECT w.WorkspaceId,m.MenuId,parent.MenuId ParentMenuId,b.GroupKey,b.GroupName,b.GroupSortOrder,b.SortOrder FROM @AssetTagChildBindings b JOIN dbo.Workspaces w ON w.WorkspaceKey=b.WorkspaceKey JOIN dbo.Menus m ON m.MenuKey=b.MenuKey JOIN dbo.Menus parent ON parent.MenuKey=b.ParentMenuKey)s
  ON s.WorkspaceId=t.WorkspaceId AND s.MenuId=t.MenuId
- WHEN MATCHED THEN UPDATE SET GroupKey=NULL,GroupName=NULL,GroupSortOrder=NULL,ParentMenuId=s.ParentMenuId,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
- WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,NULL,NULL,NULL,s.ParentMenuId,1,1,s.SortOrder);
+ WHEN MATCHED THEN UPDATE SET GroupKey=s.GroupKey,GroupName=s.GroupName,GroupSortOrder=s.GroupSortOrder,ParentMenuId=s.ParentMenuId,IsVisible=1,IsEnabled=1,SortOrder=s.SortOrder,UpdatedAt=GETDATE()
+ WHEN NOT MATCHED THEN INSERT(WorkspaceId,MenuId,GroupKey,GroupName,GroupSortOrder,ParentMenuId,IsVisible,IsEnabled,SortOrder) VALUES(s.WorkspaceId,s.MenuId,s.GroupKey,s.GroupName,s.GroupSortOrder,s.ParentMenuId,1,1,s.SortOrder);
  DECLARE @DashboardResources TABLE(WorkspaceKey nvarchar(100),MenuKey nvarchar(100),MenuName nvarchar(150),Route nvarchar(150),PermissionKey nvarchar(100),PermissionName nvarchar(150));
  INSERT @DashboardResources VALUES
  ('admin','admin_dashboard','Administration Dashboard','/admin/dashboard','workspace.admin.use','Use Administration Workspace'),('year-leader','year_leader_dashboard','Year Leader Dashboard','/year-leader/dashboard','workspace.year_leader.use','Use Year Leader Workspace'),('homeroom-teacher','homeroom_dashboard','Homeroom Dashboard','/homeroom/dashboard','workspace.homeroom.use','Use Homeroom Workspace'),('deputy-head','deputy_head_dashboard','Deputy Head Dashboard','/deputy-head/dashboard','workspace.deputy_head.use','Use Deputy Head Workspace'),('head-of-operations','operations_dashboard','Operations Dashboard','/head-of-operations/dashboard','workspace.operations.use','Use Operations Workspace'),('nurse-clinic','clinic_dashboard','Clinic Dashboard','/clinic/dashboard','workspace.clinic.use','Use Clinic Workspace');
