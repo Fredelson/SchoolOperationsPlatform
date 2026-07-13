@@ -10,8 +10,13 @@ import {
 const date = (value) => value ? new Intl.DateTimeFormat("en-AE", { dateStyle: "medium" }).format(new Date(value)) : "—";
 const activeColumns = [
   { field: "AssetTag", headerName: "Asset Tag" },
-  { field: "AssignedToName", headerName: "Assigned To" },
+  {
+    field: "AssignedToName",
+    headerName: "Assigned To",
+    render: (row) => row.AssignedToName || row.RoomName || "—",
+  },
   { field: "DepartmentName", headerName: "Department" },
+  { field: "RoomName", headerName: "Room", render: (row) => row.RoomName || "—" },
   { field: "LocationName", headerName: "Location" },
   { field: "AssignedAt", headerName: "Assigned Date", render: (row) => date(row.AssignedAt) },
 ];

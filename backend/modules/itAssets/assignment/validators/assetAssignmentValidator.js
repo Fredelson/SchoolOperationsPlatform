@@ -4,22 +4,39 @@
 
 const validateAssignPayload = (req, res, next) => {
   const errors = [];
-  const { assetId, assignedToUserId, assignedToName } = req.body;
+  const {
+    assetId,
+    assignedToUserId,
+    assignedToName,
+    roomId,
+    departmentId,
+    locationId,
+  } = req.body;
 
   if (!assetId || Number(assetId) <= 0) errors.push("Asset is required.");
 
-  if (!assignedToUserId && !assignedToName) {
-    errors.push("Assigned user or assigned name is required.");
+  if (!assignedToUserId && !assignedToName && !roomId && !departmentId && !locationId) {
+    errors.push("Assigned user, room, department, or location is required.");
   }
 
-  if (
-    assignedToUserId !== undefined &&
-    assignedToUserId !== null &&
-    assignedToUserId !== "" &&
-    Number(assignedToUserId) <= 0
-  ) {
-    errors.push("Assigned user must be a valid ID.");
-  }
+  const optionalIds = {
+    assignedToUserId: "Assigned user",
+    roomId: "Room",
+    departmentId: "Department",
+    locationId: "Location",
+  };
+
+  Object.entries(optionalIds).forEach(([field, label]) => {
+    const value = req.body[field];
+    if (
+      value !== undefined &&
+      value !== null &&
+      value !== "" &&
+      Number(value) <= 0
+    ) {
+      errors.push(`${label} must be a valid ID.`);
+    }
+  });
 
   if (errors.length > 0) {
     return res.status(400).json({

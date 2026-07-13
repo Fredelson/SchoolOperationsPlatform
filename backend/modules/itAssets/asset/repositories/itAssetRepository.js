@@ -305,6 +305,21 @@ const getAssetByTag = async (assetTag, excludeAssetId = null) => {
   return result.recordset[0];
 };
 
+const getStatusByKey = async (statusKey) => {
+  const pool = await poolPromise;
+
+  const result = await pool
+    .request()
+    .input("StatusKey", sql.NVarChar(100), statusKey)
+    .query(`
+      SELECT TOP 1 *
+      FROM dbo.ITAssetStatuses
+      WHERE StatusKey = @StatusKey;
+    `);
+
+  return result.recordset[0];
+};
+
 /**
  * Create a new IT asset.
  */
@@ -472,6 +487,7 @@ module.exports = {
   getAssets,
   getAssetById,
   getAssetByTag,
+  getStatusByKey,
   createAsset,
   updateAsset,
   softDeleteAsset,

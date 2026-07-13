@@ -106,6 +106,7 @@ const AssetTable = ({
               <TableCell>
                 {asset.CurrentAssignedName ||
                   asset.CurrentAssignedEmployeeCode ||
+                  asset.RoomName ||
                   "—"}
               </TableCell>
               <TableCell>{asset.LocationName || "—"}</TableCell>

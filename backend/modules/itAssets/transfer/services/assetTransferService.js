@@ -16,6 +16,17 @@ const userId = (user) =>
   user?.UserID ||
   null;
 
+const getAssignedStatusIdForTarget = async ({ userId: targetUserId, roomId }) => {
+  if (!targetUserId && !roomId) return null;
+
+  const assignedStatus = await repository.getStatusByKey("Assigned");
+  if (!assignedStatus) {
+    throw Object.assign(new Error("Assigned status is missing."), { statusCode: 400 });
+  }
+
+  return assignedStatus.ITAssetStatusId;
+};
+
 const transferAsset = async ({ payload, user, ipAddress }) => {
   const asset = await repository.getAssetById(payload.assetId);
   if (!asset) {
@@ -39,7 +50,18 @@ const transferAsset = async ({ payload, user, ipAddress }) => {
     });
   }
 
-  return repository.transferAsset({ asset, payload, actionByUserId, ipAddress });
+  const assignedStatusId = await getAssignedStatusIdForTarget({
+    userId: payload.toUserId,
+    roomId: payload.toRoomId,
+  });
+
+  return repository.transferAsset({
+    asset,
+    payload,
+    actionByUserId,
+    assignedStatusId,
+    ipAddress,
+  });
 };
 
 const createTransferRequest = async ({ payload, user }) => {
@@ -132,10 +154,16 @@ const completeTransfer = async ({ payload, user, ipAddress }) => {
     });
   }
 
+  const assignedStatusId = await getAssignedStatusIdForTarget({
+    userId: transfer.ToUserId,
+    roomId: transfer.ToRoomId,
+  });
+
   return repository.completeTransfer({
     transfer,
     asset,
     actionByUserId: userId(user) || payload.completedBy || payload.approvedBy || null,
+    assignedStatusId,
     ipAddress,
   });
 };

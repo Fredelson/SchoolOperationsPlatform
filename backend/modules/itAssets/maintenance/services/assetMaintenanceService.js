@@ -39,8 +39,14 @@ const getMaintenanceDue = async () => {
 };
 
 const completeMaintenance = async ({ maintenanceLogId, user }) => {
-  const maintenance = await repository.getMaintenanceLogById(maintenanceLogId);
+  const logId = Number(maintenanceLogId);
+  const syntheticAssetId = Number.isInteger(logId) && logId < 0 ? Math.abs(logId) : null;
+  const maintenance = syntheticAssetId
+    ? { AssetId: syntheticAssetId, MaintenanceType: "Maintenance Review" }
+    : await repository.getMaintenanceLogById(maintenanceLogId);
+
   if (!maintenance) throw Object.assign(new Error("Maintenance record not found."), { statusCode: 404 });
+
   const asset = await repository.getAssetById(maintenance.AssetId);
   const status = String(asset?.StatusKey || asset?.StatusName || "").replace(/[\s_-]/g, "").toUpperCase();
   if (!asset || !["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(status)) {

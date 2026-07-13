@@ -260,7 +260,18 @@ const assignAsset = async ({
 
     const assignmentResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
-      .input("AssignmentTargetType", sql.NVarChar(100), payload.assignmentTargetType || "USER")
+      .input(
+        "AssignmentTargetType",
+        sql.NVarChar(100),
+        payload.assignmentTargetType ||
+          (payload.assignedToUserId || payload.assignedToName
+            ? "USER"
+            : payload.roomId
+            ? "ROOM"
+            : payload.departmentId
+            ? "DEPARTMENT"
+            : "LOCATION")
+      )
       .input("AssignedToUserId", sql.Int, assignedToUser?.UserId || null)
       .input("AssignedToName", sql.NVarChar(510), payload.assignedToName || assignedToUser?.FullName || null)
       .input("AssignedToEmail", sql.NVarChar(510), payload.assignedToEmail || assignedToUser?.SchoolEmail || null)
@@ -362,6 +373,33 @@ const assignAsset = async ({
 
     const assignment = assignmentResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
+    const labelResult = await new sql.Request(transaction)
+      .input("AssignedToName", sql.NVarChar(510), assignment.AssignedToName || null)
+      .input("AssignedToUserId", sql.Int, assignment.AssignedToUserId || null)
+      .input("RoomId", sql.Int, assignment.RoomId || null)
+      .input("DepartmentId", sql.Int, assignment.DepartmentId || null)
+      .input("LocationId", sql.Int, assignment.LocationId || null)
+      .query(`
+        SELECT COALESCE(
+          NULLIF(LTRIM(RTRIM(@AssignedToName)), ''),
+          assignedUser.FullName,
+          room.RoomName,
+          department.DepartmentName,
+          location.LocationName,
+          'Unspecified assignment'
+        ) AS AssignmentLabel
+        FROM (SELECT 1 AS AnchorRow) anchorRow
+        LEFT JOIN dbo.Users assignedUser
+          ON assignedUser.UserId = @AssignedToUserId
+        LEFT JOIN dbo.Rooms room
+          ON room.RoomId = @RoomId
+        LEFT JOIN dbo.Departments department
+          ON department.DepartmentId = @DepartmentId
+        LEFT JOIN dbo.Locations location
+          ON location.LocationId = @LocationId;
+      `);
+    const assignmentLabel =
+      labelResult.recordset[0]?.AssignmentLabel || "Unspecified assignment";
 
     await insertAuditLog({
       transaction,
@@ -369,7 +407,7 @@ const assignAsset = async ({
       actionType: "ASSET_ASSIGNED",
       entityType: "ITAsset",
       entityId: asset.AssetId,
-      description: `Asset ${asset.AssetTag} was assigned to ${assignment.AssignedToName}.`,
+      description: `Asset ${asset.AssetTag} was assigned to ${assignmentLabel}.`,
       oldValue: asset,
       newValue: {
         asset: updatedAsset,
@@ -386,7 +424,7 @@ const assignAsset = async ({
       entityId: asset.AssetId,
       activityType: "ASSET_ASSIGNED",
       activityTitle: "Asset Assigned",
-      activityDescription: `Asset ${asset.AssetTag} was assigned to ${assignment.AssignedToName}.`,
+      activityDescription: `Asset ${asset.AssetTag} was assigned to ${assignmentLabel}.`,
     });
 
     await transaction.commit();

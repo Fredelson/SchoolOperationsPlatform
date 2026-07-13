@@ -208,24 +208,66 @@ const createMaintenanceLog = async ({
 const getMaintenanceLogs = async ({ assetId = null }) => {
   const result = await executeQuery(
     `
-      SELECT
-        ml.*,
-        a.AssetTag,
-        a.ModelDescription,
-        u.FullName AS PerformedByName,
-        s.StatusKey AS AssetStatusKey,
-        s.StatusName AS AssetStatusName,
-        ROW_NUMBER() OVER (
-          PARTITION BY ml.AssetId
-          ORDER BY ml.PerformedAt DESC, ml.MaintenanceLogId DESC
-        ) AS MaintenanceSequence
-      FROM dbo.ITAssetMaintenanceLogs ml
-      INNER JOIN dbo.ITAssets a ON ml.AssetId = a.AssetId
-      LEFT JOIN dbo.Users u ON ml.PerformedBy = u.UserId
-      LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
-      WHERE a.IsDeleted = 0
-        AND (@AssetId IS NULL OR ml.AssetId = @AssetId)
-      ORDER BY ml.PerformedAt DESC;
+      WITH MaintenanceRows AS (
+        SELECT
+          ml.MaintenanceLogId,
+          ml.AssetId,
+          ml.MaintenanceType,
+          ml.Description,
+          ml.PerformedBy,
+          ml.Cost,
+          ml.PerformedAt,
+          ml.NextDueAt,
+          a.AssetTag,
+          a.ModelDescription,
+          u.FullName AS PerformedByName,
+          s.StatusKey AS AssetStatusKey,
+          s.StatusName AS AssetStatusName,
+          CAST(0 AS bit) AS IsSyntheticMaintenance,
+          ROW_NUMBER() OVER (
+            PARTITION BY ml.AssetId
+            ORDER BY ml.PerformedAt DESC, ml.MaintenanceLogId DESC
+          ) AS MaintenanceSequence
+        FROM dbo.ITAssetMaintenanceLogs ml
+        INNER JOIN dbo.ITAssets a ON ml.AssetId = a.AssetId
+        LEFT JOIN dbo.Users u ON ml.PerformedBy = u.UserId
+        LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+        WHERE a.IsDeleted = 0
+          AND (@AssetId IS NULL OR ml.AssetId = @AssetId)
+
+        UNION ALL
+
+        SELECT
+          -a.AssetId AS MaintenanceLogId,
+          a.AssetId,
+          'Maintenance Review' AS MaintenanceType,
+          'Asset is under repair and requires maintenance review.' AS Description,
+          NULL AS PerformedBy,
+          NULL AS Cost,
+          COALESCE(a.UpdatedAt, a.CreatedAt, GETDATE()) AS PerformedAt,
+          NULL AS NextDueAt,
+          a.AssetTag,
+          a.ModelDescription,
+          NULL AS PerformedByName,
+          s.StatusKey AS AssetStatusKey,
+          s.StatusName AS AssetStatusName,
+          CAST(1 AS bit) AS IsSyntheticMaintenance,
+          1 AS MaintenanceSequence
+        FROM dbo.ITAssets a
+        LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+        WHERE a.IsDeleted = 0
+          AND (@AssetId IS NULL OR a.AssetId = @AssetId)
+          AND UPPER(REPLACE(REPLACE(ISNULL(s.StatusKey, s.StatusName), ' ', ''), '-', '')) IN
+            ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.ITAssetMaintenanceLogs existingLog
+            WHERE existingLog.AssetId = a.AssetId
+          )
+      )
+      SELECT *
+      FROM MaintenanceRows
+      ORDER BY PerformedAt DESC, MaintenanceLogId DESC;
     `,
     [{ name: "AssetId", type: sql.Int, value: assetId ? Number(assetId) : null }]
   );

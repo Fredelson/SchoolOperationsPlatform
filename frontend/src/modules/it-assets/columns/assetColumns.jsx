@@ -77,7 +77,7 @@ export const buildAssetColumns = (handlers = {}) => [
     headerName: "Assigned To",
     width: 180,
     render: (row) =>
-      safeText(row.CurrentAssignedUserName || row.CurrentAssignedName),
+      safeText(row.CurrentAssignedUserName || row.CurrentAssignedName || row.RoomName),
   },
   {
     field: "StatusName",

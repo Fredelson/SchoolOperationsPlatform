@@ -60,9 +60,17 @@ const AssignAssetDialog = ({
   };
 
   const handleSubmit = () => {
+    const assignmentTargetType = form.assignedToUserId || form.assignedToName
+      ? "USER"
+      : form.roomId
+      ? "ROOM"
+      : form.departmentId
+      ? "DEPARTMENT"
+      : "LOCATION";
+
     onSubmit({
       assetId: asset?.AssetId,
-      assignmentTargetType: "USER",
+      assignmentTargetType,
       assignedToUserId: form.assignedToUserId || null,
       assignedToName: form.assignedToName || null,
       assignedToEmail: form.assignedToEmail || null,
@@ -76,7 +84,13 @@ const AssignAssetDialog = ({
 
   const canSubmit =
     Boolean(asset?.AssetId) &&
-    Boolean(form.assignedToUserId || form.assignedToName);
+    Boolean(
+      form.assignedToUserId ||
+        form.assignedToName ||
+        form.roomId ||
+        form.departmentId ||
+        form.locationId
+    );
 
   return (
     <AppDialog
@@ -102,7 +116,6 @@ const AssignAssetDialog = ({
           options={users}
           valueKey="UserId"
           labelKey="FullName"
-          required
           full
         />
 

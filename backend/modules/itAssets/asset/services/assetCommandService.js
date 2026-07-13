@@ -11,6 +11,29 @@ const assetValidationService = require("./assetValidationService");
 const assetAuditService = require("../../shared/services/assetAuditService");
 const { normalizeAssetTag } = require("../../shared/helpers/assetTagHelper");
 
+const hasAssignmentTarget = (payload = {}) =>
+  Boolean(
+    payload.currentAssignedUserId ||
+      payload.currentAssignedName ||
+      payload.currentRoomId
+  );
+
+const applyAssignedStatus = async (payload) => {
+  if (!hasAssignmentTarget(payload)) return payload;
+
+  const assignedStatus = await itAssetRepository.getStatusByKey("Assigned");
+  if (!assignedStatus) {
+    const error = new Error("Assigned status is missing.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    ...payload,
+    itAssetStatusId: assignedStatus.ITAssetStatusId,
+  };
+};
+
 const createAsset = async (payload, currentUser, ipAddress = null) => {
   await assetValidationService.validateAssetReferences(payload);
 
@@ -24,8 +47,10 @@ const createAsset = async (payload, currentUser, ipAddress = null) => {
     throw error;
   }
 
+  const normalizedPayload = await applyAssignedStatus(payload);
+
   const createdAsset = await itAssetRepository.createAsset({
-    ...payload,
+    ...normalizedPayload,
     assetTag: normalizedTag,
   });
 
@@ -56,8 +81,10 @@ const updateAsset = async (assetId, payload, currentUser, ipAddress = null) => {
     throw error;
   }
 
+  const normalizedPayload = await applyAssignedStatus(payload);
+
   const updatedAsset = await itAssetRepository.updateAsset(assetId, {
-    ...payload,
+    ...normalizedPayload,
     assetTag: normalizedTag,
   });
 

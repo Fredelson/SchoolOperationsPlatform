@@ -281,12 +281,14 @@ const loadCommitLookupCache = async (transaction) => {
     SELECT ITAssetModelId, ITAssetCategoryId, ITAssetBrandId, ModelName FROM dbo.ITAssetModels;
     SELECT LocationId, LocationKey, LocationName FROM dbo.Locations;
     SELECT RoomId, RoomKey, RoomName, LocationId FROM dbo.Rooms;
+    SELECT ITAssetStatusId, StatusKey, StatusName FROM dbo.ITAssetStatuses;
   `);
 
   const brandMap = new Map();
   const modelMap = new Map();
   const locationMap = new Map();
   const roomMap = new Map();
+  const statusMap = new Map();
 
   for (const brand of result.recordsets[0] || []) {
     brandMap.set(normalizeKey(brand.BrandName), brand);
@@ -306,7 +308,11 @@ const loadCommitLookupCache = async (transaction) => {
     cacheRecord(roomMap, room, "RoomName", "RoomKey");
   }
 
-  return { brandMap, modelMap, locationMap, roomMap };
+  for (const status of result.recordsets[4] || []) {
+    cacheRecord(statusMap, status, "StatusName", "StatusKey");
+  }
+
+  return { brandMap, modelMap, locationMap, roomMap, statusMap };
 };
 
 const getOrCreateBrandFromCache = async ({ transaction, cache, brandName }) => {
@@ -606,6 +612,12 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
         `);
 
       const user = userResult.recordset[0];
+      const assignedStatus = cache.statusMap.get("assigned");
+      const hasAssignmentTarget = Boolean(user?.UserId || room?.RoomId);
+
+      if (hasAssignmentTarget && !assignedStatus) {
+        throw new Error("Assigned status is missing in ITAssetStatuses.");
+      }
 
       const assetResult = await new sql.Request(transaction)
         .input("AssetTag", sql.NVarChar(200), row.AssetTag)
@@ -613,7 +625,13 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
         .input("ITAssetModelId", sql.Int, model?.ITAssetModelId || null)
         .input("ModelDescription", sql.NVarChar(510), model?.ModelName || row.ModelName || null)
         .input("SerialIpMac", sql.NVarChar(510), null)
-        .input("ITAssetStatusId", sql.Int, row.ResolvedStatusId)
+        .input(
+          "ITAssetStatusId",
+          sql.Int,
+          hasAssignmentTarget
+            ? assignedStatus.ITAssetStatusId
+            : row.ResolvedStatusId
+        )
         .input("ITAssetConditionId", sql.Int, row.ResolvedConditionId || null)
         .input("CurrentAssignedUserId", sql.Int, user?.UserId || null)
         .input("CurrentAssignedName", sql.NVarChar(510), user?.FullName || null)

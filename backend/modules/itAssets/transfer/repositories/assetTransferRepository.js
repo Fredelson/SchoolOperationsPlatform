@@ -35,6 +35,19 @@ const getTransferById = async (transferRequestId) => {
   return firstOrNull(result);
 };
 
+const getStatusByKey = async (statusKey) => {
+  const result = await executeQuery(
+    `
+      SELECT TOP 1 *
+      FROM dbo.ITAssetStatuses
+      WHERE StatusKey = @StatusKey;
+    `,
+    [{ name: "StatusKey", type: sql.NVarChar(100), value: statusKey }]
+  );
+
+  return firstOrNull(result);
+};
+
 const createTransferRequest = async ({ payload, requestedBy }) => {
   const result = await executeQuery(
     `
@@ -92,7 +105,13 @@ const createTransferRequest = async ({ payload, requestedBy }) => {
   return firstOrNull(result);
 };
 
-const transferAsset = async ({ asset, payload, actionByUserId, ipAddress = null }) => {
+const transferAsset = async ({
+  asset,
+  payload,
+  actionByUserId,
+  assignedStatusId = null,
+  ipAddress = null,
+}) => {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
@@ -136,9 +155,11 @@ const transferAsset = async ({ asset, payload, actionByUserId, ipAddress = null 
       .input("ToRoomId", sql.Int, payload.toRoomId || null)
       .input("ToDepartmentId", sql.Int, payload.toDepartmentId || null)
       .input("ToLocationId", sql.Int, payload.toLocationId || null)
+      .input("AssignedStatusId", sql.Int, assignedStatusId || null)
       .query(`
         UPDATE dbo.ITAssets
         SET CurrentAssignedUserId = @ToUserId,
+            ITAssetStatusId = COALESCE(@AssignedStatusId, ITAssetStatusId),
             CurrentAssignedName = (
               SELECT FullName FROM dbo.Users WHERE UserId = @ToUserId
             ),
@@ -158,6 +179,24 @@ const transferAsset = async ({ asset, payload, actionByUserId, ipAddress = null 
 
     const updatedTransfer = transferResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
+
+    if (
+      assignedStatusId &&
+      Number(asset.ITAssetStatusId) !== Number(assignedStatusId)
+    ) {
+      await new sql.Request(transaction)
+        .input("AssetId", sql.Int, asset.AssetId)
+        .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
+        .input("NewStatusId", sql.Int, assignedStatusId)
+        .input("ChangedBy", sql.Int, actionByUserId || null)
+        .input("Notes", sql.NVarChar(sql.MAX), "Asset assigned by transfer.")
+        .query(`
+          INSERT INTO dbo.ITAssetStatusHistory
+            (AssetId, OldStatusId, NewStatusId, ChangedBy, ChangedAt, Notes)
+          VALUES
+            (@AssetId, @OldStatusId, @NewStatusId, @ChangedBy, GETDATE(), @Notes);
+        `);
+    }
 
     const labelResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
@@ -259,7 +298,13 @@ const rejectTransfer = async ({ transferRequestId }) => {
   return firstOrNull(result);
 };
 
-const completeTransfer = async ({ transfer, asset, actionByUserId, ipAddress = null }) => {
+const completeTransfer = async ({
+  transfer,
+  asset,
+  actionByUserId,
+  assignedStatusId = null,
+  ipAddress = null,
+}) => {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
@@ -284,9 +329,11 @@ const completeTransfer = async ({ transfer, asset, actionByUserId, ipAddress = n
       .input("ToRoomId", sql.Int, transfer.ToRoomId || null)
       .input("ToDepartmentId", sql.Int, transfer.ToDepartmentId || null)
       .input("ToLocationId", sql.Int, transfer.ToLocationId || null)
+      .input("AssignedStatusId", sql.Int, assignedStatusId || null)
       .query(`
         UPDATE dbo.ITAssets
         SET
+          ITAssetStatusId = COALESCE(@AssignedStatusId, ITAssetStatusId),
           CurrentAssignedUserId = COALESCE(@ToUserId, CurrentAssignedUserId),
           CurrentRoomId = COALESCE(@ToRoomId, CurrentRoomId),
           CurrentDepartmentId = COALESCE(@ToDepartmentId, CurrentDepartmentId),
@@ -299,6 +346,24 @@ const completeTransfer = async ({ transfer, asset, actionByUserId, ipAddress = n
 
     const updatedTransfer = transferResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
+
+    if (
+      assignedStatusId &&
+      Number(asset.ITAssetStatusId) !== Number(assignedStatusId)
+    ) {
+      await new sql.Request(transaction)
+        .input("AssetId", sql.Int, asset.AssetId)
+        .input("OldStatusId", sql.Int, asset.ITAssetStatusId)
+        .input("NewStatusId", sql.Int, assignedStatusId)
+        .input("ChangedBy", sql.Int, actionByUserId || null)
+        .input("Notes", sql.NVarChar(sql.MAX), "Asset assigned by transfer.")
+        .query(`
+          INSERT INTO dbo.ITAssetStatusHistory
+            (AssetId, OldStatusId, NewStatusId, ChangedBy, ChangedAt, Notes)
+          VALUES
+            (@AssetId, @OldStatusId, @NewStatusId, @ChangedBy, GETDATE(), @Notes);
+        `);
+    }
 
     await new sql.Request(transaction)
       .input("UserId", sql.Int, actionByUserId || null)
@@ -416,6 +481,7 @@ const getTransfersByAssetId = async (assetId) => {
 module.exports = {
   getAssetById,
   getTransferById,
+  getStatusByKey,
   createTransferRequest,
   transferAsset,
   approveTransfer,

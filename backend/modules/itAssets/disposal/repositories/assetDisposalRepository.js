@@ -295,43 +295,103 @@ const completeDisposal = async ({
 const getDisposals = async ({ status = null, assetId = null }) => {
   const result = await executeQuery(
     `
-      SELECT
-        d.*,
+      WITH DisposalRows AS (
+        SELECT
+          d.DisposalId,
+          d.AssetId,
+          d.DisposalStatus,
+          d.Reason,
+          d.RequestedBy,
+          d.RequestedAt,
+          d.ApprovedBy,
+          d.ApprovedAt,
+          d.DisposedAt,
 
-        a.AssetId,
-        a.AssetTag,
-        a.ModelDescription,
-        a.ITAssetStatusId,
-        a.IsActive,
+          a.AssetTag,
+          a.ModelDescription,
+          a.ITAssetStatusId,
+          a.IsActive,
 
-        assetStatus.StatusKey,
-        assetStatus.StatusName,
+          assetStatus.StatusKey,
+          assetStatus.StatusName,
 
-        category.CategoryName,
-        model.ModelName,
-        location.LocationName,
+          category.CategoryName,
+          model.ModelName,
+          location.LocationName,
 
-        requestedBy.FullName AS RequestedByName,
-        approvedBy.FullName AS ApprovedByName
-      FROM dbo.ITAssetDisposals d
-      INNER JOIN dbo.ITAssets a
-        ON d.AssetId = a.AssetId
-      LEFT JOIN dbo.ITAssetStatuses assetStatus
-        ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
-      LEFT JOIN dbo.ITAssetCategories category
-        ON a.ITAssetCategoryId = category.ITAssetCategoryId
-      LEFT JOIN dbo.ITAssetModels model
-        ON a.ITAssetModelId = model.ITAssetModelId
-      LEFT JOIN dbo.Locations location
-        ON a.CurrentLocationId = location.LocationId
-      LEFT JOIN dbo.Users requestedBy
-        ON d.RequestedBy = requestedBy.UserId
-      LEFT JOIN dbo.Users approvedBy
-        ON d.ApprovedBy = approvedBy.UserId
-      WHERE a.IsDeleted = 0
-        AND (@Status IS NULL OR d.DisposalStatus = @Status)
-        AND (@AssetId IS NULL OR d.AssetId = @AssetId)
-      ORDER BY d.RequestedAt DESC;
+          requestedBy.FullName AS RequestedByName,
+          approvedBy.FullName AS ApprovedByName,
+          CAST(0 AS bit) AS IsSyntheticDisposal
+        FROM dbo.ITAssetDisposals d
+        INNER JOIN dbo.ITAssets a
+          ON d.AssetId = a.AssetId
+        LEFT JOIN dbo.ITAssetStatuses assetStatus
+          ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+        LEFT JOIN dbo.ITAssetCategories category
+          ON a.ITAssetCategoryId = category.ITAssetCategoryId
+        LEFT JOIN dbo.ITAssetModels model
+          ON a.ITAssetModelId = model.ITAssetModelId
+        LEFT JOIN dbo.Locations location
+          ON a.CurrentLocationId = location.LocationId
+        LEFT JOIN dbo.Users requestedBy
+          ON d.RequestedBy = requestedBy.UserId
+        LEFT JOIN dbo.Users approvedBy
+          ON d.ApprovedBy = approvedBy.UserId
+        WHERE a.IsDeleted = 0
+          AND (@Status IS NULL OR d.DisposalStatus = @Status)
+          AND (@AssetId IS NULL OR d.AssetId = @AssetId)
+
+        UNION ALL
+
+        SELECT
+          -a.AssetId AS DisposalId,
+          a.AssetId,
+          'DISPOSED' AS DisposalStatus,
+          'Asset is marked disposed without a disposal request record.' AS Reason,
+          NULL AS RequestedBy,
+          COALESCE(a.UpdatedAt, a.CreatedAt, GETDATE()) AS RequestedAt,
+          NULL AS ApprovedBy,
+          NULL AS ApprovedAt,
+          COALESCE(a.UpdatedAt, a.CreatedAt, GETDATE()) AS DisposedAt,
+
+          a.AssetTag,
+          a.ModelDescription,
+          a.ITAssetStatusId,
+          a.IsActive,
+
+          assetStatus.StatusKey,
+          assetStatus.StatusName,
+
+          category.CategoryName,
+          model.ModelName,
+          location.LocationName,
+
+          NULL AS RequestedByName,
+          NULL AS ApprovedByName,
+          CAST(1 AS bit) AS IsSyntheticDisposal
+        FROM dbo.ITAssets a
+        LEFT JOIN dbo.ITAssetStatuses assetStatus
+          ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+        LEFT JOIN dbo.ITAssetCategories category
+          ON a.ITAssetCategoryId = category.ITAssetCategoryId
+        LEFT JOIN dbo.ITAssetModels model
+          ON a.ITAssetModelId = model.ITAssetModelId
+        LEFT JOIN dbo.Locations location
+          ON a.CurrentLocationId = location.LocationId
+        WHERE a.IsDeleted = 0
+          AND UPPER(ISNULL(assetStatus.StatusKey, assetStatus.StatusName)) = 'DISPOSED'
+          AND (@Status IS NULL OR @Status = 'DISPOSED')
+          AND (@AssetId IS NULL OR a.AssetId = @AssetId)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.ITAssetDisposals existingDisposal
+            WHERE existingDisposal.AssetId = a.AssetId
+              AND UPPER(existingDisposal.DisposalStatus) = 'DISPOSED'
+          )
+      )
+      SELECT *
+      FROM DisposalRows
+      ORDER BY RequestedAt DESC, DisposalId DESC;
     `,
     [
       { name: "Status", type: sql.NVarChar(50), value: status || null },

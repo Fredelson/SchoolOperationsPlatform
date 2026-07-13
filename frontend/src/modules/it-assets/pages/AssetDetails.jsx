@@ -45,7 +45,11 @@ import {
 import resolveAssetLookups from "../utils/resolveAssetLookups";
 
 const isAssigned = (asset) =>
-  Boolean(asset?.CurrentAssignedUserId || asset?.CurrentAssignedName);
+  Boolean(
+    asset?.CurrentAssignedUserId ||
+      asset?.CurrentAssignedName ||
+      asset?.CurrentRoomId
+  );
 
 const Detail = ({ label, value }) => (
   <Stack spacing={0.35}>
@@ -284,11 +288,16 @@ const AssetDetails = () => {
                   <Stack spacing={1.25}>
                     <Detail
                       label="Assigned To"
-                      value={asset.CurrentAssignedUserName || asset.CurrentAssignedName}
+                      value={
+                        asset.CurrentAssignedUserName ||
+                        asset.CurrentAssignedName ||
+                        asset.RoomName
+                      }
                     />
                     <Detail label="Employee Code" value={asset.CurrentAssignedEmployeeCode} />
                     <Detail label="Email" value={asset.CurrentAssignedEmail} />
                     <Detail label="Department" value={asset.DepartmentName} />
+                    <Detail label="Room" value={asset.RoomName} />
                   </Stack>
                 </AppCard>
 
