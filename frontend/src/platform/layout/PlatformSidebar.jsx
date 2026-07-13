@@ -89,7 +89,7 @@ export default function PlatformSidebar({
       }}
     >
       {loading && (
-        <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
+        <Stack spacing={1.5} sx={{ py: 5, alignItems: "center" }}>
           <CircularProgress size={26} color="inherit" />
           <Typography variant="body2" sx={{ color: alpha(sidebarText, 0.72) }}>
             Loading navigation...
@@ -98,7 +98,7 @@ export default function PlatformSidebar({
       )}
 
       {!loading && error && (
-        <Stack alignItems="center" spacing={1.5} sx={{ px: 3, py: 5, textAlign: "center" }}>
+        <Stack spacing={1.5} sx={{ px: 3, py: 5, textAlign: "center", alignItems: "center" }}>
           <Typography variant="body2">{error}</Typography>
           <Button
             size="small"
@@ -118,7 +118,12 @@ export default function PlatformSidebar({
       )}
 
       {!loading && !error && sidebarSections.length > 0 && (
-        <PlatformSidebarTree sections={sidebarSections} onNavigate={onNavigate} />
+        <PlatformSidebarTree
+          sections={sidebarSections}
+          onNavigate={onNavigate}
+          defaultOpenAll
+          showHierarchy
+        />
       )}
     </Box>
   );

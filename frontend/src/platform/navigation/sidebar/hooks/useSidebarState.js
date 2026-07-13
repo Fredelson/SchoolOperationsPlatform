@@ -12,21 +12,34 @@
 import { useEffect, useState } from "react";
 
 import {
+  buildExpandedOpenMenus,
   buildInitialOpenMenus,
   getSidebarItemKey,
 } from "../utils/sidebarHelpers";
 
-export function useSidebarState(sections = [], pathname = "") {
+export function useSidebarState(sections = [], pathname = "", options = {}) {
   const [openMenus, setOpenMenus] = useState({});
+  const defaultOpenAll = Boolean(options.defaultOpenAll);
 
   useEffect(() => {
-    // Synchronize expanded parents when navigation data or the active route changes.
-     
-    setOpenMenus((current) => ({
-      ...current,
-      ...buildInitialOpenMenus(sections, pathname),
-    }));
-  }, [sections, pathname]);
+    setOpenMenus((current) => {
+      const initialOpenMenus = defaultOpenAll
+        ? buildExpandedOpenMenus(sections)
+        : buildInitialOpenMenus(sections, pathname);
+
+      if (defaultOpenAll) {
+        return {
+          ...initialOpenMenus,
+          ...current,
+        };
+      }
+
+      return {
+        ...current,
+        ...initialOpenMenus,
+      };
+    });
+  }, [defaultOpenAll, sections, pathname]);
 
   const toggleMenu = (item) => {
     const key = getSidebarItemKey(item);

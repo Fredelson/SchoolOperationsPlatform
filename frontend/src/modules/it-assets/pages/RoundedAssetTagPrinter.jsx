@@ -6,6 +6,7 @@ import {
   MenuItem,
   Stack,
   TextField,
+  useTheme,
 } from "@mui/material";
 
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
@@ -64,6 +65,7 @@ const buildSearchText = (asset) =>
 
 export default function RoundedAssetTagPrinter() {
   usePageTitle("Rounded Asset Tag Printer");
+  const theme = useTheme();
 
   const { hasPermission } = usePermissions();
   const canPrint = hasPermission("asset_tags.rounded.print");
@@ -173,7 +175,16 @@ export default function RoundedAssetTagPrinter() {
   };
 
   return (
-    <Box className="rounded-print-root">
+    <Box
+      className="rounded-print-root"
+      style={{
+        "--rounded-preview-bg": theme.palette.background.default,
+        "--rounded-preview-border": theme.palette.divider,
+        "--rounded-page-bg": theme.palette.common.white,
+        "--rounded-page-shadow": theme.shadows[6],
+        "--rounded-empty-color": theme.palette.text.secondary,
+      }}
+    >
       <Box className="rounded-print-controls">
         <AppBreadcrumbs
           items={[

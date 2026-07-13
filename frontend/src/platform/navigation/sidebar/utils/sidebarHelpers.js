@@ -53,3 +53,30 @@ export const buildInitialOpenMenus = (sections = [], pathname = "") => {
 
   return openState;
 };
+
+export const buildExpandedOpenMenus = (sections = []) => {
+  const openState = {};
+
+  const scanItem = (item) => {
+    const key = getSidebarItemKey(item);
+
+    if (item?.children?.length) {
+      openState[key] = true;
+      item.children.forEach(scanItem);
+    }
+  };
+
+  sections.forEach((section) => {
+    section.items?.forEach(scanItem);
+  });
+
+  return openState;
+};
+
+export const buildExpandedOpenSections = (sections = []) =>
+  Object.fromEntries(
+    sections.map((section) => [
+      section.title || "Main",
+      true,
+    ])
+  );

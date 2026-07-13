@@ -17,8 +17,8 @@
   justify-content: center;
   align-items: flex-start;
   padding: 16px 0 28px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--rounded-preview-bg);
+  border: 1px solid var(--rounded-preview-border);
   border-radius: 8px;
 }
 
@@ -27,8 +27,8 @@
   width: var(--rounded-screen-width);
   aspect-ratio: 210 / 297;
   flex: 0 0 auto;
-  background: #ffffff;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  background: var(--rounded-page-bg);
+  box-shadow: var(--rounded-page-shadow);
   overflow: hidden;
 }
 
@@ -56,7 +56,7 @@
 .rounded-a4-empty {
   width: min(80%, 420px);
   margin: auto;
-  color: #64748b;
+  color: var(--rounded-empty-color);
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 800;
   text-align: center;
@@ -76,7 +76,7 @@
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
+    background: var(--rounded-page-bg) !important;
   }
 
   body {
@@ -120,7 +120,7 @@
     padding: 0 !important;
     border: 0 !important;
     overflow: visible !important;
-    background: #ffffff !important;
+    background: var(--rounded-page-bg) !important;
   }
 
   .rounded-a4-page {

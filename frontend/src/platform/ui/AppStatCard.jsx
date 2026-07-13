@@ -55,9 +55,11 @@ export default function AppStatCard({
       <CardContent>
         <Stack
           direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
           spacing={2}
+          sx={{
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+          }}
         >
           <Box>
             <Typography

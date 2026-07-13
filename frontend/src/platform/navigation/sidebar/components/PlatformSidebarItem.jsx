@@ -39,6 +39,7 @@ export default function PlatformSidebarItem({
   openMenus = {},
   toggleMenu,
   onNavigate,
+  showHierarchy = false,
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -55,18 +56,44 @@ export default function PlatformSidebarItem({
 
   const leftPadding = 2 + level * 2.2;
   const icon = item.icon || getSidebarIcon(item.iconKey, level);
+  const branchLineColor = alpha(sidebarText, isActive ? 0.34 : 0.2);
+  const branchLeft = theme.spacing(2 + Math.max(level - 1, 0) * 2.2);
+  const branchWidth = theme.spacing(1.1);
+  const hierarchySx = showHierarchy && level > 0
+    ? {
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          left: branchLeft,
+          top: "50%",
+          width: branchWidth,
+          borderTop: `1px solid ${branchLineColor}`,
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          left: branchLeft,
+          top: -4,
+          bottom: -4,
+          borderLeft: `1px solid ${branchLineColor}`,
+        },
+      }
+    : {};
 
   if (hasChildren) {
     return (
       <Box key={itemKey}>
         <ListItemButton
-          onClick={() => toggleMenu(item)}
+          onClick={toggleMenu ? () => toggleMenu(item) : undefined}
+          aria-expanded={isOpen}
           sx={{
             minHeight: 46,
             borderRadius: 2.8,
             mb: 0.45,
             px: 2,
             pl: leftPadding,
+            cursor: toggleMenu ? "pointer" : "default",
             color: isActive ? sidebarText : alpha(sidebarText, 0.78),
             bgcolor: isActive ? alpha(accent, 0.18) : "transparent",
             transition: theme.transitions.create(
@@ -77,6 +104,7 @@ export default function PlatformSidebarItem({
               bgcolor: alpha(sidebarText, 0.08),
               color: sidebarText,
             },
+            ...hierarchySx,
           }}
         >
           {icon && (
@@ -101,6 +129,8 @@ export default function PlatformSidebarItem({
                   fontSize: level === 0 ? 14.5 : 13.3,
                   fontWeight: level === 0 ? 750 : 700,
                   whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 },
               },
             }}
@@ -125,6 +155,7 @@ export default function PlatformSidebarItem({
                 openMenus={openMenus}
                 toggleMenu={toggleMenu}
                 onNavigate={onNavigate}
+                showHierarchy={showHierarchy}
               />
             ))}
           </List>
@@ -170,6 +201,7 @@ export default function PlatformSidebarItem({
           opacity: 1,
           color: alpha(sidebarText, 0.42),
         },
+        ...hierarchySx,
       }}
     >
       {icon && (
@@ -194,6 +226,8 @@ export default function PlatformSidebarItem({
               fontSize: level === 0 ? 14.5 : 13.3,
               fontWeight: level === 0 ? 750 : 650,
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             },
           },
         }}

@@ -1,5 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
+const resolveFontSize = (element, value, fallback) => {
+  if (Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+
+  if (!value) {
+    return Number(fallback);
+  }
+
+  const previous = element.style.fontSize;
+  element.style.fontSize = String(value);
+  const resolved = Number.parseFloat(window.getComputedStyle(element).fontSize);
+  element.style.fontSize = previous;
+
+  return Number.isFinite(resolved) ? resolved : Number(fallback);
+};
+
 export default function AutoFitText({
   children,
   max = 32,
@@ -25,8 +42,8 @@ export default function AutoFitText({
       frame = window.requestAnimationFrame(() => {
         if (!element) return;
 
-        let nextSize = Number(max);
-        const minimum = Number(min);
+        let nextSize = resolveFontSize(element, max, 32);
+        const minimum = resolveFontSize(element, min, 7);
 
         element.style.fontSize = `${nextSize}px`;
         element.style.letterSpacing = "0";

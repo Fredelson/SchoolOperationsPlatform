@@ -11,81 +11,110 @@
   border-radius: 50%;
   overflow: hidden;
   background:
-    radial-gradient(circle at center, transparent 0 68.3%, var(--round-inner, #006b3c) 68.55% 74.15%, transparent 74.4%),
-    var(--round-outer, #061b3d);
-  color: var(--round-main, #061b3d);
-  font-family: Arial, Helvetica, sans-serif;
+    radial-gradient(
+      circle at center,
+      transparent 0 68.6%,
+      var(--round-inner) 68.75% 74%,
+      transparent 74.15%
+    ),
+    var(--round-outer);
+  color: var(--round-main);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
   isolation: isolate;
+}
+
+.rounded-asset-label::before,
+.rounded-asset-label::after,
+.rounded-asset-label__ring,
+.rounded-asset-label__accent,
+.rounded-asset-label__arc-dot,
+.rounded-asset-label__established-badge {
+  pointer-events: none;
+}
+
+.rounded-asset-label::before,
+.rounded-asset-label::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.rounded-asset-label::before {
+  inset: 0.6%;
+  border: max(1px, 0.28cqw) solid var(--round-on-outer);
+}
+
+.rounded-asset-label::after {
+  inset: 7.35%;
+  border: max(1px, 0.24cqw) solid var(--round-on-outer);
 }
 
 .rounded-asset-label__ring {
   position: absolute;
   border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .rounded-asset-label__ring--white {
-  inset: 0.85%;
-  border: clamp(1px, 0.36cqw, 5px) solid #ffffff;
+  inset: 1.55%;
+  border: max(1px, 0.18cqw) solid var(--round-on-outer);
 }
 
 .rounded-asset-label__ring--green {
-  inset: 6.85%;
-  border: clamp(3px, 1.18cqw, 14px) solid var(--round-inner, #006b3c);
+  inset: 7.9%;
+  border: clamp(3px, 0.88cqw, 12px) solid var(--round-inner);
 }
 
 .rounded-asset-label__accent {
   position: absolute;
-  bottom: 10.5%;
-  width: 25%;
-  height: 13%;
-  border-bottom: clamp(2px, 0.7cqw, 8px) solid var(--round-accent, #e6a000);
-  pointer-events: none;
-  z-index: 2;
+  bottom: 10.8%;
+  width: 27.5%;
+  height: 13.5%;
+  border-bottom: clamp(2px, 0.58cqw, 8px) solid var(--round-accent);
+  z-index: 3;
 }
 
 .rounded-asset-label__accent--left {
-  left: 6.5%;
-  transform: rotate(30deg);
+  left: 6.7%;
+  transform: rotate(31deg);
   transform-origin: left bottom;
 }
 
 .rounded-asset-label__accent--right {
-  right: 6.5%;
-  transform: rotate(-30deg);
+  right: 6.7%;
+  transform: rotate(-31deg);
   transform-origin: right bottom;
 }
 
 .rounded-asset-label__arc-dot {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   width: clamp(5px, 1.35cqw, 15px);
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: var(--round-accent, #e6a000);
-  box-shadow: 0 0 0 clamp(1px, 0.14cqw, 2px) color-mix(in srgb, #ffffff 28%, transparent);
-  pointer-events: none;
+  background: var(--round-accent);
+  box-shadow: 0 0 0 max(1px, 0.12cqw) color-mix(in srgb, var(--round-on-outer) 30%, transparent);
 }
 
 .rounded-asset-label__arc-dot--top-left {
-  top: 14.35%;
-  left: 22.5%;
+  top: 14%;
+  left: 22.9%;
 }
 
 .rounded-asset-label__arc-dot--top-right {
-  top: 14.35%;
-  right: 22.5%;
+  top: 14%;
+  right: 22.9%;
 }
 
 .rounded-asset-label__arc-dot--bottom-left {
-  bottom: 13.2%;
-  left: 18.4%;
+  bottom: 13.15%;
+  left: 18.1%;
 }
 
 .rounded-asset-label__arc-dot--bottom-right {
-  bottom: 13.2%;
-  right: 18.4%;
+  bottom: 13.15%;
+  right: 18.1%;
 }
 
 .rounded-asset-label__arcs {
@@ -93,8 +122,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 3;
-  fill: #ffffff;
+  z-index: 4;
+  fill: var(--round-on-outer);
   pointer-events: none;
 }
 
@@ -105,7 +134,7 @@
 }
 
 .rounded-asset-label__arc-text--top {
-  font-size: 5.15px;
+  font-size: 5.2px;
 }
 
 .rounded-asset-label__arc-text--side {
@@ -113,22 +142,73 @@
 }
 
 .rounded-asset-label__arc-text--bottom {
-  font-size: 3px;
+  font-size: 2.9px;
+}
+
+.rounded-asset-label__established-badge {
+  position: absolute;
+  left: 37.6%;
+  right: 37.6%;
+  bottom: 0.55%;
+  z-index: 7;
+  min-width: 0;
+  min-height: 5.9%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 7%;
+  padding: 0.8% 1.65%;
+  border-radius: 1.2cqw;
+  background: var(--round-outer);
+  color: var(--round-accent);
+  box-shadow:
+    0 0 0 max(1px, 0.12cqw) color-mix(in srgb, var(--round-on-outer) 22%, transparent),
+    inset 0 0 0 max(1px, 0.12cqw) color-mix(in srgb, var(--round-on-outer) 8%, transparent);
+  text-align: center;
+}
+
+.rounded-asset-label__established-badge span {
+  width: 0.85cqw;
+  aspect-ratio: 1 / 1;
+  justify-self: center;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.rounded-asset-label__established-text {
+  min-width: 0;
+  height: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  align-content: center;
+  font-weight: 900;
+  line-height: 1;
+  overflow: hidden;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .rounded-asset-label__center {
   position: absolute;
-  inset: 12.55%;
-  z-index: 4;
+  inset: 10.65%;
+  z-index: 5;
   display: grid;
-  grid-template-rows: minmax(0, 39%) minmax(0, 29.5%) minmax(0, 17.5%) minmax(0, 14%);
+  grid-template-rows: minmax(0, 39%) minmax(0, 29%) minmax(0, 18%) minmax(0, 14%);
   min-width: 0;
   min-height: 0;
-  padding: 2.6% 4.8% 3.15%;
-  border: clamp(1px, 0.3cqw, 4px) solid color-mix(in srgb, var(--round-border, #061b3d) 82%, #ffffff 18%);
+  padding: 2.55% 4.8% 3.25%;
+  border: max(1px, 0.25cqw) solid color-mix(in srgb, var(--round-border) 84%, var(--round-bg) 16%);
   border-radius: 50%;
-  background: var(--round-bg, #ffffff);
-  box-shadow: inset 0 0 0 clamp(1px, 0.16cqw, 2px) color-mix(in srgb, var(--round-inner, #006b3c) 16%, transparent);
+  background:
+    radial-gradient(
+      circle at 50% 46%,
+      color-mix(in srgb, var(--round-secondary) 7%, transparent) 0 13%,
+      transparent 13.5%
+    ),
+    var(--round-bg);
+  box-shadow:
+    inset 0 0 0 max(1px, 0.14cqw) color-mix(in srgb, var(--round-inner) 18%, transparent),
+    0 0.35cqw 1.2cqw color-mix(in srgb, var(--round-border) 10%, transparent);
   text-align: center;
   overflow: hidden;
 }
@@ -145,23 +225,23 @@
 
 .rounded-asset-label__brand {
   display: grid;
-  grid-template-rows: minmax(0, 38%) minmax(0, 42%) minmax(0, 20%);
+  grid-template-rows: minmax(0, 35%) minmax(0, 45%) minmax(0, 20%);
   align-items: center;
   justify-items: center;
-  padding: 0 4.5%;
+  padding: 0 2.2%;
 }
 
 .rounded-asset-label__logo {
-  height: 106%;
+  height: 109%;
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
+  align-self: end;
   overflow: hidden;
-  color: var(--round-secondary, #006b3c);
-  font-size: clamp(10px, 5.5cqw, 64px);
+  color: var(--round-secondary);
+  font-size: clamp(10px, 5.8cqw, 70px);
   font-weight: 900;
   line-height: 1;
-  align-self: end;
 }
 
 .rounded-asset-label__logo img {
@@ -177,9 +257,9 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  color: var(--round-main, #061b3d);
+  color: var(--round-main);
   font-weight: 900;
-  line-height: 0.88;
+  line-height: 0.86;
   overflow: hidden;
   overflow-wrap: anywhere;
   text-transform: uppercase;
@@ -194,13 +274,13 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
   align-items: center;
-  gap: 3%;
+  gap: 2.7%;
 }
 
 .rounded-asset-label__tagline-row span,
 .rounded-asset-label__property-rule span {
-  height: clamp(1px, 0.28cqw, 3px);
-  background: var(--round-accent, #e6a000);
+  height: max(1px, 0.24cqw);
+  background: var(--round-accent);
 }
 
 .rounded-asset-label__tagline {
@@ -208,9 +288,10 @@
   height: 100%;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  color: var(--round-secondary, #006b3c);
+  align-content: center;
+  color: var(--round-secondary);
   font-weight: 900;
-  line-height: 1.05;
+  line-height: 1.02;
   overflow: hidden;
   overflow-wrap: anywhere;
   text-transform: uppercase;
@@ -219,16 +300,16 @@
 .rounded-asset-label__main {
   display: grid;
   grid-template-columns: minmax(0, 26.5%) minmax(0, 47%) minmax(0, 26.5%);
-  gap: 2.8%;
+  gap: 2.65%;
   align-items: stretch;
   min-width: 0;
   min-height: 0;
-  padding: 0.8% 0 0;
+  padding: 0.4% 0 0;
 }
 
 .rounded-asset-label__qr-panel {
   display: grid;
-  grid-template-rows: minmax(0, 78%) minmax(0, 18%);
+  grid-template-rows: minmax(0, 80%) minmax(0, 16%);
   row-gap: 4%;
   align-items: center;
   justify-items: center;
@@ -236,26 +317,26 @@
 }
 
 .rounded-asset-label__qr-panel--website {
-  padding-right: 7.5%;
-  border-right: clamp(1px, 0.24cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 62%, transparent);
+  padding-right: 8.5%;
+  border-right: max(1px, 0.18cqw) solid color-mix(in srgb, var(--round-border) 62%, transparent);
 }
 
 .rounded-asset-label__qr-panel--asset {
   grid-template-rows: minmax(0, 1fr);
-  padding-left: 7.5%;
-  border-left: clamp(1px, 0.24cqw, 3px) solid color-mix(in srgb, var(--round-border, #061b3d) 62%, transparent);
+  padding-left: 8.5%;
+  border-left: max(1px, 0.18cqw) solid color-mix(in srgb, var(--round-border) 62%, transparent);
 }
 
 .rounded-asset-label__qr-box {
-  width: min(100%, 22cqw);
+  width: min(100%, 21.6cqw);
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  padding: 4.4%;
-  border: clamp(1px, 0.32cqw, 4px) solid color-mix(in srgb, var(--round-border, #061b3d) 76%, transparent);
-  border-radius: clamp(5px, 1.15cqw, 14px);
-  background: var(--round-qr-bg, #ffffff);
-  box-shadow: inset 0 0 0 clamp(1px, 0.11cqw, 2px) color-mix(in srgb, var(--round-inner, #006b3c) 14%, transparent);
+  padding: 4%;
+  border: max(1px, 0.24cqw) solid color-mix(in srgb, var(--round-border) 74%, transparent);
+  border-radius: 1.08cqw;
+  background: var(--round-paper);
+  box-shadow: inset 0 0 0 max(1px, 0.1cqw) color-mix(in srgb, var(--round-inner) 14%, transparent);
   overflow: hidden;
 }
 
@@ -271,10 +352,10 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  padding: 1.5% 5%;
-  border-radius: clamp(3px, 0.8cqw, 9px);
-  background: var(--round-secondary, #006b3c);
-  color: #ffffff;
+  padding: 1.8% 5.2%;
+  border-radius: 0.75cqw;
+  background: var(--round-secondary);
+  color: var(--round-on-outer);
   font-weight: 900;
   line-height: 1;
   overflow: hidden;
@@ -283,23 +364,23 @@
 
 .rounded-asset-label__identity {
   display: grid;
-  grid-template-rows: minmax(0, 28%) minmax(0, 72%);
+  grid-template-rows: minmax(0, 29%) minmax(0, 71%);
   align-items: center;
   justify-items: stretch;
-  padding: 1.2% 1% 0;
+  padding: 1.1% 0.5% 0;
 }
 
 .rounded-asset-label__department-row {
   grid-template-columns: auto minmax(0, 1fr) auto;
   justify-content: center;
-  gap: 4%;
+  gap: 4.5%;
 }
 
 .rounded-asset-label__department-row span {
-  width: clamp(5px, 1.2cqw, 13px);
-  height: clamp(5px, 1.2cqw, 13px);
+  width: 1.25cqw;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: var(--round-accent, #e6a000);
+  background: var(--round-accent);
 }
 
 .rounded-asset-label__department {
@@ -308,7 +389,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  color: var(--round-department, #061b3d);
+  color: var(--round-department);
   font-weight: 900;
   line-height: 1;
   overflow: hidden;
@@ -322,7 +403,7 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  padding: 1% 4% 0;
+  padding: 1% 4.3% 0;
 }
 
 .rounded-asset-label__barcode svg {
@@ -338,8 +419,8 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  padding: 0 1%;
-  color: var(--round-asset-code, #000000);
+  padding: 0 0.8%;
+  color: var(--round-asset-code);
   font-weight: 900;
   line-height: 0.82;
   overflow: hidden;
@@ -352,7 +433,7 @@
   display: grid;
   grid-template-rows: minmax(0, 36%) minmax(0, 64%);
   align-items: center;
-  padding: 0 13.5%;
+  padding: 0 13.2%;
 }
 
 .rounded-asset-label__property-label {
@@ -360,7 +441,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  color: var(--round-main, #061b3d);
+  color: var(--round-main);
   font-weight: 900;
   line-height: 1;
   overflow: hidden;
@@ -372,7 +453,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   align-content: center;
-  color: var(--round-property, #006b3c);
+  color: var(--round-property);
   font-weight: 900;
   line-height: 0.92;
   overflow: hidden;
@@ -382,7 +463,7 @@
 
 .rounded-asset-label__warning {
   max-width: 100%;
-  color: #9a3412;
+  color: var(--round-accent);
   font-size: clamp(7px, 2.5cqw, 16px);
   font-weight: 900;
   line-height: 1;
@@ -390,6 +471,6 @@
 }
 
 .rounded-asset-label [data-overflow-warning="true"] {
-  outline: 1px dashed #b45309;
+  outline: 1px dashed var(--round-accent);
   outline-offset: -1px;
 }

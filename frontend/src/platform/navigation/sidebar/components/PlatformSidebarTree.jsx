@@ -9,41 +9,80 @@
 // Supports nested children, active routes, and dropdown state.
 // ============================================
 
-import { Box, List } from "@mui/material";
+import { useEffect, useState } from "react";
+
+import { Box, Collapse, List } from "@mui/material";
 import { useLocation } from "react-router-dom";
 
 import PlatformSidebarItem from "./PlatformSidebarItem";
 import PlatformSidebarSection from "./PlatformSidebarSection";
 import { useSidebarState } from "../hooks/useSidebarState";
-import { getSidebarItemKey } from "../utils/sidebarHelpers";
+import {
+  buildExpandedOpenSections,
+  getSidebarItemKey,
+} from "../utils/sidebarHelpers";
 
-export default function PlatformSidebarTree({ sections = [], onNavigate }) {
+export default function PlatformSidebarTree({
+  sections = [],
+  onNavigate,
+  defaultOpenAll = true,
+  showHierarchy = true,
+}) {
   const location = useLocation();
+  const [openSections, setOpenSections] = useState({});
 
   const { openMenus, toggleMenu } = useSidebarState(
     sections,
-    location.pathname
+    location.pathname,
+    { defaultOpenAll }
   );
+
+  useEffect(() => {
+    setOpenSections((current) => ({
+      ...(defaultOpenAll ? buildExpandedOpenSections(sections) : {}),
+      ...current,
+    }));
+  }, [defaultOpenAll, sections]);
+
+  const toggleSection = (title) => {
+    setOpenSections((current) => ({
+      ...current,
+      [title]: !current[title],
+    }));
+  };
 
   return (
     <Box sx={{ px: 2.5, pt: 2, pb: 2 }}>
-      {sections.map((section) => (
-        <Box key={section.title} sx={{ mb: 2.4 }}>
-          <PlatformSidebarSection title={section.title} />
+      {sections.map((section) => {
+        const sectionTitle = section.title || "Main";
+        const isOpen = Boolean(openSections[sectionTitle]);
 
-          <List disablePadding>
-            {section.items?.map((item) => (
-              <PlatformSidebarItem
-                key={getSidebarItemKey(item)}
-                item={item}
-                openMenus={openMenus}
-                toggleMenu={toggleMenu}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </List>
-        </Box>
-      ))}
+        return (
+          <Box key={sectionTitle} sx={{ mb: 1.4 }}>
+            <PlatformSidebarSection
+              title={sectionTitle}
+              open={isOpen}
+              showHierarchy={showHierarchy}
+              onToggle={() => toggleSection(sectionTitle)}
+            />
+
+            <Collapse in={isOpen} timeout="auto" unmountOnExit>
+              <List disablePadding>
+                {section.items?.map((item) => (
+                  <PlatformSidebarItem
+                    key={getSidebarItemKey(item)}
+                    item={item}
+                    openMenus={openMenus}
+                    toggleMenu={toggleMenu}
+                    onNavigate={onNavigate}
+                    showHierarchy={showHierarchy}
+                  />
+                ))}
+              </List>
+            </Collapse>
+          </Box>
+        );
+      })}
     </Box>
   );
 }

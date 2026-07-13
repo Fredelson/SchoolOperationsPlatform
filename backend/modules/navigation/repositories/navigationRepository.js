@@ -59,25 +59,29 @@ async function getSidebarMenusForUser(userId) {
        WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,w.SortOrder),
       (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1)
     );
+    DECLARE @IsSuperAdmin bit = CASE WHEN EXISTS(
+      SELECT 1 FROM dbo.Users u INNER JOIN dbo.Roles r ON r.RoleId=u.RoleId
+      WHERE u.UserId=@UserId AND r.RoleKey='SuperAdmin'
+    ) THEN 1 ELSE 0 END;
     DECLARE @NavigationWorkspaceId int = CASE WHEN EXISTS(SELECT 1 FROM dbo.WorkspaceMenus WHERE WorkspaceId=@WorkspaceId)
       THEN @WorkspaceId ELSE (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1) END;
 
     SELECT
         -- Sidebar section / group
         NULL MenuGroupId,
-        wm.GroupKey,
-        wm.GroupName,
-        wm.GroupSortOrder,
+        CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.GroupKey, module.ModuleKey, 'MAIN') ELSE wm.GroupKey END AS GroupKey,
+        CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.GroupName, module.ModuleName, 'Main') ELSE wm.GroupName END AS GroupName,
+        CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.GroupSortOrder, module.SortOrder, 999) ELSE wm.GroupSortOrder END AS GroupSortOrder,
 
         -- Menu item
         m.MenuId,
         m.ModuleId,
-        wm.ParentMenuId,
+        CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.ParentMenuId, m.ParentMenuId) ELSE wm.ParentMenuId END AS ParentMenuId,
         m.MenuKey,
         m.MenuName,
         m.Route,
         m.Icon,
-        wm.SortOrder AS MenuSortOrder,
+        COALESCE(wm.SortOrder, m.SortOrder) AS MenuSortOrder,
 
         -- Visibility status
         fvs.StatusKey AS VisibilityStatusKey,
@@ -91,7 +95,7 @@ async function getSidebarMenusForUser(userId) {
     INNER JOIN dbo.Modules module
         ON module.ModuleId = m.ModuleId
 
-    INNER JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@NavigationWorkspaceId
+    LEFT JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@NavigationWorkspaceId
 
     -- Root menus are assigned to sidebar groups.
     -- Child menus must not be assigned to groups directly.
@@ -105,10 +109,26 @@ async function getSidebarMenusForUser(userId) {
 
     WHERE
         ISNULL(ump.IsHidden, 0) = 0
-    AND wm.IsVisible=1 AND wm.IsEnabled=1
-    AND LOWER(fvs.StatusKey) = 'enabled'
-    AND module.IsActive = 1
-    AND LOWER((SELECT StatusKey FROM dbo.FeatureVisibilityStatuses WHERE VisibilityStatusId = module.VisibilityStatusId)) = 'enabled'
+    AND (
+      (
+        @IsSuperAdmin=1
+        AND EXISTS (
+          SELECT 1
+          FROM dbo.WorkspaceModules wmodule
+          WHERE wmodule.WorkspaceId=@NavigationWorkspaceId
+            AND wmodule.ModuleId=m.ModuleId
+        )
+      )
+      OR (
+        wm.WorkspaceMenuId IS NOT NULL
+        AND wm.IsVisible=1
+        AND wm.IsEnabled=1
+        AND (m.WorkspaceId IS NULL OR m.WorkspaceId IN (1, @NavigationWorkspaceId))
+        AND LOWER(fvs.StatusKey) = 'enabled'
+        AND module.IsActive = 1
+        AND LOWER((SELECT StatusKey FROM dbo.FeatureVisibilityStatuses WHERE VisibilityStatusId = module.VisibilityStatusId)) = 'enabled'
+      )
+    )
     AND (
       EXISTS (
         SELECT 1 FROM dbo.Users u INNER JOIN dbo.Roles r ON r.RoleId=u.RoleId
@@ -132,15 +152,16 @@ async function getSidebarMenusForUser(userId) {
     -- Root menus that are not assigned to any sidebar group.
     AND
     (
-        wm.ParentMenuId IS NOT NULL
+        @IsSuperAdmin=1
+        OR wm.ParentMenuId IS NOT NULL
         OR wm.GroupKey IS NOT NULL
     )
 
     ORDER BY
-        ISNULL(wm.GroupSortOrder, 999),
-        ISNULL(ump.SortOrder, wm.SortOrder),
-        wm.ParentMenuId,
-        wm.SortOrder,
+        ISNULL(CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.GroupSortOrder, module.SortOrder, 999) ELSE wm.GroupSortOrder END, 999),
+        ISNULL(ump.SortOrder, COALESCE(wm.SortOrder, m.SortOrder)),
+        CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.ParentMenuId, m.ParentMenuId) ELSE wm.ParentMenuId END,
+        COALESCE(wm.SortOrder, m.SortOrder),
         m.MenuName;
     `,
     [
