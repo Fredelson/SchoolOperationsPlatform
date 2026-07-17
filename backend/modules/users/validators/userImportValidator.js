@@ -33,6 +33,8 @@ const OPTIONAL_COLUMNS = [
   "AssignmentKey",
   "ScopeType",
   "ScopeName",
+  "Department",
+  "Subject",
 ];
 
 /**
@@ -142,6 +144,8 @@ function normalizeRow(row) {
     assignmentKey: String(row.AssignmentKey || "").trim(),
     scopeType: String(row.ScopeType || "").trim(),
     scopeName: String(row.ScopeName || "").trim(),
+    department: String(row.Department || "").trim(),
+    subject: String(row.Subject || "").trim(),
   };
 }
 

@@ -15,6 +15,16 @@ const borrowAsset = async ({ payload, user, ipAddress }) => {
     throw error;
   }
 
+  const currentStatus = String(asset.StatusKey || asset.StatusName || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  if (["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(currentStatus)) {
+    const error = new Error("This asset is under repair and cannot be borrowed.");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const activeBorrow = await repository.getActiveBorrowByAssetId(payload.assetId);
   if (activeBorrow) {
     const error = new Error("This asset is already borrowed.");
@@ -57,6 +67,16 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     throw error;
   }
 
+  const currentStatus = String(asset.StatusKey || asset.StatusName || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  if (["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(currentStatus)) {
+    const error = new Error("This asset is under repair and cannot be returned.");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const activeBorrow = await repository.getActiveBorrowByAssetId(payload.assetId);
   if (!activeBorrow) {
     const error = new Error("This asset is not currently borrowed.");
@@ -84,7 +104,11 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     requiredPartKeys: payload.requiredPartKeys,
   });
 
-  const targetStatusKey = conditionName === "beyond repair" ? "ReadyForDisposal" : "UnderRepair";
+  const targetStatusKey = conditionName === "beyond repair"
+    ? "ReadyForDisposal"
+    : conditionName === "need maintenance" || conditionName === "need parts"
+      ? "UnderRepair"
+      : "Available";
   const targetStatus = await repository.getStatusByKey(targetStatusKey);
   if (!targetStatus) {
     const error = new Error(`${targetStatusKey} status is missing in ITAssetStatuses.`);

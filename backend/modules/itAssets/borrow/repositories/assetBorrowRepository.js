@@ -320,11 +320,20 @@ const returnBorrowedAsset = async ({
       .input("AssetId", sql.Int, asset.AssetId)
       .input("TargetStatusId", sql.Int, targetStatusId)
       .input("ReturnConditionId", sql.Int, returnConditionId)
+      .input(
+        "PreviousOwner",
+        sql.NVarChar(510),
+        activeBorrow.BorrowedByName ||
+          asset.CurrentAssignedName ||
+          asset.CurrentAssignedUserName ||
+          null
+      )
       .query(`
         UPDATE dbo.ITAssets
         SET
           ITAssetStatusId = @TargetStatusId,
           ITAssetConditionId = @ReturnConditionId,
+          PreviousOwner = COALESCE(@PreviousOwner, PreviousOwner),
           CurrentAssignedUserId = NULL,
           CurrentAssignedName = NULL,
           CurrentAssignedEmployeeCode = NULL,

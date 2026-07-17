@@ -58,11 +58,16 @@ const ReturnAssetDialog = ({
     () =>
       (lookups.conditions || [])
         .filter((condition) => normalizeCondition(condition) !== "fair")
-        .map((condition) =>
-          normalizeCondition(condition) === "damaged"
-            ? { ...condition, ConditionName: "Need Parts" }
-            : condition
-        ),
+        .map((condition) => {
+          const key = normalizeCondition(condition);
+          if (key === "damaged") {
+            return { ...condition, ConditionName: "Need Parts" };
+          }
+          if (key === "needmaintenance") {
+            return { ...condition, ConditionName: "Need Maintenance" };
+          }
+          return condition;
+        }),
     [lookups.conditions]
   );
 

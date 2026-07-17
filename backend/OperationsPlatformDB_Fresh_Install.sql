@@ -141,6 +141,8 @@ CREATE TABLE [dbo].[StaffImportStaging](
 	[AssignmentKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[ScopeType] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[ScopeName] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[DepartmentName] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SubjectName] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[CreatedAt] [datetime] NOT NULL,
 	[ImportedAt] [datetime] NULL,
 PRIMARY KEY CLUSTERED 
@@ -2533,6 +2535,8 @@ CREATE TABLE [dbo].[StaffImportBatches](
 	[ValidRows] [int] NOT NULL,
 	[InvalidRows] [int] NOT NULL,
 	[DuplicateRows] [int] NOT NULL,
+	[UpdateRows] [int] NOT NULL,
+	[IgnoredRows] [int] NOT NULL,
 	[ImportedRows] [int] NOT NULL,
 	[Status] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[Remarks] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -3763,7 +3767,7 @@ SET IDENTITY_INSERT [dbo].[ITAssetConditions] ON
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (1, N'Excellent', N'Excellent', N'Excellent condition', 1)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (2, N'Good', N'Good', N'Good usable condition', 2)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (3, N'Fair', N'Fair', N'Fair condition', 3)
-INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (4, N'Poor', N'Poor', N'Poor condition', 4)
+INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (4, N'NeedMaintenance', N'Need Maintenance', N'Requires maintenance or repair', 4)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (5, N'Damaged', N'Need Parts', N'Requires replacement parts or repair', 5)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (6, N'BeyondRepair', N'Beyond Repair', N'Not repairable', 6)
 SET IDENTITY_INSERT [dbo].[ITAssetConditions] OFF

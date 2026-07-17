@@ -33,6 +33,17 @@ const transferAsset = async ({ payload, user, ipAddress }) => {
     throw Object.assign(new Error("IT asset not found."), { statusCode: 404 });
   }
 
+  const currentStatus = String(asset.StatusKey || asset.StatusName || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  if (["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(currentStatus)) {
+    throw Object.assign(
+      new Error("This asset is under repair and cannot be transferred."),
+      { statusCode: 400 }
+    );
+  }
+
   const actionByUserId = userId(user);
   if (!actionByUserId) {
     throw Object.assign(new Error("Authenticated user is required."), { statusCode: 401 });

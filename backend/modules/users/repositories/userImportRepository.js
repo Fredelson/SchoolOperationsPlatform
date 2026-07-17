@@ -33,6 +33,8 @@ const {
   insertedId,
 } = require("../../../shared/database");
 
+const { poolPromise } = require("../../../database");
+
 /**
  * Create a new import batch.
  */
@@ -48,6 +50,8 @@ async function createBatch(data) {
       ValidRows,
       InvalidRows,
       DuplicateRows,
+      UpdateRows,
+      IgnoredRows,
       ImportedRows,
       Status,
       Remarks,
@@ -60,6 +64,8 @@ async function createBatch(data) {
       @OriginalFileName,
       @UploadedBy,
       @TotalRows,
+      0,
+      0,
       0,
       0,
       0,
@@ -103,6 +109,8 @@ async function insertStagingRow(data) {
       AssignmentKey,
       ScopeType,
       ScopeName,
+      DepartmentName,
+      SubjectName,
       CreatedAt
     )
     OUTPUT INSERTED.StaffImportStagingId
@@ -121,6 +129,8 @@ async function insertStagingRow(data) {
       @AssignmentKey,
       @ScopeType,
       @ScopeName,
+      @DepartmentName,
+      @SubjectName,
       GETDATE()
     );
     `,
@@ -138,6 +148,8 @@ async function insertStagingRow(data) {
       { name: "AssignmentKey", type: sql.NVarChar, value: data.assignmentKey || null },
       { name: "ScopeType", type: sql.NVarChar, value: data.scopeType || null },
       { name: "ScopeName", type: sql.NVarChar, value: data.scopeName || null },
+      { name: "DepartmentName", type: sql.NVarChar, value: data.departmentName || null },
+      { name: "SubjectName", type: sql.NVarChar, value: data.subjectName || null },
     ]
   );
 
@@ -277,6 +289,8 @@ async function getStagingRowsByBatch(batchId) {
       AssignmentKey,
       ScopeType,
       ScopeName,
+      DepartmentName,
+      SubjectName,
       CreatedAt,
       ImportedAt
     FROM dbo.StaffImportStaging
@@ -342,6 +356,8 @@ async function updateBatchValidationSummary(batchId, summary) {
       ValidRows = @ValidRows,
       InvalidRows = @InvalidRows,
       DuplicateRows = @DuplicateRows,
+      UpdateRows = @UpdateRows,
+      IgnoredRows = @IgnoredRows,
       Status = @Status,
       ValidatedAt = GETDATE(),
       Remarks = @Remarks
@@ -352,6 +368,8 @@ async function updateBatchValidationSummary(batchId, summary) {
       { name: "ValidRows", type: sql.Int, value: summary.validRows || 0 },
       { name: "InvalidRows", type: sql.Int, value: summary.invalidRows || 0 },
       { name: "DuplicateRows", type: sql.Int, value: summary.duplicateRows || 0 },
+      { name: "UpdateRows", type: sql.Int, value: summary.updateRows || 0 },
+      { name: "IgnoredRows", type: sql.Int, value: summary.ignoredRows || 0 },
       { name: "Status", type: sql.NVarChar, value: summary.status || "Validated" },
       { name: "Remarks", type: sql.NVarChar, value: summary.remarks || null },
     ]
@@ -367,6 +385,7 @@ async function updateBatchImportSummary(batchId, summary) {
     UPDATE dbo.StaffImportBatches
     SET
       ImportedRows = @ImportedRows,
+      UpdateRows = @UpdateRows,
       Status = @Status,
       ImportedAt = GETDATE(),
       Remarks = @Remarks
@@ -375,6 +394,7 @@ async function updateBatchImportSummary(batchId, summary) {
     [
       { name: "BatchId", type: sql.Int, value: batchId },
       { name: "ImportedRows", type: sql.Int, value: summary.importedRows || 0 },
+      { name: "UpdateRows", type: sql.Int, value: summary.updatedRows || 0 },
       { name: "Status", type: sql.NVarChar, value: summary.status || "Imported" },
       { name: "Remarks", type: sql.NVarChar, value: summary.remarks || null },
     ]
@@ -531,6 +551,31 @@ async function findSubjectByName(subjectName) {
 }
 
 /**
+ * Update existing user from import data.
+ */
+async function updateUserFromImport(data) {
+  await executeQuery(
+    `
+    UPDATE dbo.Users
+    SET
+      FullName = @FullName,
+      SchoolEmail = @SchoolEmail,
+      RoleId = @RoleId,
+      LegacyRole = @LegacyRole,
+      UpdatedAt = GETDATE()
+    WHERE UserId = @UserId;
+    `,
+    [
+      { name: "UserId", type: sql.Int, value: data.userId },
+      { name: "FullName", type: sql.NVarChar, value: data.fullName },
+      { name: "SchoolEmail", type: sql.NVarChar, value: data.schoolEmail },
+      { name: "RoleId", type: sql.Int, value: data.roleId },
+      { name: "LegacyRole", type: sql.NVarChar, value: data.legacyRole },
+    ]
+  );
+}
+
+/**
  * Create user assignment after user import.
  */
 async function createUserAssignment(data) {
@@ -614,12 +659,64 @@ async function createUserAssignmentScope(data) {
   );
 }
 
+/**
+ * Find all assignments for a user.
+ */
+async function findUserAssignments(userId) {
+  const result = await executeQuery(
+    `
+    SELECT UserAssignmentId, AssignmentTypeId, DepartmentId, SubjectId, YearLevelId, ClassId, RoomId
+    FROM dbo.UserAssignments
+    WHERE UserId = @UserId;
+    `,
+    [{ name: "UserId", type: sql.Int, value: Number(userId) }]
+  );
+
+  return rows(result);
+}
+
+/**
+ * Delete all assignments and scopes for a user.
+ */
+async function deleteUserAssignments(userId) {
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+
+  try {
+    await transaction.begin();
+
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, Number(userId))
+      .query(`
+        DELETE FROM dbo.UserAssignmentScopes
+        WHERE UserAssignmentId IN (
+          SELECT UserAssignmentId FROM dbo.UserAssignments WHERE UserId = @UserId
+        );
+      `);
+
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, Number(userId))
+      .query(`
+        DELETE FROM dbo.UserAssignments
+        WHERE UserId = @UserId;
+      `);
+
+    await transaction.commit();
+  } catch (error) {
+    if (transaction._aborted !== true) {
+      await transaction.rollback();
+    }
+    throw error;
+  }
+}
+
 module.exports = {
   createBatch,
   insertStagingRow,
   findDuplicateUser,
   findRoleByKey,
   createUserFromImport,
+  updateUserFromImport,
   getStagingRowsByBatch,
   markStagingImported,
   markStagingFailed,
@@ -633,4 +730,6 @@ module.exports = {
   findSubjectByName,
   createUserAssignment,
   createUserAssignmentScope,
+  findUserAssignments,
+  deleteUserAssignments,
 };

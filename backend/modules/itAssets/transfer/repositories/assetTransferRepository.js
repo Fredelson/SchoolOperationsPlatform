@@ -156,10 +156,18 @@ const transferAsset = async ({
       .input("ToDepartmentId", sql.Int, payload.toDepartmentId || null)
       .input("ToLocationId", sql.Int, payload.toLocationId || null)
       .input("AssignedStatusId", sql.Int, assignedStatusId || null)
+      .input(
+        "PreviousOwner",
+        sql.NVarChar(510),
+        asset.CurrentAssignedName ||
+          asset.CurrentAssignedUserName ||
+          null
+      )
       .query(`
         UPDATE dbo.ITAssets
         SET CurrentAssignedUserId = @ToUserId,
             ITAssetStatusId = COALESCE(@AssignedStatusId, ITAssetStatusId),
+            PreviousOwner = COALESCE(@PreviousOwner, PreviousOwner),
             CurrentAssignedName = (
               SELECT FullName FROM dbo.Users WHERE UserId = @ToUserId
             ),

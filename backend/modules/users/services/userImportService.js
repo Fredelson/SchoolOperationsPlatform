@@ -101,9 +101,18 @@ async function readImportFile(file) {
 }
 
 /**
-  * Build row preview payload for frontend.
-  */
-function buildPreviewRow(stagingRow) {
+ * Build row preview payload for frontend.
+ */
+function buildPreviewRow(stagingRow, changes = [], assignmentInfo = null) {
+  const validationStatus = String(stagingRow.ValidationStatus || "").trim();
+  let action = "Insert";
+
+  if (validationStatus === "Update") {
+    action = "Update";
+  } else if (validationStatus === "Ignored") {
+    action = "Ignored";
+  }
+
   return {
     stagingId: stagingRow.StaffImportStagingId,
     employeeId: stagingRow.EmployeeId,
@@ -113,10 +122,15 @@ function buildPreviewRow(stagingRow) {
     assignmentKey: stagingRow.AssignmentKey,
     scopeType: stagingRow.ScopeType,
     scopeName: stagingRow.ScopeName,
-    validationStatus: stagingRow.ValidationStatus,
+    department: stagingRow.DepartmentName,
+    subject: stagingRow.SubjectName,
+    validationStatus,
     validationMessage: stagingRow.ValidationMessage,
     importStatus: stagingRow.ImportStatus,
     importMessage: stagingRow.ImportMessage,
+    action,
+    changes: changes.length > 0 ? changes : null,
+    assignmentInfo,
   };
 }
 
@@ -169,6 +183,10 @@ async function previewUserImport(file, currentUser) {
     let validRows = 0;
     let invalidRows = 0;
     let duplicateRows = 0;
+    let updateRows = 0;
+    let ignoredRows = 0;
+
+    const previewData = [];
 
     for (let index = 0; index < rawRows.length; index++) {
       const sourceRowNumber = index + 2;
@@ -185,6 +203,8 @@ async function previewUserImport(file, currentUser) {
 
       let role = null;
       let duplicateUser = null;
+      let updateChanges = [];
+      let validationStatus = "Valid";
 
       if (normalized.role) {
         const roleError = validateMainRole(normalized.role);
@@ -203,69 +223,134 @@ async function previewUserImport(file, currentUser) {
         );
 
         if (duplicateUser) {
-          validationErrors.push(
-            `Duplicate user found: ${duplicateUser.EmployeeId || duplicateUser.SchoolEmail}`
-          );
-          duplicateRows++;
+          if (validationErrors.length === 0 && role) {
+            const existingFullName = String(duplicateUser.FullName || "").trim();
+            const importFullName = String(normalized.fullName || "").trim();
+            const existingEmail = String(duplicateUser.SchoolEmail || "").trim().toLowerCase();
+            const importEmail = String(normalized.schoolEmail || "").trim().toLowerCase();
+            const existingRoleKey = String(duplicateUser.LegacyRole || "").trim().toLowerCase();
+            const importRoleKey = String(normalized.role || "").trim().toLowerCase();
+
+            if (
+              existingFullName !== importFullName ||
+              existingEmail !== importEmail ||
+              existingRoleKey !== importRoleKey
+            ) {
+              validationStatus = "Update";
+              updateRows++;
+
+              if (existingFullName !== importFullName) {
+                updateChanges.push({ field: "FullName", oldValue: existingFullName, newValue: importFullName });
+              }
+              if (existingEmail !== importEmail) {
+                updateChanges.push({ field: "SchoolEmail", oldValue: existingEmail, newValue: importEmail });
+              }
+              if (existingRoleKey !== importRoleKey) {
+                updateChanges.push({ field: "Role", oldValue: existingRoleKey, newValue: importRoleKey });
+              }
+            } else {
+              validationStatus = "Ignored";
+              ignoredRows++;
+            }
+            duplicateRows++;
+          } else {
+            validationErrors.push(
+              `Duplicate user found: ${duplicateUser.EmployeeId || duplicateUser.SchoolEmail}`
+            );
+            duplicateRows++;
+          }
         }
       }
 
       let assignmentKey = normalized.assignmentKey || null;
       let scopeType = normalized.scopeType || null;
       let scopeName = normalized.scopeName || null;
+      let departmentName = normalized.department || null;
+      let subjectName = normalized.subject || null;
+      let resolvedDepartmentId = null;
+      let resolvedSubjectId = null;
+      let resolvedYearGroupId = null;
+      let resolvedScopeEntityId = null;
 
-      if (assignmentKey && !scopeType) {
-        validationErrors.push("AssignmentKey requires ScopeType.");
-      }
-
-      if (scopeType && !scopeName) {
-        validationErrors.push("ScopeType requires ScopeName.");
-      }
-
-      if (assignmentKey && scopeType && scopeName) {
+      if (assignmentKey) {
         const assignmentType = await userImportRepository.findAssignmentTypeByKey(assignmentKey);
 
         if (!assignmentType) {
           validationErrors.push(`Assignment not found: ${assignmentKey}`);
         } else {
-          const validScopeTypes = ["Department", "Subject", "YearGroup", "Class", "Room", "Location", "School"];
-          if (!validScopeTypes.includes(scopeType)) {
-            validationErrors.push(`Invalid ScopeType: ${scopeType}`);
-          } else {
-            let scopeEntityId = null;
+          const isHod = String(assignmentKey).toLowerCase() === "hod";
 
-            if (scopeType === "Department") {
-              const dept = await userImportRepository.findDepartmentByName(scopeName);
-              if (!dept) {
-                validationErrors.push(`Department not found: ${scopeName}`);
-              } else {
-                scopeEntityId = dept.DepartmentId;
-              }
-            } else if (scopeType === "Subject") {
-              const sub = await userImportRepository.findSubjectByName(scopeName);
-              if (!sub) {
-                validationErrors.push(`Subject not found: ${scopeName}`);
-              } else {
-                scopeEntityId = sub.SubjectId;
-              }
-            } else if (scopeType === "YearGroup") {
-              const yg = await userImportRepository.findYearLevelByName(scopeName);
-              if (!yg) {
-                validationErrors.push(`YearGroup not found: ${scopeName}`);
-              } else {
-                scopeEntityId = yg.YearLevelId;
+          if (isHod) {
+            if (!departmentName) {
+              validationErrors.push("HOD assignment requires Department.");
+            }
+            if (!subjectName) {
+              validationErrors.push("HOD assignment requires Subject.");
+            }
+          }
+
+          if (departmentName) {
+            const dept = await userImportRepository.findDepartmentByName(departmentName);
+            if (!dept) {
+              validationErrors.push(`Department not found: ${departmentName}`);
+            } else {
+              resolvedDepartmentId = dept.DepartmentId;
+            }
+          }
+
+          if (subjectName) {
+            const sub = await userImportRepository.findSubjectByName(subjectName);
+            if (!sub) {
+              validationErrors.push(`Subject not found: ${subjectName}`);
+            } else {
+              resolvedSubjectId = sub.SubjectId;
+            }
+          }
+
+          if (scopeType && scopeName) {
+            const validScopeTypes = ["Department", "Subject", "YearGroup", "Class", "Room", "Location", "School"];
+            if (!validScopeTypes.includes(scopeType)) {
+              validationErrors.push(`Invalid ScopeType: ${scopeType}`);
+            } else {
+              if (scopeType === "Department") {
+                const dept = await userImportRepository.findDepartmentByName(scopeName);
+                if (!dept) {
+                  validationErrors.push(`Department not found: ${scopeName}`);
+                } else {
+                  resolvedScopeEntityId = dept.DepartmentId;
+                  if (!resolvedDepartmentId) resolvedDepartmentId = dept.DepartmentId;
+                }
+              } else if (scopeType === "Subject") {
+                const sub = await userImportRepository.findSubjectByName(scopeName);
+                if (!sub) {
+                  validationErrors.push(`Subject not found: ${scopeName}`);
+                } else {
+                  resolvedScopeEntityId = sub.SubjectId;
+                  if (!resolvedSubjectId) resolvedSubjectId = sub.SubjectId;
+                }
+              } else if (scopeType === "YearGroup") {
+                const yg = await userImportRepository.findYearLevelByName(scopeName);
+                if (!yg) {
+                  validationErrors.push(`YearGroup not found: ${scopeName}`);
+                } else {
+                  resolvedScopeEntityId = yg.YearLevelId;
+                  resolvedYearGroupId = yg.YearLevelId;
+                }
               }
             }
           }
         }
       }
 
-      const validationStatus =
-        validationErrors.length === 0 ? "Valid" : "Invalid";
+      if (validationStatus === "Update" && validationErrors.length > 0) {
+        validationStatus = "Invalid";
+        updateRows--;
+        duplicateRows--;
+      }
 
       if (validationStatus === "Valid") {
         validRows++;
-      } else {
+      } else if (validationStatus === "Invalid") {
         invalidRows++;
 
         await userImportRepository.logImportError({
@@ -278,7 +363,7 @@ async function previewUserImport(file, currentUser) {
         });
       }
 
-      await userImportRepository.insertStagingRow({
+      const stagingId = await userImportRepository.insertStagingRow({
         batchId,
         employeeId: normalized.employeeId,
         fullName: normalized.fullName,
@@ -287,12 +372,33 @@ async function previewUserImport(file, currentUser) {
         matchedUserId: duplicateUser?.UserId || null,
         validationStatus,
         validationMessage:
-          validationErrors.length > 0 ? validationErrors.join(" | ") : "Ready to import.",
+          validationErrors.length > 0
+            ? validationErrors.join(" | ")
+            : validationStatus === "Update"
+              ? "User will be updated."
+              : validationStatus === "Ignored"
+                ? "No changes detected."
+                : "Ready to import.",
         importStatus: "Pending",
         importMessage: null,
         assignmentKey: assignmentKey,
         scopeType: scopeType,
         scopeName: scopeName,
+        departmentName: departmentName,
+        subjectName: subjectName,
+      });
+
+      previewData.push({
+        sourceRowNumber,
+        stagingId,
+        validationStatus,
+        updateChanges,
+        rawRow: rawRows[index],
+        duplicateUser,
+        resolvedDepartmentId,
+        resolvedSubjectId,
+        resolvedYearGroupId,
+        resolvedScopeEntityId,
       });
     }
 
@@ -300,14 +406,14 @@ async function previewUserImport(file, currentUser) {
       validRows,
       invalidRows,
       duplicateRows,
+      updateRows,
+      ignoredRows,
       status: invalidRows > 0 ? "ValidatedWithErrors" : "Validated",
       remarks:
         invalidRows > 0
           ? "Import preview completed with validation errors."
           : "Import preview completed successfully.",
     });
-
-    const stagingRows = await userImportRepository.getStagingRowsByBatch(batchId);
 
     return {
       batchId,
@@ -316,8 +422,42 @@ async function previewUserImport(file, currentUser) {
         validRows,
         invalidRows,
         duplicateRows,
+        updateRows,
+        ignoredRows,
       },
-      preview: stagingRows.map(buildPreviewRow),
+      preview: previewData.map((item) =>
+        buildPreviewRow(
+          {
+            StaffImportStagingId: item.stagingId,
+            EmployeeId: item.rawRow.EmployeeId || item.rawRow.employeeId || "",
+            FullName: item.rawRow.FullName || item.rawRow.fullName || "",
+            SchoolEmail: item.rawRow.SchoolEmail || item.rawRow.schoolEmail || "",
+            DerivedRoleKey: item.rawRow.Role || item.rawRow.role || "",
+            AssignmentKey: item.rawRow.AssignmentKey || item.rawRow.assignmentKey || null,
+            ScopeType: item.rawRow.ScopeType || item.rawRow.scopeType || null,
+            ScopeName: item.rawRow.ScopeName || item.rawRow.scopeName || null,
+            DepartmentName: item.rawRow.Department || item.rawRow.department || null,
+            SubjectName: item.rawRow.Subject || item.rawRow.subject || null,
+            ValidationStatus: item.validationStatus,
+            ValidationMessage:
+              item.validationStatus === "Update"
+                ? "User will be updated."
+                : item.validationStatus === "Ignored"
+                  ? "No changes detected."
+                  : "Ready to import.",
+            ImportStatus: "Pending",
+            ImportMessage: null,
+            MatchedUserId: item.duplicateUser?.UserId || null,
+          },
+          item.updateChanges,
+          item.resolvedDepartmentId || item.resolvedSubjectId || item.resolvedYearGroupId ? {
+            departmentId: item.resolvedDepartmentId,
+            subjectId: item.resolvedSubjectId,
+            yearGroupId: item.resolvedYearGroupId,
+            scopeEntityId: item.resolvedScopeEntityId,
+          } : null
+        ),
+      ),
     };
   } finally {
     deleteTempFile(file?.path);
@@ -345,12 +485,13 @@ async function commitUserImport(batchId, currentUser) {
   }
 
   let importedRows = 0;
+  let updatedRows = 0;
   let skippedRows = 0;
   const errors = [];
 
   for (const row of stagingRows) {
     try {
-      if (row.ValidationStatus !== "Valid") {
+      if (row.ValidationStatus !== "Valid" && row.ValidationStatus !== "Update") {
         skippedRows++;
         await userImportRepository.markStagingFailed(
           row.StaffImportStagingId,
@@ -361,6 +502,113 @@ async function commitUserImport(batchId, currentUser) {
 
       if (row.ImportStatus === "Imported") {
         skippedRows++;
+        continue;
+      }
+
+      const isUpdate = row.ValidationStatus === "Update";
+
+      if (isUpdate) {
+        const existingUser = await userImportRepository.findDuplicateUser(
+          row.EmployeeId,
+          row.SchoolEmail
+        );
+
+        if (!existingUser) {
+          skippedRows++;
+          await userImportRepository.markStagingFailed(
+            row.StaffImportStagingId,
+            "Update skipped: user no longer exists."
+          );
+          continue;
+        }
+
+        const role = await userImportRepository.findRoleByKey(row.DerivedRoleKey);
+
+        if (!role) {
+          skippedRows++;
+          await userImportRepository.markStagingFailed(
+            row.StaffImportStagingId,
+            `Role not found: ${row.DerivedRoleKey}`
+          );
+          continue;
+        }
+
+        await userImportRepository.updateUserFromImport({
+          userId: existingUser.UserId,
+          fullName: row.FullName,
+          schoolEmail: row.SchoolEmail,
+          roleId: role.RoleId,
+          legacyRole: role.RoleKey,
+        });
+
+        if (row.AssignmentKey) {
+          await userImportRepository.deleteUserAssignments(existingUser.UserId);
+
+          const assignmentType = await userImportRepository.findAssignmentTypeByKey(row.AssignmentKey);
+
+          if (assignmentType) {
+            let departmentId = null;
+            let subjectId = null;
+            let yearGroupId = null;
+            let scopeEntityId = null;
+            let scopeType = null;
+
+            if (row.DepartmentName) {
+              const dept = await userImportRepository.findDepartmentByName(row.DepartmentName);
+              if (dept) {
+                departmentId = dept.DepartmentId;
+                scopeEntityId = dept.DepartmentId;
+                scopeType = "Department";
+              }
+            }
+
+            if (row.SubjectName) {
+              const sub = await userImportRepository.findSubjectByName(row.SubjectName);
+              if (sub) {
+                subjectId = sub.SubjectId;
+                if (!scopeEntityId) {
+                  scopeEntityId = sub.SubjectId;
+                  scopeType = "Subject";
+                }
+              }
+            }
+
+            if (row.ScopeType === "YearGroup" && row.ScopeName) {
+              const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
+              if (yg) {
+                yearGroupId = yg.YearLevelId;
+                scopeEntityId = yg.YearLevelId;
+                scopeType = "YearGroup";
+              }
+            }
+
+            if (departmentId || subjectId || yearGroupId) {
+              const assignmentId = await userImportRepository.createUserAssignment({
+                userId: existingUser.UserId,
+                assignmentTypeId: assignmentType.AssignmentTypeId,
+                isPrimary: true,
+                departmentId,
+                subjectId,
+                yearGroupId,
+              });
+
+              if (scopeType && scopeEntityId) {
+                await userImportRepository.createUserAssignmentScope({
+                  userAssignmentId: assignmentId,
+                  scopeType,
+                  scopeEntityId,
+                });
+              }
+            }
+          }
+        }
+
+        await userImportRepository.markStagingImported(
+          row.StaffImportStagingId,
+          existingUser.UserId
+        );
+
+        importedRows++;
         continue;
       }
 
@@ -425,39 +673,63 @@ async function commitUserImport(batchId, currentUser) {
         schoolId: null,
       });
 
-      if (row.AssignmentKey && row.ScopeType && row.ScopeName) {
+      if (row.AssignmentKey) {
         const assignmentType = await userImportRepository.findAssignmentTypeByKey(row.AssignmentKey);
 
         if (assignmentType) {
           let departmentId = null;
           let subjectId = null;
           let yearGroupId = null;
+          let scopeEntityId = null;
+          let scopeType = null;
 
-          if (row.ScopeType === "Department") {
-            const dept = await userImportRepository.findDepartmentByName(row.ScopeName);
-            if (dept) departmentId = dept.DepartmentId;
-          } else if (row.ScopeType === "Subject") {
-            const sub = await userImportRepository.findSubjectByName(row.ScopeName);
-            if (sub) subjectId = sub.SubjectId;
-          } else if (row.ScopeType === "YearGroup") {
-            const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
-            if (yg) yearGroupId = yg.YearLevelId;
+          if (row.DepartmentName) {
+            const dept = await userImportRepository.findDepartmentByName(row.DepartmentName);
+            if (dept) {
+              departmentId = dept.DepartmentId;
+              scopeEntityId = dept.DepartmentId;
+              scopeType = "Department";
+            }
           }
 
-          const assignmentId = await userImportRepository.createUserAssignment({
-            userId,
-            assignmentTypeId: assignmentType.AssignmentTypeId,
-            isPrimary: true,
-            departmentId,
-            subjectId,
-            yearGroupId,
-          });
+          if (row.SubjectName) {
+            const sub = await userImportRepository.findSubjectByName(row.SubjectName);
+            if (sub) {
+              subjectId = sub.SubjectId;
+              if (!scopeEntityId) {
+                scopeEntityId = sub.SubjectId;
+                scopeType = "Subject";
+              }
+            }
+          }
 
-          await userImportRepository.createUserAssignmentScope({
-            userAssignmentId: assignmentId,
-            scopeType: row.ScopeType,
-            scopeEntityId: departmentId || subjectId || yearGroupId || 0,
-          });
+          if (row.ScopeType === "YearGroup" && row.ScopeName) {
+            const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
+            if (yg) {
+              yearGroupId = yg.YearLevelId;
+              scopeEntityId = yg.YearLevelId;
+              scopeType = "YearGroup";
+            }
+          }
+
+          if (departmentId || subjectId || yearGroupId) {
+            const assignmentId = await userImportRepository.createUserAssignment({
+              userId,
+              assignmentTypeId: assignmentType.AssignmentTypeId,
+              isPrimary: true,
+              departmentId,
+              subjectId,
+              yearGroupId,
+            });
+
+            if (scopeType && scopeEntityId) {
+              await userImportRepository.createUserAssignmentScope({
+                userAssignmentId: assignmentId,
+                scopeType,
+                scopeEntityId,
+              });
+            }
+          }
         }
       }
 
@@ -493,6 +765,7 @@ async function commitUserImport(batchId, currentUser) {
 
   await userImportRepository.updateBatchImportSummary(Number(batchId), {
     importedRows,
+    updatedRows,
     status: errors.length > 0 ? "ImportedWithErrors" : "Imported",
     remarks:
       errors.length > 0
@@ -503,6 +776,7 @@ async function commitUserImport(batchId, currentUser) {
   return {
     batchId: Number(batchId),
     importedRows,
+    updatedRows,
     skippedRows,
     errors,
   };

@@ -18,6 +18,8 @@ const CONDITION_ALIASES = {
   "repair needed": "Need Parts",
   broken: "Need Parts",
   retired: "Beyond Repair",
+  poor: "Need Maintenance",
+  "need maintenance": "Need Maintenance",
 };
 
 const normalizeCompare = (value) =>

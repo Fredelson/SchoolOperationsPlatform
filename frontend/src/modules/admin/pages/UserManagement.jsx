@@ -383,13 +383,15 @@ export default function UserManagement() {
               Preview ready. Total: {importPreview.summary?.totalRows || 0}, Valid:{" "}
               {importPreview.summary?.validRows || 0}, Invalid:{" "}
               {importPreview.summary?.invalidRows || 0}, Duplicates:{" "}
-              {importPreview.summary?.duplicateRows || 0}
+              {importPreview.summary?.duplicateRows || 0}, Updates:{" "}
+              {importPreview.summary?.updateRows || 0}, Ignored:{" "}
+              {importPreview.summary?.ignoredRows || 0}
               {importPreview.summary?.duplicateRows > 0 && " — duplicates will be skipped before updating the database."}
             </Alert>
 
             {importPreview.summary?.duplicateRows > 0 && (
               <Alert severity="error" sx={{ mt: 1 }}>
-                Duplicate EmployeeId or SchoolEmail detected. These rows will NOT be imported.
+                Duplicate EmployeeId or SchoolEmail detected. Rows with changes will be updated, identical rows will be ignored, and rows with errors will be skipped.
                 Please review the preview below.
               </Alert>
             )}
@@ -398,8 +400,8 @@ export default function UserManagement() {
 
         {commitResult && (
           <Alert severity="success" sx={{ mt: 2 }}>
-            Import committed. Imported: {commitResult.importedRows || 0}, Skipped:{" "}
-            {commitResult.skippedRows || 0}
+            Import committed. Imported: {commitResult.importedRows || 0}, Updated:{" "}
+            {commitResult.updatedRows || 0}, Skipped: {commitResult.skippedRows || 0}
           </Alert>
         )}
 
@@ -432,10 +434,29 @@ export default function UserManagement() {
                       <Chip
                         label={row.validationStatus}
                         size="small"
-                        color={row.validationStatus === "Valid" ? "success" : "error"}
+                        color={
+                          row.validationStatus === "Valid"
+                            ? "success"
+                            : row.validationStatus === "Update"
+                              ? "warning"
+                              : row.validationStatus === "Ignored"
+                                ? "default"
+                                : "error"
+                        }
                       />
                     </TableCell>
-                    <TableCell>{row.validationMessage}</TableCell>
+                    <TableCell>
+                      {row.validationMessage}
+                      {row.changes && row.changes.length > 0 && (
+                        <Box sx={{ mt: 0.5 }}>
+                          {row.changes.map((change, idx) => (
+                            <Typography key={idx} variant="caption" display="block">
+                              {change.field}: {change.oldValue} → {change.newValue}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

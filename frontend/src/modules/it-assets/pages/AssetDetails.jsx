@@ -316,23 +316,23 @@ const AssetDetails = () => {
                     >
                       Assign Asset
                     </AppButton>
-                    <AppButton
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<KeyboardReturnOutlinedIcon />}
-                      disabled={!isAssigned(asset) || disposed}
-                      onClick={() => openDialog("return")}
-                      sx={{ justifyContent: "flex-start" }}
-                    >
-                      Return Asset
-                    </AppButton>
+                     <AppButton
+                       fullWidth
+                       variant="outlined"
+                       startIcon={<KeyboardReturnOutlinedIcon />}
+                       disabled={!isAssigned(asset) || disposed || maintenanceUnfinished}
+                       onClick={() => openDialog("return")}
+                       sx={{ justifyContent: "flex-start" }}
+                     >
+                       Return Asset
+                     </AppButton>
                     {canManageLifecycle && (
                       <>
                         <AppButton
                           fullWidth
                           variant="outlined"
                           startIcon={<SwapHorizOutlinedIcon />}
-                          disabled={disposed}
+                          disabled={disposed || maintenanceUnfinished}
                           onClick={() => openDialog("transfer")}
                           sx={{ justifyContent: "flex-start" }}
                         >

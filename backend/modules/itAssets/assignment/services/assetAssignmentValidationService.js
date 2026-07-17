@@ -81,6 +81,17 @@ const validateReturnAsset = async (assetId, payload = {}) => {
     });
   }
 
+  const currentStatus = String(asset.StatusKey || asset.StatusName || "")
+    .replace(/[\s_-]/g, "")
+    .toUpperCase();
+
+  if (["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(currentStatus)) {
+    throw Object.assign(
+      new Error("This asset is under repair and cannot be returned."),
+      { statusCode: 400 }
+    );
+  }
+
   const activeAssignment = await repository.getActiveAssignment(assetId);
 
   if (!activeAssignment) {
@@ -115,12 +126,18 @@ const validateReturnAsset = async (assetId, payload = {}) => {
     requiredPartKeys: payload.requiredPartKeys,
   });
 
-  // Every returned asset requires maintenance review before it can be
-  // explicitly released back to Available inventory.
-  let statusKey = "UnderRepair";
+  // Assets returned in Need Maintenance or Need Parts condition go to
+  // Under Repair. Beyond Repair goes to Ready for Disposal.
+  // Assets returned in Excellent or Good condition go back to Available.
+  let statusKey = "Available";
 
   if (conditionName === "beyond repair") {
     statusKey = "ReadyForDisposal";
+  } else if (
+    conditionName === "need maintenance" ||
+    conditionName === "need parts"
+  ) {
+    statusKey = "UnderRepair";
   }
 
   const targetStatus = await repository.getStatusByKey(statusKey);
