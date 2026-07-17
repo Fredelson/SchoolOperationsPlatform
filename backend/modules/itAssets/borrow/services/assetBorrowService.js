@@ -3,6 +3,9 @@
 ========================================================= */
 
 const repository = require("../repositories/assetBorrowRepository");
+const {
+  validateReturnParts,
+} = require("../../shared/constants/assetParts");
 
 const borrowAsset = async ({ payload, user, ipAddress }) => {
   const asset = await repository.getAssetById(payload.assetId);
@@ -68,27 +71,18 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     throw error;
   }
 
-  const availableStatus = await repository.getStatusByKey("Available");
-  if (!availableStatus || Number(asset.ITAssetStatusId) !== Number(availableStatus.ITAssetStatusId)) {
-    const error = new Error("Only available assets can be borrowed.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (asset.CurrentAssignedUserId || asset.CurrentAssignedName) {
-    const error = new Error("Assigned assets cannot be borrowed.");
-    error.statusCode = 400;
-    throw error;
-  }
-
   const conditionName = String(returnCondition.ConditionName || "").toLowerCase();
-  const requiresIssue = ["fair", "poor", "damaged", "beyond repair"].includes(conditionName);
-  const returnIssueTypeIds = Array.isArray(payload.returnIssueTypeIds) ? payload.returnIssueTypeIds : [];
-  if (requiresIssue && !returnIssueTypeIds.length) {
-    const error = new Error("At least one required action / issue is required.");
+  if (conditionName === "fair") {
+    const error = new Error("Fair is no longer an available return condition.");
     error.statusCode = 400;
     throw error;
   }
+
+  const requiredParts = validateReturnParts({
+    asset,
+    returnCondition,
+    requiredPartKeys: payload.requiredPartKeys,
+  });
 
   const targetStatusKey = conditionName === "beyond repair" ? "ReadyForDisposal" : "UnderRepair";
   const targetStatus = await repository.getStatusByKey(targetStatusKey);
@@ -106,7 +100,7 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     returnNotes: payload.returnNotes || payload.notes || null,
     returnCondition,
     returnConditionId: returnCondition.ITAssetConditionId,
-    returnIssueTypeIds,
+    requiredParts,
     ipAddress,
   });
 };

@@ -7,14 +7,22 @@ const sql = require("mssql");
 const { poolPromise } = require("../../../../config/db");
 const { executeQuery } = require("../../../../shared/database/executeQuery");
 const { firstOrNull, rows } = require("../../../../shared/database/repositoryBase");
+const {
+  insertPartRequirements,
+} = require("../../shared/repositories/assetPartRequirementRepository");
 
 const getAssetById = async (assetId) => {
   const result = await executeQuery(
     `
-      SELECT TOP 1 *
-      FROM dbo.ITAssets
-      WHERE AssetId = @AssetId
-        AND IsDeleted = 0;
+      SELECT TOP 1
+        a.*,
+        c.CategoryKey,
+        c.CategoryName
+      FROM dbo.ITAssets a
+      LEFT JOIN dbo.ITAssetCategories c
+        ON a.ITAssetCategoryId = c.ITAssetCategoryId
+      WHERE a.AssetId = @AssetId
+        AND a.IsDeleted = 0;
     `,
     [{ name: "AssetId", type: sql.Int, value: Number(assetId) }]
   );
@@ -56,7 +64,7 @@ const getStatusByKey = async (statusKey) => {
 
 const getConditionById = async (conditionId) => {
   const result = await executeQuery(`
-    SELECT TOP 1 ITAssetConditionId, ConditionName
+    SELECT TOP 1 ITAssetConditionId, ConditionKey, ConditionName
     FROM dbo.ITAssetConditions
     WHERE ITAssetConditionId = @ConditionId;
   `, [{ name: "ConditionId", type: sql.Int, value: Number(conditionId) }]);
@@ -280,7 +288,7 @@ const returnBorrowedAsset = async ({
   returnNotes = null,
   returnCondition,
   returnConditionId,
-  returnIssueTypeIds = [],
+  requiredParts = [],
   ipAddress = null,
 }) => {
   const pool = await poolPromise;
@@ -294,7 +302,7 @@ const returnBorrowedAsset = async ({
       .input("ReturnedByUserId", sql.Int, actionByUserId || null)
       .input("ReturnNotes", sql.NVarChar(sql.MAX), returnNotes || null)
       .input("ReturnConditionId", sql.Int, returnConditionId)
-      .input("ReturnIssueTypeIdsJson", sql.NVarChar(sql.MAX), JSON.stringify(returnIssueTypeIds))
+      .input("ReturnIssueTypeIdsJson", sql.NVarChar(sql.MAX), null)
       .query(`
         UPDATE dbo.ITAssetBorrows
         SET
@@ -356,22 +364,14 @@ const returnBorrowedAsset = async ({
 
     const borrow = borrowResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
-    const issues = [];
-
-    for (const issueTypeId of returnIssueTypeIds) {
-      const issueResult = await new sql.Request(transaction)
-        .input("AssetId", sql.Int, asset.AssetId)
-        .input("IssueTypeId", sql.Int, Number(issueTypeId))
-        .input("ReportedByUserId", sql.Int, actionByUserId || null)
-        .input("Description", sql.NVarChar(sql.MAX), returnNotes || `Borrow return condition: ${returnCondition.ConditionName}.`)
-        .query(`
-          INSERT INTO dbo.ITAssetIssueLogs
-            (AssetId, IssueTypeId, ReportedByUserId, IssueStatus, Description, ReportedAt)
-          OUTPUT INSERTED.*
-          VALUES (@AssetId, @IssueTypeId, @ReportedByUserId, 'OPEN', @Description, GETDATE());
-        `);
-      issues.push(issueResult.recordset[0]);
-    }
+    const partRequirements = await insertPartRequirements({
+      transaction,
+      assetId: asset.AssetId,
+      assetBorrowId: borrow.AssetBorrowId,
+      parts: requiredParts,
+      requestedByUserId: actionByUserId,
+      notes: returnNotes,
+    });
 
     await new sql.Request(transaction)
       .input("UserId", sql.Int, actionByUserId || null)
@@ -380,7 +380,11 @@ const returnBorrowedAsset = async ({
       .input("EntityId", sql.NVarChar(200), String(asset.AssetId))
       .input("Description", sql.NVarChar(sql.MAX), `Borrowed asset ${asset.AssetTag} was returned.`)
       .input("OldValue", sql.NVarChar(sql.MAX), JSON.stringify({ asset, borrow: activeBorrow }))
-      .input("NewValue", sql.NVarChar(sql.MAX), JSON.stringify({ asset: updatedAsset, borrow, issues }))
+      .input(
+        "NewValue",
+        sql.NVarChar(sql.MAX),
+        JSON.stringify({ asset: updatedAsset, borrow, partRequirements })
+      )
       .input("IpAddress", sql.NVarChar(100), ipAddress || null)
       .query(`
         INSERT INTO dbo.AuditLogs
@@ -444,7 +448,7 @@ const returnBorrowedAsset = async ({
 
     await transaction.commit();
 
-    return { borrow, asset: updatedAsset, issues };
+    return { borrow, asset: updatedAsset, partRequirements };
   } catch (error) {
     if (transaction._aborted !== true) {
       await transaction.rollback();
@@ -463,10 +467,14 @@ const getBorrowHistory = async ({ assetId = null, page = 1, limit = 20 }) => {
         b.*,
         a.AssetTag,
         a.ModelDescription,
+        category.CategoryKey,
+        category.CategoryName,
         approvedBy.FullName AS ApprovedByName,
         returnedBy.FullName AS ReturnedByName
       FROM dbo.ITAssetBorrows b
       INNER JOIN dbo.ITAssets a ON b.AssetId = a.AssetId
+      LEFT JOIN dbo.ITAssetCategories category
+        ON a.ITAssetCategoryId = category.ITAssetCategoryId
       LEFT JOIN dbo.Users approvedBy ON b.ApprovedByUserId = approvedBy.UserId
       LEFT JOIN dbo.Users returnedBy ON b.ReturnedByUserId = returnedBy.UserId
       WHERE a.IsDeleted = 0
@@ -490,9 +498,13 @@ const getActiveBorrows = async () => {
     SELECT
       b.*,
       a.AssetTag,
-      a.ModelDescription
+      a.ModelDescription,
+      category.CategoryKey,
+      category.CategoryName
     FROM dbo.ITAssetBorrows b
     INNER JOIN dbo.ITAssets a ON b.AssetId = a.AssetId
+    LEFT JOIN dbo.ITAssetCategories category
+      ON a.ITAssetCategoryId = category.ITAssetCategoryId
     WHERE a.IsDeleted = 0
       AND b.ReturnedAt IS NULL
     ORDER BY b.BorrowedAt DESC;
@@ -506,9 +518,13 @@ const getOverdueBorrows = async () => {
     SELECT
       b.*,
       a.AssetTag,
-      a.ModelDescription
+      a.ModelDescription,
+      category.CategoryKey,
+      category.CategoryName
     FROM dbo.ITAssetBorrows b
     INNER JOIN dbo.ITAssets a ON b.AssetId = a.AssetId
+    LEFT JOIN dbo.ITAssetCategories category
+      ON a.ITAssetCategoryId = category.ITAssetCategoryId
     WHERE a.IsDeleted = 0
       AND b.ReturnedAt IS NULL
       AND b.ExpectedReturnAt IS NOT NULL

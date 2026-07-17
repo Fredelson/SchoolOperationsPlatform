@@ -14,9 +14,9 @@ const STATUS_ALIASES = {
 };
 
 const CONDITION_ALIASES = {
-  "needs repair": "Damaged",
-  "repair needed": "Damaged",
-  broken: "Damaged",
+  "needs repair": "Need Parts",
+  "repair needed": "Need Parts",
+  broken: "Need Parts",
   retired: "Beyond Repair",
 };
 

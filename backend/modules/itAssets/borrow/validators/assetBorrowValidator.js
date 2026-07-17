@@ -23,7 +23,7 @@ const validateBorrowAsset = (req, res, next) => {
 };
 
 const validateReturnBorrowedAsset = (req, res, next) => {
-  const { assetId, returnConditionId } = req.body;
+  const { assetId, returnConditionId, requiredPartKeys } = req.body;
 
   if (!assetId) {
     return res.status(400).json({
@@ -36,6 +36,17 @@ const validateReturnBorrowedAsset = (req, res, next) => {
     return res.status(400).json({
       success: false,
       message: "Return condition is required.",
+    });
+  }
+
+  if (
+    requiredPartKeys !== undefined &&
+    requiredPartKeys !== null &&
+    !Array.isArray(requiredPartKeys)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Required parts must be an array.",
     });
   }
 

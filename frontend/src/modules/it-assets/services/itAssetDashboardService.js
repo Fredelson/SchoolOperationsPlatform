@@ -15,6 +15,7 @@ export const getItAssetDashboardService = async (params = {}) => {
   return {
     kpis: data.kpis || {},
     charts: data.charts || {},
+    partsToOrder: data.partsToOrder || [],
     requiredActions: data.requiredActions || [],
     filters: data.filters || {},
     filteredAssets: data.filteredAssets || [],

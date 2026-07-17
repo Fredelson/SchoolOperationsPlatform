@@ -14,6 +14,14 @@
 // ============================================
 
 const navigationRepository = require("../repositories/navigationRepository");
+const permissionResolver = require("../../permissionResolver/services/permissionResolverService");
+
+function isNavigationAdmin(profile) {
+  const roleKey = String(profile?.user?.roleKey || "")
+    .replace(/[\s_-]/g, "")
+    .toLowerCase();
+  return roleKey === "superadmin" || roleKey === "platformadmin";
+}
 
 // ============================================
 // Remove Empty Children Recursively
@@ -108,7 +116,17 @@ async function getMySidebar(user) {
     user?.userId ||
     user?.id;
 
-  const menus = await navigationRepository.getSidebarMenusForUser(userId);
+  const [rawMenus, permissionProfile] = await Promise.all([
+    navigationRepository.getSidebarMenusForUser(userId),
+    permissionResolver.resolveUserPermissions(userId),
+  ]);
+  const allowedPermissions = new Set(permissionProfile.allowedPermissionKeys || []);
+  const bypassPermissions = isNavigationAdmin(permissionProfile);
+  const menus = rawMenus.filter(
+    (menu) =>
+      bypassPermissions ||
+      (menu.PermissionKey && allowedPermissions.has(menu.PermissionKey))
+  );
 
   const groups = {};
 
@@ -172,7 +190,21 @@ async function getMySidebar(user) {
 
 async function getMyRuntimeControls(user) {
   const userId=user?.UserId||user?.userId||user?.id;
-  return navigationRepository.getRuntimeControlsForUser(userId);
+  const [controls, permissionProfile] = await Promise.all([
+    navigationRepository.getRuntimeControlsForUser(userId),
+    permissionResolver.resolveUserPermissions(userId),
+  ]);
+  const allowedPermissions = new Set(permissionProfile.allowedPermissionKeys || []);
+  const bypassPermissions = isNavigationAdmin(permissionProfile);
+  const isAllowed = (item) =>
+    bypassPermissions ||
+    !item.PermissionKey ||
+    allowedPermissions.has(item.PermissionKey);
+
+  return {
+    buttons: controls.buttons.filter(isAllowed),
+    widgets: controls.widgets.filter(isAllowed),
+  };
 }
 
 // ============================================

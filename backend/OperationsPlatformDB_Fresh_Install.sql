@@ -1222,6 +1222,8 @@ CREATE TABLE [dbo].[ITAssetBorrows](
 	[ReturnNotes] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[CreatedAt] [datetime] NOT NULL,
 	[UpdatedAt] [datetime] NULL,
+	[ReturnConditionId] [int] NULL,
+	[ReturnIssueTypeIdsJson] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[AssetBorrowId] ASC
@@ -3759,7 +3761,7 @@ INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [Conditi
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (2, N'Good', N'Good', N'Good usable condition', 2)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (3, N'Fair', N'Fair', N'Fair condition', 3)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (4, N'Poor', N'Poor', N'Poor condition', 4)
-INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (5, N'Damaged', N'Damaged', N'Damaged but may be repairable', 5)
+INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (5, N'Damaged', N'Need Parts', N'Requires replacement parts or repair', 5)
 INSERT [dbo].[ITAssetConditions] ([ITAssetConditionId], [ConditionKey], [ConditionName], [Description], [SortOrder]) VALUES (6, N'BeyondRepair', N'Beyond Repair', N'Not repairable', 6)
 SET IDENTITY_INSERT [dbo].[ITAssetConditions] OFF
 GO
@@ -27140,6 +27142,89 @@ ALTER TABLE [dbo].[YearLevels]  WITH CHECK ADD  CONSTRAINT [FK_YearLevels_Sectio
 REFERENCES [dbo].[Sections] ([SectionId])
 GO
 ALTER TABLE [dbo].[YearLevels] CHECK CONSTRAINT [FK_YearLevels_Sections]
+GO
+
+/****** Object: Table [dbo].[ITAssetPartRequirements] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[ITAssetPartRequirements](
+	[AssetPartRequirementId] [int] IDENTITY(1,1) NOT NULL,
+	[AssetId] [int] NOT NULL,
+	[AssetAssignmentId] [int] NULL,
+	[AssetBorrowId] [int] NULL,
+	[PartKey] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[PartName] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Quantity] [int] NOT NULL
+		CONSTRAINT [DF_ITAssetPartRequirements_Quantity] DEFAULT ((1)),
+	[RequirementStatus] [nvarchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL
+		CONSTRAINT [DF_ITAssetPartRequirements_Status] DEFAULT (N'REQUIRED'),
+	[RequestedByUserId] [int] NULL,
+	[RequestedAt] [datetime2](0) NOT NULL
+		CONSTRAINT [DF_ITAssetPartRequirements_RequestedAt] DEFAULT (sysdatetime()),
+	[OrderedAt] [datetime2](0) NULL,
+	[ReceivedAt] [datetime2](0) NULL,
+	[Notes] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[IsActive] [bit] NOT NULL
+		CONSTRAINT [DF_ITAssetPartRequirements_IsActive] DEFAULT ((1)),
+	[CreatedAt] [datetime2](0) NOT NULL
+		CONSTRAINT [DF_ITAssetPartRequirements_CreatedAt] DEFAULT (sysdatetime()),
+	[UpdatedAt] [datetime2](0) NULL,
+	CONSTRAINT [PK_ITAssetPartRequirements] PRIMARY KEY CLUSTERED
+	(
+		[AssetPartRequirementId] ASC
+	),
+	CONSTRAINT [CK_ITAssetPartRequirements_OneSource] CHECK
+	(
+		(CASE WHEN [AssetAssignmentId] IS NULL THEN 0 ELSE 1 END) +
+		(CASE WHEN [AssetBorrowId] IS NULL THEN 0 ELSE 1 END) = 1
+	),
+	CONSTRAINT [CK_ITAssetPartRequirements_PartKey] CHECK
+	(
+		[PartKey] IN
+		(
+			N'MONITOR',
+			N'LCD',
+			N'RAM',
+			N'SSD',
+			N'BATTERY',
+			N'KEYBOARD',
+			N'NETWORK_CARD'
+		)
+	),
+	CONSTRAINT [CK_ITAssetPartRequirements_Quantity] CHECK ([Quantity] > 0),
+	CONSTRAINT [CK_ITAssetPartRequirements_Status] CHECK
+	(
+		[RequirementStatus] IN
+		(
+			N'REQUIRED',
+			N'ORDERED',
+			N'RECEIVED',
+			N'CANCELLED'
+		)
+	),
+	CONSTRAINT [FK_ITAssetPartRequirements_Asset] FOREIGN KEY ([AssetId])
+		REFERENCES [dbo].[ITAssets] ([AssetId]),
+	CONSTRAINT [FK_ITAssetPartRequirements_Assignment] FOREIGN KEY ([AssetAssignmentId])
+		REFERENCES [dbo].[ITAssetAssignments] ([AssetAssignmentId]),
+	CONSTRAINT [FK_ITAssetPartRequirements_Borrow] FOREIGN KEY ([AssetBorrowId])
+		REFERENCES [dbo].[ITAssetBorrows] ([AssetBorrowId]),
+	CONSTRAINT [FK_ITAssetPartRequirements_RequestedBy] FOREIGN KEY ([RequestedByUserId])
+		REFERENCES [dbo].[Users] ([UserId])
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_ITAssetPartRequirements_AssignmentPart]
+ON [dbo].[ITAssetPartRequirements] ([AssetAssignmentId], [PartKey])
+WHERE ([AssetAssignmentId] IS NOT NULL)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_ITAssetPartRequirements_BorrowPart]
+ON [dbo].[ITAssetPartRequirements] ([AssetBorrowId], [PartKey])
+WHERE ([AssetBorrowId] IS NOT NULL)
+GO
+CREATE NONCLUSTERED INDEX [IX_ITAssetPartRequirements_OrderQueue]
+ON [dbo].[ITAssetPartRequirements] ([RequirementStatus], [IsActive], [PartKey])
+INCLUDE ([AssetId], [PartName], [Quantity])
 GO
 
 PRINT N'OperationsPlatformDB installation script completed.';

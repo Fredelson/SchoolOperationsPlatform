@@ -217,6 +217,7 @@ const getAssetById = async (assetId) => {
       SELECT
         a.*,
 
+        c.CategoryKey,
         c.CategoryName,
 
         b.ITAssetBrandId,

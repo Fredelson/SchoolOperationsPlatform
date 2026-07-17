@@ -69,10 +69,10 @@ const SummaryList = ({ rows = [], emptyTitle }) => (
   </Stack>
 );
 
-const requiredActionColumns = [
-  { field: "issueTypeName", headerName: "Required Action / Issue" },
-  { field: "categoryName", headerName: "Category" },
-  { field: "total", headerName: "Open Items", align: "right" },
+const partsToOrderColumns = [
+  { field: "partName", headerName: "Part" },
+  { field: "totalQuantity", headerName: "Quantity Required", align: "right" },
+  { field: "assetCount", headerName: "Affected Assets", align: "right" },
 ];
 
 const QuickActions = () => {
@@ -113,27 +113,20 @@ const QuickActions = () => {
 
 const DashboardTables = ({ dashboard = {} }) => {
   const maintenance = dashboard.operations?.maintenance || [];
-  const requiredActions = dashboard.requiredActions || [];
-  const actionGroups = [
-    { title: "Repairs Required", pattern: /repair|clean|issue|fault/i },
-    { title: "Replacement Components Required", pattern: /replace|replacement|battery|charger|keyboard|bulb|drum/i },
-    { title: "External Repair Recommendations", pattern: /external|service center|vendor/i },
-    { title: "Write-Off Recommendations", pattern: /write.?off|beyond repair|dispose/i },
-  ];
 
   return (
     <Stack spacing={2}>
       <DashboardMiddleRow columns="1.45fr 1fr 1fr">
         <DashboardSection
-          title="Return Issues / Required Actions"
-          subtitle="Open structured issues recorded through asset returns and issue workflows."
+          title="Parts To Order"
+          subtitle="Replacement parts recorded from computer returns marked Need Parts."
         >
           <AppDataTable
-            rows={dashboard.requiredActions || []}
-            columns={requiredActionColumns}
-            getRowId={(row) => row.issueTypeId}
-            emptyTitle="No required actions recorded"
-            emptyMessage="There are no open structured return issues requiring attention."
+            rows={dashboard.partsToOrder || []}
+            columns={partsToOrderColumns}
+            getRowId={(row) => row.partKey}
+            emptyTitle="No parts to order"
+            emptyMessage="No active replacement-part requirements have been recorded."
           />
         </DashboardSection>
 
@@ -279,25 +272,6 @@ const DashboardTables = ({ dashboard = {} }) => {
           </AppCard>
         </Box>
       </DashboardBottomRow>
-
-      <Grid container spacing={2}>
-        {actionGroups.map((group) => {
-          const rows = requiredActions.filter((item) =>
-            group.pattern.test(`${item.issueTypeKey} ${item.issueTypeName} ${item.categoryKey} ${item.categoryName}`)
-          );
-          return (
-            <Grid key={group.title} size={{ xs: 12, sm: 6, xl: 3 }}>
-              <AppCard sx={{ height: "100%" }}>
-                <PanelTitle>{group.title}</PanelTitle>
-                <SummaryList
-                  rows={rows.map((item) => ({ name: item.issueTypeName, value: item.total }))}
-                  emptyTitle="No matching open actions"
-                />
-              </AppCard>
-            </Grid>
-          );
-        })}
-      </Grid>
     </Stack>
   );
 };

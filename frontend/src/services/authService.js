@@ -10,9 +10,9 @@
 
 import api from "./api";
 
-export const loginUser = async (employeeId, password) => {
+export const loginUser = async (identifier, password) => {
   const response = await api.post("/auth/login", {
-    employeeId,
+    identifier,
     password,
   });
 

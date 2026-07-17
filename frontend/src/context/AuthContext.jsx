@@ -112,8 +112,8 @@ export function AuthProvider({ children }) {
   // Login
   // ==========================================
 
-  const login = async (employeeId, password) => {
-    const data = await loginUser(employeeId, password);
+  const login = async (identifier, password) => {
+    const data = await loginUser(identifier, password);
 
     localStorage.setItem("token", data.token);
 

@@ -51,25 +51,18 @@ const validateAssignPayload = (req, res, next) => {
 
 const validateReturnPayload = (req, res, next) => {
   const errors = [];
-  const { returnConditionId, returnIssueTypeIds } = req.body;
+  const { returnConditionId, requiredPartKeys } = req.body;
 
   if (!returnConditionId || Number(returnConditionId) <= 0) {
     errors.push("Return condition is required.");
   }
 
   if (
-    returnIssueTypeIds !== undefined &&
-    returnIssueTypeIds !== null &&
-    !Array.isArray(returnIssueTypeIds)
+    requiredPartKeys !== undefined &&
+    requiredPartKeys !== null &&
+    !Array.isArray(requiredPartKeys)
   ) {
-    errors.push("Return issue types must be an array.");
-  }
-
-  if (
-    Array.isArray(returnIssueTypeIds) &&
-    returnIssueTypeIds.some((id) => Number(id) <= 0)
-  ) {
-    errors.push("Return issue types must contain valid IDs.");
+    errors.push("Required parts must be an array.");
   }
 
   if (errors.length > 0) {

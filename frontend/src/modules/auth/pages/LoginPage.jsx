@@ -38,7 +38,7 @@ export default function LoginPage() {
   const school = branding?.school || {};
   const brand = branding?.branding || {};
 
-  const [employeeId, setEmployeeId] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const loggedUser = await login(employeeId.trim(), password.trim());
+      const loggedUser = await login(identifier.trim(), password);
       redirectToWorkspace(loggedUser.defaultWorkspaceRoute);
     } catch (err) {
       console.error(err);
@@ -146,9 +146,10 @@ export default function LoginPage() {
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="Employee ID"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              label="ID Number or Email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
               margin="normal"
             />
 
@@ -158,6 +159,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               margin="normal"
             />
 

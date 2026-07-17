@@ -5,7 +5,7 @@
 //
 // Purpose:
 // Calculates the final effective permissions for a user by
-// combining role permissions with user-specific overrides.
+// combining role, assignment, and user-specific permissions.
 //
 // Architecture:
 // Service Layer
@@ -76,6 +76,30 @@ function applyUserOverrides(permissionMap, userOverrides = []) {
   return permissionMap;
 }
 
+function applyAssignmentPermissions(permissionMap, assignmentPermissions = []) {
+  assignmentPermissions.forEach((permission) => {
+    const current = permissionMap.get(permission.PermissionKey);
+
+    if (current?.isAllowed) {
+      return;
+    }
+
+    permissionMap.set(permission.PermissionKey, {
+      permissionId: permission.PermissionId,
+      permissionKey: permission.PermissionKey,
+      permissionName: permission.PermissionName,
+      moduleId: permission.ModuleId,
+      permissionGroupId: permission.PermissionGroupId,
+      isAllowed: true,
+      source: "assignment",
+      assignmentKey: permission.AssignmentKey,
+      compatibilityRoleKey: permission.CompatibilityRoleKey,
+    });
+  });
+
+  return permissionMap;
+}
+
 // ============================================================
 // Resolve User Permissions
 // ============================================================
@@ -101,11 +125,20 @@ async function resolveUserPermissions(userId) {
     throw serviceError.forbidden("User account is locked.");
   }
 
-  const rolePermissions = await repository.getRolePermissions(userProfile.RoleId);
-  const userOverrides = await repository.getUserPermissionOverrides(numericUserId);
-  const assignmentScopes = await repository.getActiveAssignmentScopes(numericUserId);
+  const [
+    rolePermissions,
+    assignmentPermissions,
+    userOverrides,
+    assignmentScopes,
+  ] = await Promise.all([
+    repository.getRolePermissions(userProfile.RoleId),
+    repository.getActiveAssignmentPermissions(numericUserId),
+    repository.getUserPermissionOverrides(numericUserId),
+    repository.getActiveAssignmentScopes(numericUserId),
+  ]);
 
   const permissionMap = buildPermissionMap(rolePermissions);
+  applyAssignmentPermissions(permissionMap, assignmentPermissions);
   applyUserOverrides(permissionMap, userOverrides);
 
   const permissions = Array.from(permissionMap.values()).sort((a, b) =>

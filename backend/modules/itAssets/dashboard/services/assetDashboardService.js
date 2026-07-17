@@ -31,6 +31,7 @@ async function getDashboard(filters = {}) {
     transferSummary,
     disposalSummary,
     requiredActions,
+    partsToOrder,
     recentActivity,
     recentAssignments,
     recentTransfers,
@@ -49,6 +50,7 @@ async function getDashboard(filters = {}) {
     dashboardRepository.getTransferSummary(filters),
     dashboardRepository.getDisposalSummary(filters),
     dashboardRepository.getRequiredActionSummary(filters),
+    dashboardRepository.getPartsToOrderSummary(filters),
     dashboardRepository.getRecentActivity(filters),
     dashboardRepository.getRecentAssignments(filters),
     dashboardRepository.getRecentTransfers(filters),
@@ -69,6 +71,10 @@ async function getDashboard(filters = {}) {
       pendingTransfers: transfers?.PendingTransfers || 0,
       pendingDisposals: disposals?.PendingDisposals || 0,
       itemsRequiringAttention: issues?.OpenIssues || 0,
+      partsToOrder: partsToOrder.reduce(
+        (total, item) => total + Number(item.TotalQuantity || 0),
+        0
+      ),
     },
 
     charts: {
@@ -97,6 +103,13 @@ async function getDashboard(filters = {}) {
         value: item.Total || 0,
       })),
     },
+
+    partsToOrder: partsToOrder.map((item) => ({
+      partKey: item.PartKey,
+      partName: item.PartName,
+      totalQuantity: Number(item.TotalQuantity || 0),
+      assetCount: Number(item.AssetCount || 0),
+    })),
 
     requiredActions: requiredActions.map((item) => ({
       issueTypeId: item.IssueTypeId,

@@ -6,7 +6,7 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
-import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 
 const percent = (value, total) =>
@@ -85,10 +85,10 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     md: 3, lg: 3, xl: 1.5,
   },
   {
-    title: "Items Requiring Attention",
-    value: kpis.itemsRequiringAttention || 0,
-    helperText: "Open structured asset issues",
-    icon: createElement(ReportProblemOutlinedIcon),
+    title: "Parts To Order",
+    value: kpis.partsToOrder || 0,
+    helperText: "Replacement units required",
+    icon: createElement(ShoppingCartOutlinedIcon),
     color: "error.main",
     path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,

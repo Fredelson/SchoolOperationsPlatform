@@ -137,15 +137,18 @@ function generateToken(user) {
  * Route:
  * POST /api/auth/login
  *
- * @param {string} employeeId - User employee ID.
+ * @param {string} identifier - User employee ID, school email, or personal email.
  * @param {string} password - Plain text password.
  * @returns {Promise<object>} Token and safe user payload.
  */
-async function login(employeeId, password) {
-  const user = await authRepository.findActiveUserByEmployeeId(employeeId);
+async function login(identifier, password) {
+  const normalizedIdentifier = String(identifier || "").trim();
+  const user = await authRepository.findActiveUserByIdentifier(
+    normalizedIdentifier
+  );
 
   if (!user) {
-    const error = new Error("Invalid employee ID or password.");
+    const error = new Error("Invalid ID number, email, or password.");
     error.statusCode = 401;
     throw error;
   }
@@ -165,7 +168,7 @@ async function login(employeeId, password) {
   const isPasswordValid = await bcrypt.compare(password, user.PasswordHash);
 
   if (!isPasswordValid) {
-    const error = new Error("Invalid employee ID or password.");
+    const error = new Error("Invalid ID number, email, or password.");
     error.statusCode = 401;
     throw error;
   }

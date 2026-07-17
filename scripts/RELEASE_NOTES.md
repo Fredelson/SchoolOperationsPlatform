@@ -72,4 +72,4 @@
 ## Known limitations
 
 - Vite reports a non-blocking main-bundle size warning; route-level code splitting is a future performance optimization.
-- Workspace presentation never grants authorization; role permissions and user overrides remain the authorization source.
+- Workspace presentation alone never grants authorization. Active assignments contribute their landing permission and matching compatibility-role permissions; explicit user overrides remain final.

@@ -24,7 +24,13 @@ const assignAsset = async (payload, currentUser, ipAddress = null) => {
 };
 
 const returnAsset = async (assetId, payload, currentUser, ipAddress = null) => {
-  const { asset, activeAssignment, returnCondition, targetStatus } =
+  const {
+    asset,
+    activeAssignment,
+    returnCondition,
+    targetStatus,
+    requiredParts,
+  } =
     await validationService.validateReturnAsset(assetId, payload);
 
   return repository.returnAsset({
@@ -35,7 +41,7 @@ const returnAsset = async (assetId, payload, currentUser, ipAddress = null) => {
     notes: payload?.notes || null,
     returnCondition,
     returnConditionId: payload?.returnConditionId || null,
-    returnIssueTypeIds: payload?.returnIssueTypeIds || [],
+    requiredParts,
     ipAddress,
   });
 };

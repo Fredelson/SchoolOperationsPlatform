@@ -1,7 +1,9 @@
 {
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "verify:assignment-auth": "node scripts/verify-assignment-auth-routing.js",
+    "verify:login-identifiers": "node scripts/verify-login-identifiers.js"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

@@ -104,7 +104,7 @@ const ItAssetDashboard = ({ reportMode = false }) => {
         filters: filterLabels.join("; ") || "None", ...dashboard.kpis },
     ]), "Summary");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.filteredAssets || []), "Assets");
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.requiredActions || []), "Required Actions");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.partsToOrder || []), "Parts To Order");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.charts?.assetsByCategory || []), "Assets by Category");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.charts?.assetsByStatus || []), "Assets by Status");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dashboard.charts?.assetsByCondition || []), "Assets by Condition");

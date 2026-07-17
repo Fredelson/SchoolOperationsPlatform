@@ -69,7 +69,7 @@ const protect = async (req, res, next) => {
 // ============================================
 
 const authorizeRoles = (...roles) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     // Safety check: protect middleware must run first
     if (!req.user) {
       return res.status(401).json({
@@ -79,25 +79,49 @@ const authorizeRoles = (...roles) => {
     }
 
     // Check user role against allowed roles
-    const assignmentKeys = new Set((req.user.assignmentScopes || []).map((item) => item.AssignmentKey));
-    const compatibilityAssignments = {
-      HOD: "HOD",
-      HOS: "HOS",
-      Secretary: "SECRETARY",
-      Librarian: "LIBRARIAN",
-      LibraryAdmin: "LIBRARY_ADMIN",
-      TeachingAssistant: "TEACHING_ASSISTANT",
-    };
-    const assignmentMatches = roles.some((role) => compatibilityAssignments[role] && assignmentKeys.has(compatibilityAssignments[role]));
-    if (!roles.includes(req.user.role) && !assignmentMatches) {
+    const mainRole = req.user.roleKey || req.user.role;
+
+    if (roles.includes(mainRole)) {
+      return next();
+    }
+
+    try {
+      const authRepository = require("../modules/auth/repositories/authRepository");
+      const activeAssignments = await authRepository.getActiveAssignmentScopes(
+        req.user.id || req.user.UserId
+      );
+      req.user.assignmentScopes = activeAssignments;
+
+      const assignmentKeys = new Set(
+        activeAssignments.map((item) => item.AssignmentKey)
+      );
+      const compatibilityAssignments = {
+        HOD: "HOD",
+        HOS: "HOS",
+        Secretary: "SECRETARY",
+        Librarian: "LIBRARIAN",
+        LibraryAdmin: "LIBRARY_ADMIN",
+        TeachingAssistant: "TEACHING_ASSISTANT",
+        ITAdmin: "IT_COORDINATOR",
+        PrintingAdmin: "PRINTING_COORDINATOR",
+      };
+      const assignmentMatches = roles.some(
+        (role) =>
+          compatibilityAssignments[role] &&
+          assignmentKeys.has(compatibilityAssignments[role])
+      );
+
+      if (assignmentMatches) {
+        return next();
+      }
+
       return res.status(403).json({
         success: false,
         message: "Access denied. You do not have permission.",
       });
+    } catch (error) {
+      return next(error);
     }
-
-    // User has required role
-    next();
   };
 };
 

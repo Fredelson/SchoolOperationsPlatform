@@ -9,11 +9,39 @@ import { AppDialog, AppFormField, AppFormGrid } from "../../../platform/ui";
 
 const initialForm = {
   returnConditionId: "",
-  returnIssueTypeIds: [],
+  requiredPartKeys: [],
   notes: "",
 };
 
-const ISSUE_REQUIRED_CONDITIONS = ["Fair", "Poor", "Damaged", "Beyond Repair"];
+const RETURN_PART_OPTIONS = [
+  { partKey: "MONITOR", partName: "MONITOR" },
+  { partKey: "LCD", partName: "LCD" },
+  { partKey: "RAM", partName: "RAM" },
+  { partKey: "SSD", partName: "SSD" },
+  { partKey: "BATTERY", partName: "BATTERY" },
+  { partKey: "KEYBOARD", partName: "KEYBOARD" },
+  { partKey: "NETWORK_CARD", partName: "NETWORK CARD" },
+];
+
+const ELIGIBLE_CATEGORY_KEYS = new Set([
+  "laptop",
+  "desktop",
+  "desktopadminpc",
+  "admindesktop",
+  "adminpc",
+  "computerlabpc",
+]);
+
+const normalizeCondition = (condition) =>
+  String(condition?.ConditionKey || condition?.ConditionName || "")
+    .trim()
+    .toLowerCase();
+
+const normalizeIdentifier = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
 
 const ReturnAssetDialog = ({
   open,
@@ -26,8 +54,17 @@ const ReturnAssetDialog = ({
 }) => {
   const [form, setForm] = useState(initialForm);
 
-  const conditions = useMemo(() => lookups.conditions || [], [lookups.conditions]);
-  const issueTypes = lookups.issueTypes || [];
+  const conditions = useMemo(
+    () =>
+      (lookups.conditions || [])
+        .filter((condition) => normalizeCondition(condition) !== "fair")
+        .map((condition) =>
+          normalizeCondition(condition) === "damaged"
+            ? { ...condition, ConditionName: "Need Parts" }
+            : condition
+        ),
+    [lookups.conditions]
+  );
 
   useEffect(() => {
     if (open) setForm(initialForm);
@@ -43,9 +80,13 @@ const ReturnAssetDialog = ({
     [conditions, form.returnConditionId]
   );
 
-  const requiresIssue = ISSUE_REQUIRED_CONDITIONS.includes(
-    selectedCondition?.ConditionName
-  );
+  const needsParts =
+    normalizeIdentifier(selectedCondition?.ConditionKey) === "damaged" ||
+    normalizeIdentifier(selectedCondition?.ConditionName) === "needparts";
+  const supportsPartSelection = [asset?.CategoryKey, asset?.CategoryName]
+    .map(normalizeIdentifier)
+    .some((categoryKey) => ELIGIBLE_CATEGORY_KEYS.has(categoryKey));
+  const showPartSelection = needsParts && supportsPartSelection;
 
   const updateField = (field, value) => {
     setForm((previous) => ({
@@ -56,12 +97,12 @@ const ReturnAssetDialog = ({
 
   const canSubmit =
     Boolean(form.returnConditionId) &&
-    (!requiresIssue || form.returnIssueTypeIds.length > 0);
+    (!showPartSelection || form.requiredPartKeys.length > 0);
 
   const handleSubmit = () => {
     onSubmit({
       returnConditionId: form.returnConditionId || null,
-      returnIssueTypeIds: requiresIssue ? form.returnIssueTypeIds : [],
+      requiredPartKeys: showPartSelection ? form.requiredPartKeys : [],
       notes: form.notes || null,
     });
   };
@@ -86,10 +127,13 @@ const ReturnAssetDialog = ({
           type="autocomplete"
           label="Return Condition"
           value={form.returnConditionId}
-          onChange={(value) => {
-            updateField("returnConditionId", value);
-            updateField("returnIssueTypeIds", []);
-          }}
+          onChange={(value) =>
+            setForm((previous) => ({
+              ...previous,
+              returnConditionId: value,
+              requiredPartKeys: [],
+            }))
+          }
           options={conditions}
           valueKey="ITAssetConditionId"
           labelKey="ConditionName"
@@ -97,15 +141,15 @@ const ReturnAssetDialog = ({
           full
         />
 
-        {requiresIssue && (
+        {showPartSelection && (
           <AppFormField
             type="autocomplete"
-            label="Required Action / Issue"
-            value={form.returnIssueTypeIds}
-            onChange={(value) => updateField("returnIssueTypeIds", value)}
-            options={issueTypes}
-            valueKey="IssueTypeId"
-            labelKey="IssueTypeName"
+            label="Parts Required"
+            value={form.requiredPartKeys}
+            onChange={(value) => updateField("requiredPartKeys", value)}
+            options={RETURN_PART_OPTIONS}
+            valueKey="partKey"
+            labelKey="partName"
             required
             multiple
             full
@@ -113,7 +157,7 @@ const ReturnAssetDialog = ({
         )}
 
         <AppFormField
-          label={requiresIssue ? "Issue / Return Remarks" : "Return Remarks"}
+          label="Return Remarks"
           value={form.notes}
           onChange={(value) => updateField("notes", value)}
           multiline

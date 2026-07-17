@@ -31,16 +31,18 @@ const authService = require("../services/authService");
  */
 async function login(req, res, next) {
   try {
-    const { employeeId, password } = req.body;
+    const { identifier: submittedIdentifier, employeeId, email, password } =
+      req.body || {};
+    const identifier = submittedIdentifier || employeeId || email;
 
-    if (!employeeId || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         success: false,
-        message: "Employee ID and password are required.",
+        message: "ID number or email and password are required.",
       });
     }
 
-    const result = await authService.login(employeeId, password);
+    const result = await authService.login(identifier, password);
 
     return res.status(200).json({
       success: true,

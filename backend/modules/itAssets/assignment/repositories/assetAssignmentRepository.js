@@ -6,13 +6,15 @@
    - ITAssets update
    - ITAssetAssignments insert/update
    - ITAssetStatusHistory insert
-   - ITAssetIssueLogs insert when needed
    - ActivityTimeline insert
    - AuditLogs insert
 ========================================================= */
 
 const sql = require("mssql");
 const { poolPromise } = require("../../../../config/db");
+const {
+  insertPartRequirements,
+} = require("../../shared/repositories/assetPartRequirementRepository");
 
 /* =========================================================
    Lookup Helpers
@@ -45,6 +47,7 @@ const getConditionById = async (conditionId) => {
     .query(`
       SELECT TOP 1
         ITAssetConditionId,
+        ConditionKey,
         ConditionName
       FROM dbo.ITAssetConditions
       WHERE ITAssetConditionId = @ConditionId;
@@ -81,8 +84,15 @@ const getAssetById = async (assetId) => {
     .request()
     .input("AssetId", sql.Int, assetId)
     .query(`
-      SELECT TOP 1 a.*, s.StatusKey, s.StatusName
+      SELECT TOP 1
+        a.*,
+        c.CategoryKey,
+        c.CategoryName,
+        s.StatusKey,
+        s.StatusName
       FROM dbo.ITAssets a
+      LEFT JOIN dbo.ITAssetCategories c
+        ON a.ITAssetCategoryId = c.ITAssetCategoryId
       LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
       WHERE a.AssetId = @AssetId
         AND a.IsDeleted = 0;
@@ -454,20 +464,13 @@ const returnAsset = async ({
   notes = null,
   returnCondition,
   returnConditionId = null,
-  returnIssueTypeIds = [],
+  requiredParts = [],
   ipAddress = null,
 }) => {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
   const conditionName = String(returnCondition?.ConditionName || "");
-  const needsIssue = ["Fair", "Poor", "Damaged", "Beyond Repair"].includes(
-    conditionName
-  );
-
-  const issueTypeIds = Array.isArray(returnIssueTypeIds)
-    ? returnIssueTypeIds
-    : [];
 
   try {
     await transaction.begin();
@@ -479,7 +482,7 @@ const returnAsset = async ({
       .input(
         "ReturnIssueTypeIdsJson",
         sql.NVarChar(sql.MAX),
-        needsIssue ? JSON.stringify(issueTypeIds) : null
+        null
       )
       .query(`
         UPDATE dbo.ITAssetAssignments
@@ -555,60 +558,16 @@ const returnAsset = async ({
         );
       `);
 
-    const issues = [];
-
-    if (needsIssue) {
-      for (const issueTypeId of issueTypeIds) {
-        const issueResult = await new sql.Request(transaction)
-          .input("AssetId", sql.Int, asset.AssetId)
-          .input("IssueTypeId", sql.Int, Number(issueTypeId))
-          .input("ReportedByUserId", sql.Int, changedByUserId || null)
-          .input("IssueStatus", sql.NVarChar(50), "OPEN")
-          .input(
-            "Description",
-            sql.NVarChar(sql.MAX),
-            notes || `Asset returned with condition: ${conditionName}.`
-          )
-          .query(`
-            INSERT INTO dbo.ITAssetIssueLogs
-            (
-              AssetId,
-              IssueTypeId,
-              ReportedByUserId,
-              IssueStatus,
-              Description,
-              ReportedAt
-            )
-            OUTPUT INSERTED.*
-            VALUES
-            (
-              @AssetId,
-              @IssueTypeId,
-              @ReportedByUserId,
-              @IssueStatus,
-              @Description,
-              GETDATE()
-            );
-          `);
-
-        const issue = issueResult.recordset[0];
-        issues.push(issue);
-
-        await insertActivityTimeline({
-          transaction,
-          userId: changedByUserId,
-          moduleKey: "IT_ASSETS",
-          entityType: "ITAssetIssue",
-          entityId: issue.IssueLogId,
-          activityType: "ISSUE_REPORTED",
-          activityTitle: "Issue Reported on Return",
-          activityDescription: `Asset ${asset.AssetTag} was returned with condition ${conditionName}.`,
-        });
-      }
-    }
-
     const assignment = assignmentResult.recordset[0];
     const updatedAsset = assetResult.recordset[0];
+    const partRequirements = await insertPartRequirements({
+      transaction,
+      assetId: asset.AssetId,
+      assetAssignmentId: assignment.AssetAssignmentId,
+      parts: requiredParts,
+      requestedByUserId: changedByUserId,
+      notes,
+    });
 
     await insertAuditLog({
       transaction,
@@ -624,7 +583,7 @@ const returnAsset = async ({
       newValue: {
         asset: updatedAsset,
         assignment,
-        issues,
+        partRequirements,
       },
       ipAddress,
     });
@@ -645,7 +604,7 @@ const returnAsset = async ({
     return {
       assignment,
       asset: updatedAsset,
-      issues,
+      partRequirements,
     };
   } catch (error) {
     if (transaction._aborted !== true) {

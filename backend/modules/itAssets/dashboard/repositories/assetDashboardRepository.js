@@ -193,6 +193,27 @@ async function getRequiredActionSummary(filters) {
   return rows(result);
 }
 
+async function getPartsToOrderSummary(filters) {
+  const filter = buildAssetFilter(filters);
+  const result = await executeQuery(`
+    SELECT
+      requirement.PartKey,
+      requirement.PartName,
+      SUM(requirement.Quantity) AS TotalQuantity,
+      COUNT(DISTINCT requirement.AssetId) AS AssetCount
+    FROM dbo.ITAssetPartRequirements requirement
+    INNER JOIN dbo.ITAssets a
+      ON requirement.AssetId = a.AssetId
+    WHERE requirement.IsActive = 1
+      AND UPPER(requirement.RequirementStatus) = 'REQUIRED'
+      AND a.IsDeleted = 0 ${filter.clause}
+    GROUP BY requirement.PartKey, requirement.PartName
+    ORDER BY TotalQuantity DESC, requirement.PartName;
+  `, filter.parameters);
+
+  return rows(result);
+}
+
 async function getOpenIssueCount(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
@@ -393,6 +414,7 @@ module.exports = {
   getTransferSummary,
   getDisposalSummary,
   getRequiredActionSummary,
+  getPartsToOrderSummary,
   getRecentActivity,
   getRecentAssignments,
   getRecentTransfers,

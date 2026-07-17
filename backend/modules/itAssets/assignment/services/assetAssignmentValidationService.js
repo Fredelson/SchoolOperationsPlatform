@@ -3,6 +3,9 @@
 ========================================================= */
 
 const repository = require("../repositories/assetAssignmentRepository");
+const {
+  validateReturnParts,
+} = require("../../shared/constants/assetParts");
 
 const validateAssignAsset = async (payload) => {
   if (!payload.assetId) {
@@ -99,20 +102,18 @@ const validateReturnAsset = async (assetId, payload = {}) => {
 
   const conditionName = String(returnCondition.ConditionName || "").toLowerCase();
 
-  const requiresIssue = ["fair", "poor", "damaged", "beyond repair"].includes(
-    conditionName
-  );
-
-  if (
-    requiresIssue &&
-    (!Array.isArray(payload.returnIssueTypeIds) ||
-      payload.returnIssueTypeIds.length === 0)
-  ) {
+  if (conditionName === "fair") {
     throw Object.assign(
-      new Error("At least one required action / issue is required."),
+      new Error("Fair is no longer an available return condition."),
       { statusCode: 400 }
     );
   }
+
+  const requiredParts = validateReturnParts({
+    asset,
+    returnCondition,
+    requiredPartKeys: payload.requiredPartKeys,
+  });
 
   // Every returned asset requires maintenance review before it can be
   // explicitly released back to Available inventory.
@@ -136,6 +137,7 @@ const validateReturnAsset = async (assetId, payload = {}) => {
     activeAssignment,
     returnCondition,
     targetStatus,
+    requiredParts,
   };
 };
 
