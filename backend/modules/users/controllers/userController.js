@@ -45,6 +45,13 @@ const activateUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, "User activated successfully.");
 });
 
+const exportUsers = asyncHandler(async (req, res) => {
+  const result = await userService.exportUsers();
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", "attachment; filename=UsersExport.csv");
+  return res.send(result.csv);
+});
+
 module.exports = {
   getUsers,
   getUserById,
@@ -52,4 +59,5 @@ module.exports = {
   updateUser,
   deactivateUser,
   activateUser,
+  exportUsers,
 };

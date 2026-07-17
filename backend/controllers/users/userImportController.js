@@ -49,6 +49,9 @@ const processUserImport = async (users, filePath = null) => {
       const role = row.Role?.toString().trim();
       const departmentName = row.Department?.toString().trim();
       const subject = row.Subject?.toString().trim() || null;
+      const assignmentKey = row.AssignmentKey?.toString().trim() || null;
+      const scopeType = row.ScopeType?.toString().trim() || null;
+      const scopeName = row.ScopeName?.toString().trim() || null;
 
       // ============================================
       // Validate Required Fields
@@ -75,6 +78,27 @@ const processUserImport = async (users, filePath = null) => {
       }
 
       // ============================================
+      // Validate Assignment Fields
+      // ============================================
+      if (assignmentKey && !scopeType) {
+        skipped++;
+        errors.push({
+          employeeId,
+          reason: "AssignmentKey requires ScopeType.",
+        });
+        continue;
+      }
+
+      if (scopeType && !scopeName) {
+        skipped++;
+        errors.push({
+          employeeId,
+          reason: "ScopeType requires ScopeName.",
+        });
+        continue;
+      }
+
+      // ============================================
       // Convert Department Name to DepartmentId
       // Department is optional for Admin / SuperAdmin / PrintingAdmin
       // ============================================
@@ -83,7 +107,7 @@ const processUserImport = async (users, filePath = null) => {
       if (departmentName) {
         const departmentResult = await pool
           .request()
-          .input("DepartmentName", sql.VarChar, departmentName)
+          .input("DepartmentName", sql.NVarChar, departmentName)
           .query(`
             SELECT DepartmentId
             FROM Departments
@@ -113,8 +137,12 @@ const processUserImport = async (users, filePath = null) => {
         .query(`
           SELECT UserId
           FROM Users
-          WHERE EmployeeId = @EmployeeId
-             OR SchoolEmail = @SchoolEmail
+          WHERE IsDeleted = 0
+            AND IsActive = 1
+            AND (
+              EmployeeId = @EmployeeId
+              OR SchoolEmail = @SchoolEmail
+            )
         `);
 
       if (existing.recordset.length > 0) {
@@ -126,10 +154,6 @@ const processUserImport = async (users, filePath = null) => {
         continue;
       }
 
-      // ============================================
-      // Auto Password = EmployeeId
-      // User must change password after first login
-      // ============================================
       const passwordHash = await hashPassword(employeeId);
 
       // ============================================
@@ -137,13 +161,13 @@ const processUserImport = async (users, filePath = null) => {
       // ============================================
       await pool
         .request()
-        .input("EmployeeId", sql.VarChar, employeeId)
-        .input("FullName", sql.VarChar, fullName)
-        .input("SchoolEmail", sql.VarChar, schoolEmail)
+        .input("EmployeeId", sql.NVarChar, employeeId)
+        .input("FullName", sql.NVarChar, fullName)
+        .input("SchoolEmail", sql.NVarChar, schoolEmail)
         .input("DepartmentId", sql.Int, departmentId)
-        .input("Subject", sql.VarChar, subject)
-        .input("Role", sql.VarChar, role)
-        .input("PasswordHash", sql.VarChar, passwordHash)
+        .input("Subject", sql.NVarChar, subject)
+        .input("Role", sql.NVarChar, role)
+        .input("PasswordHash", sql.NVarChar, passwordHash)
         .query(`
           INSERT INTO Users (
             EmployeeId,
@@ -170,6 +194,113 @@ const processUserImport = async (users, filePath = null) => {
             GETDATE()
           )
         `);
+
+      const newUserId = userResult.recordset[0]?.UserId;
+
+      // ============================================
+      // Create Assignment if provided
+      // ============================================
+      if (newUserId && assignmentKey && scopeType && scopeName) {
+        const assignmentTypeResult = await pool
+          .request()
+          .input("AssignmentKey", sql.VarChar, assignmentKey)
+          .query(`
+            SELECT AssignmentTypeId
+            FROM AssignmentTypes
+            WHERE IsActive = 1
+              AND AssignmentKey = @AssignmentKey
+          `);
+
+        if (assignmentTypeResult.recordset.length > 0) {
+          const assignmentTypeId = assignmentTypeResult.recordset[0].AssignmentTypeId;
+          let scopeEntityId = null;
+
+          if (scopeType === "Department") {
+            const deptResult = await pool
+              .request()
+              .input("DepartmentName", sql.VarChar, scopeName)
+              .query(`SELECT DepartmentId FROM Departments WHERE IsActive = 1 AND DepartmentName = @DepartmentName`);
+
+            if (deptResult.recordset.length > 0) {
+              scopeEntityId = deptResult.recordset[0].DepartmentId;
+            }
+          } else if (scopeType === "Subject") {
+            const subResult = await pool
+              .request()
+              .input("SubjectName", sql.VarChar, scopeName)
+              .query(`SELECT SubjectId FROM Subjects WHERE IsActive = 1 AND SubjectName = @SubjectName`);
+
+            if (subResult.recordset.length > 0) {
+              scopeEntityId = subResult.recordset[0].SubjectId;
+            }
+          }
+
+          if (scopeEntityId) {
+            const assignmentResult = await pool
+              .request()
+              .input("UserId", sql.Int, newUserId)
+              .input("AssignmentTypeId", sql.Int, assignmentTypeId)
+              .input("DepartmentId", sql.Int, scopeType === "Department" ? scopeEntityId : null)
+              .input("SubjectId", sql.Int, scopeType === "Subject" ? scopeEntityId : null)
+              .query(`
+                INSERT INTO UserAssignments (
+                  UserId,
+                  AssignmentTypeId,
+                  IsPrimary,
+                  IsActive,
+                  StartDate,
+                  EndDate,
+                  DepartmentId,
+                  SubjectId,
+                  CreatedAt,
+                  UpdatedAt
+                )
+                VALUES (
+                  @UserId,
+                  @AssignmentTypeId,
+                  1,
+                  1,
+                  GETDATE(),
+                  NULL,
+                  @DepartmentId,
+                  @SubjectId,
+                  GETDATE(),
+                  GETDATE()
+                )
+              `);
+
+            const assignmentId = assignmentResult.recordset[0]?.UserAssignmentId;
+
+            if (assignmentId) {
+              await pool
+                .request()
+                .input("UserAssignmentId", sql.Int, assignmentId)
+                .input("ScopeType", sql.VarChar, scopeType)
+                .input("ScopeEntityId", sql.Int, scopeEntityId)
+                .query(`
+                  INSERT INTO UserAssignmentScopes (
+                    UserAssignmentId,
+                    ScopeType,
+                    ScopeValue,
+                    ScopeEntityId,
+                    ScopeVersion,
+                    IsActive,
+                    CreatedAt
+                  )
+                  VALUES (
+                    @UserAssignmentId,
+                    @ScopeType,
+                    CONVERT(nvarchar(50), @ScopeEntityId),
+                    @ScopeEntityId,
+                    1,
+                    1,
+                    GETDATE()
+                  )
+                `);
+            }
+          }
+        }
+      }
 
       inserted++;
     } catch (rowError) {
@@ -304,9 +435,9 @@ exports.importUsersFromExcel = async (req, res) => {
 exports.downloadUserImportCSVTemplate = async (req, res) => {
   try {
     const csvTemplate = [
-      "FullName,EmployeeId,SchoolEmail,Role,Department,Subject",
-      "John Smith,T001,john.smith@arabunityschool.ae,Teacher,Primary,",
-      "Mary Jane,HOD001,mary.jane@arabunityschool.ae,HOD,Secondary,English",
+      "FullName,EmployeeId,SchoolEmail,Role,Department,Subject,AssignmentKey,ScopeType,ScopeName",
+      "John Smith,T001,john.smith@arabunityschool.ae,Teacher,Primary,English,HOD,Department,Secondary",
+      "Mary Jane,HOD001,mary.jane@arabunityschool.ae,HOD,Secondary,English,HOS,Department,Secondary",
     ].join("\n");
 
     res.setHeader(
@@ -372,7 +503,10 @@ exports.downloadUserImportTemplate = async (req, res) => {
         SchoolEmail: "john.smith@arabunityschool.ae",
         Role: "Teacher",
         Department: "Primary",
-        Subject: "",
+        Subject: "English",
+        AssignmentKey: "HOD",
+        ScopeType: "Department",
+        ScopeName: "Secondary",
       },
       {
         FullName: "Mary Jane",
@@ -381,6 +515,9 @@ exports.downloadUserImportTemplate = async (req, res) => {
         Role: "HOD",
         Department: "Secondary",
         Subject: "English",
+        AssignmentKey: "HOS",
+        ScopeType: "Department",
+        ScopeName: "Secondary",
       },
     ];
 
@@ -397,6 +534,9 @@ exports.downloadUserImportTemplate = async (req, res) => {
         "Role",
         "Department",
         "Subject",
+        "AssignmentKey",
+        "ScopeType",
+        "ScopeName",
       ],
     });
 
@@ -406,6 +546,9 @@ exports.downloadUserImportTemplate = async (req, res) => {
       { wch: 35 },
       { wch: 18 },
       { wch: 20 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 15 },
       { wch: 20 },
     ];
 

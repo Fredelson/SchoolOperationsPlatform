@@ -72,8 +72,8 @@ function buildUserPayload(user) {
 }
 
 /**
- * Gets all users.
- */
+  * Gets all users.
+  */
 async function getUsers() {
   const users = await userRepository.findAllUsers();
 
@@ -81,6 +81,43 @@ async function getUsers() {
     count: users.length,
     users: users.map(buildUserPayload),
   };
+}
+
+/**
+  * Exports all users as CSV.
+  */
+async function exportUsers() {
+  const users = await userRepository.findAllUsers();
+
+  const headers = [
+    "EmployeeId",
+    "FullName",
+    "SchoolEmail",
+    "PersonalEmail",
+    "MobileNumber",
+    "Role",
+    "Department",
+    "Section",
+    "AssignmentSummary",
+    "IsActive",
+  ];
+
+  const rows = users.map((user) => [
+    user.EmployeeId || "",
+    user.FullName || "",
+    user.SchoolEmail || "",
+    user.PersonalEmail || "",
+    user.MobileNumber || "",
+    user.RoleKey || "",
+    user.DepartmentName || "",
+    user.SectionName || "",
+    user.AssignmentSummary || "None",
+    user.IsActive ? "Active" : "Inactive",
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(","))].join("\n");
+
+  return { csv };
 }
 
 /**
@@ -269,4 +306,5 @@ module.exports = {
   updateUser,
   deactivateUser,
   activateUser,
+  exportUsers,
 };

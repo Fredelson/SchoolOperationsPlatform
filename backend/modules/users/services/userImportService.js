@@ -35,6 +35,7 @@ const { hashPassword } = require("../../../shared/security/password");
 const {
   validateImportFile,
   validateColumns,
+  validateOptionalColumns,
   validateRowCount,
   normalizeRow,
   validateRequiredFields,
@@ -100,8 +101,8 @@ async function readImportFile(file) {
 }
 
 /**
- * Build row preview payload for frontend.
- */
+  * Build row preview payload for frontend.
+  */
 function buildPreviewRow(stagingRow) {
   return {
     stagingId: stagingRow.StaffImportStagingId,
@@ -109,6 +110,9 @@ function buildPreviewRow(stagingRow) {
     fullName: stagingRow.FullName,
     schoolEmail: stagingRow.SchoolEmail,
     role: stagingRow.DerivedRoleKey,
+    assignmentKey: stagingRow.AssignmentKey,
+    scopeType: stagingRow.ScopeType,
+    scopeName: stagingRow.ScopeName,
     validationStatus: stagingRow.ValidationStatus,
     validationMessage: stagingRow.ValidationMessage,
     importStatus: stagingRow.ImportStatus,
@@ -150,6 +154,8 @@ async function previewUserImport(file, currentUser) {
       error.statusCode = 400;
       throw error;
     }
+
+    validateOptionalColumns(rawRows[0]);
 
     const batchId = await userImportRepository.createBatch({
       batchName: `Staff Import - ${new Date().toISOString()}`,
@@ -204,6 +210,56 @@ async function previewUserImport(file, currentUser) {
         }
       }
 
+      let assignmentKey = normalized.assignmentKey || null;
+      let scopeType = normalized.scopeType || null;
+      let scopeName = normalized.scopeName || null;
+
+      if (assignmentKey && !scopeType) {
+        validationErrors.push("AssignmentKey requires ScopeType.");
+      }
+
+      if (scopeType && !scopeName) {
+        validationErrors.push("ScopeType requires ScopeName.");
+      }
+
+      if (assignmentKey && scopeType && scopeName) {
+        const assignmentType = await userImportRepository.findAssignmentTypeByKey(assignmentKey);
+
+        if (!assignmentType) {
+          validationErrors.push(`Assignment not found: ${assignmentKey}`);
+        } else {
+          const validScopeTypes = ["Department", "Subject", "YearGroup", "Class", "Room", "Location", "School"];
+          if (!validScopeTypes.includes(scopeType)) {
+            validationErrors.push(`Invalid ScopeType: ${scopeType}`);
+          } else {
+            let scopeEntityId = null;
+
+            if (scopeType === "Department") {
+              const dept = await userImportRepository.findDepartmentByName(scopeName);
+              if (!dept) {
+                validationErrors.push(`Department not found: ${scopeName}`);
+              } else {
+                scopeEntityId = dept.DepartmentId;
+              }
+            } else if (scopeType === "Subject") {
+              const sub = await userImportRepository.findSubjectByName(scopeName);
+              if (!sub) {
+                validationErrors.push(`Subject not found: ${scopeName}`);
+              } else {
+                scopeEntityId = sub.SubjectId;
+              }
+            } else if (scopeType === "YearGroup") {
+              const yg = await userImportRepository.findYearLevelByName(scopeName);
+              if (!yg) {
+                validationErrors.push(`YearGroup not found: ${scopeName}`);
+              } else {
+                scopeEntityId = yg.YearLevelId;
+              }
+            }
+          }
+        }
+      }
+
       const validationStatus =
         validationErrors.length === 0 ? "Valid" : "Invalid";
 
@@ -234,6 +290,9 @@ async function previewUserImport(file, currentUser) {
           validationErrors.length > 0 ? validationErrors.join(" | ") : "Ready to import.",
         importStatus: "Pending",
         importMessage: null,
+        assignmentKey: assignmentKey,
+        scopeType: scopeType,
+        scopeName: scopeName,
       });
     }
 
@@ -365,6 +424,42 @@ async function commitUserImport(batchId, currentUser) {
         legacyRole: role.RoleKey,
         schoolId: null,
       });
+
+      if (row.AssignmentKey && row.ScopeType && row.ScopeName) {
+        const assignmentType = await userImportRepository.findAssignmentTypeByKey(row.AssignmentKey);
+
+        if (assignmentType) {
+          let departmentId = null;
+          let subjectId = null;
+          let yearGroupId = null;
+
+          if (row.ScopeType === "Department") {
+            const dept = await userImportRepository.findDepartmentByName(row.ScopeName);
+            if (dept) departmentId = dept.DepartmentId;
+          } else if (row.ScopeType === "Subject") {
+            const sub = await userImportRepository.findSubjectByName(row.ScopeName);
+            if (sub) subjectId = sub.SubjectId;
+          } else if (row.ScopeType === "YearGroup") {
+            const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
+            if (yg) yearGroupId = yg.YearLevelId;
+          }
+
+          const assignmentId = await userImportRepository.createUserAssignment({
+            userId,
+            assignmentTypeId: assignmentType.AssignmentTypeId,
+            isPrimary: true,
+            departmentId,
+            subjectId,
+            yearGroupId,
+          });
+
+          await userImportRepository.createUserAssignmentScope({
+            userAssignmentId: assignmentId,
+            scopeType: row.ScopeType,
+            scopeEntityId: departmentId || subjectId || yearGroupId || 0,
+          });
+        }
+      }
 
       await userImportRepository.markStagingImported(
         row.StaffImportStagingId,

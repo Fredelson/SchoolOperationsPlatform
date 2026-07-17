@@ -30,6 +30,7 @@ const {
   updateUser,
   deactivateUser,
   activateUser,
+  exportUsers,
 } = require("../controllers/userController");
 
 const {
@@ -87,6 +88,7 @@ router.get(
  * ------------------------------------------------------------
  */
 router.get("/", requirePermission(PERMISSIONS.USERS.VIEW), getUsers);
+router.get("/export", requirePermission(PERMISSIONS.USERS.VIEW), exportUsers);
 router.get("/:id", requirePermission(PERMISSIONS.USERS.VIEW), getUserById);
 router.post("/", requirePermission(PERMISSIONS.USERS.CREATE), createUser);
 router.put("/:id", requirePermission(PERMISSIONS.USERS.UPDATE), updateUser);

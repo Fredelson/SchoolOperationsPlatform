@@ -29,6 +29,12 @@ const REQUIRED_COLUMNS = [
   "Role",
 ];
 
+const OPTIONAL_COLUMNS = [
+  "AssignmentKey",
+  "ScopeType",
+  "ScopeName",
+];
+
 /**
  * Allowed import file extensions.
  */
@@ -69,6 +75,17 @@ function validateColumns(row) {
   });
 
   return missingColumns;
+}
+
+function validateOptionalColumns(row) {
+  const warnings = [];
+
+  OPTIONAL_COLUMNS.forEach((column) => {
+    if (Object.prototype.hasOwnProperty.call(row, column) && row[column] && String(row[column]).trim()) {
+    }
+  });
+
+  return warnings;
 }
 
 /**
@@ -122,6 +139,9 @@ function normalizeRow(row) {
     fullName: String(row.FullName || "").trim(),
     schoolEmail: String(row.SchoolEmail || "").trim().toLowerCase(),
     role: normalizeRoleKey(row.Role),
+    assignmentKey: String(row.AssignmentKey || "").trim(),
+    scopeType: String(row.ScopeType || "").trim(),
+    scopeName: String(row.ScopeName || "").trim(),
   };
 }
 
@@ -169,9 +189,11 @@ function validateEmail(email) {
 
 module.exports = {
   REQUIRED_COLUMNS,
+  OPTIONAL_COLUMNS,
   MAX_IMPORT_ROWS,
   validateImportFile,
   validateColumns,
+  validateOptionalColumns,
   validateRowCount,
   normalizeRoleKey,
   normalizeRow,

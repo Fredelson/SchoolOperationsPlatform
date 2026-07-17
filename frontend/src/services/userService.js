@@ -77,12 +77,17 @@ export const getUserImportHistory = async () => {
 // ============================================
 
 export const downloadCSVUserTemplate = () => {
-  const headers = ["FullName", "EmployeeId", "SchoolEmail", "Role"];
+  const headers = ["FullName", "EmployeeId", "SchoolEmail", "Role", "Department", "Subject", "AssignmentKey", "ScopeType", "ScopeName"];
   const sample = [
     "Sample Teacher",
     "T0001",
     "sample.teacher@arabunityschool.ae",
     "Teacher",
+    "Primary",
+    "English",
+    "HOD",
+    "YearGroup",
+    "Grade 1",
   ];
 
   const csv = `${headers.join(",")}\n${sample.join(",")}`;
@@ -104,4 +109,40 @@ export const downloadCSVUserTemplate = () => {
   window.URL.revokeObjectURL(url);
 };
 
-export const downloadExcelUserTemplate = downloadCSVUserTemplate;
+export const downloadExcelUserTemplate = async () => {
+  try {
+    const response = await api.get("/admin/users/download-excel-template");
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "UserImportTemplate.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Download Excel template error:", error);
+    alert(error.response?.data?.message || "Failed to download Excel template.");
+  }
+};
+
+export const exportUsers = async () => {
+  try {
+    const response = await api.get("/users/export");
+    const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "UsersExport.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Export users error:", error);
+    alert(error.response?.data?.message || "Failed to export users.");
+  }
+};

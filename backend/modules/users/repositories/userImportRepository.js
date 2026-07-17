@@ -83,8 +83,8 @@ async function createBatch(data) {
 }
 
 /**
- * Insert one staging row.
- */
+  * Insert one staging row.
+  */
 async function insertStagingRow(data) {
   const result = await executeQuery(
     `
@@ -100,6 +100,9 @@ async function insertStagingRow(data) {
       ValidationMessage,
       ImportStatus,
       ImportMessage,
+      AssignmentKey,
+      ScopeType,
+      ScopeName,
       CreatedAt
     )
     OUTPUT INSERTED.StaffImportStagingId
@@ -115,6 +118,9 @@ async function insertStagingRow(data) {
       @ValidationMessage,
       @ImportStatus,
       @ImportMessage,
+      @AssignmentKey,
+      @ScopeType,
+      @ScopeName,
       GETDATE()
     );
     `,
@@ -129,6 +135,9 @@ async function insertStagingRow(data) {
       { name: "ValidationMessage", type: sql.NVarChar, value: data.validationMessage || null },
       { name: "ImportStatus", type: sql.NVarChar, value: data.importStatus || "Pending" },
       { name: "ImportMessage", type: sql.NVarChar, value: data.importMessage || null },
+      { name: "AssignmentKey", type: sql.NVarChar, value: data.assignmentKey || null },
+      { name: "ScopeType", type: sql.NVarChar, value: data.scopeType || null },
+      { name: "ScopeName", type: sql.NVarChar, value: data.scopeName || null },
     ]
   );
 
@@ -248,8 +257,8 @@ async function createUserFromImport(data) {
 }
 
 /**
- * Get staging rows for one batch.
- */
+  * Get staging rows for one batch.
+  */
 async function getStagingRowsByBatch(batchId) {
   const result = await executeQuery(
     `
@@ -265,6 +274,9 @@ async function getStagingRowsByBatch(batchId) {
       ValidationMessage,
       ImportStatus,
       ImportMessage,
+      AssignmentKey,
+      ScopeType,
+      ScopeName,
       CreatedAt,
       ImportedAt
     FROM dbo.StaffImportStaging
@@ -397,8 +409,8 @@ async function getImportHistory() {
 }
 
 /**
- * Log import error.
- */
+  * Log import error.
+  */
 async function logImportError(data) {
   await executeQuery(
     `
@@ -438,6 +450,170 @@ async function logImportError(data) {
   );
 }
 
+/**
+ * Find assignment type by key.
+ */
+async function findAssignmentTypeByKey(assignmentKey) {
+  const result = await executeQuery(
+    `
+    SELECT TOP 1
+      AssignmentTypeId,
+      AssignmentKey,
+      AssignmentName,
+      IsActive
+    FROM dbo.AssignmentTypes
+    WHERE IsActive = 1
+      AND AssignmentKey = @AssignmentKey;
+    `,
+    [
+      { name: "AssignmentKey", type: sql.NVarChar, value: assignmentKey },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
+ * Find department by name.
+ */
+async function findDepartmentByName(departmentName) {
+  const result = await executeQuery(
+    `
+    SELECT TOP 1 DepartmentId, DepartmentName
+    FROM dbo.Departments
+    WHERE IsActive = 1
+      AND DepartmentName = @DepartmentName;
+    `,
+    [
+      { name: "DepartmentName", type: sql.NVarChar, value: departmentName },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
+ * Find year level by name.
+ */
+async function findYearLevelByName(yearLevelName) {
+  const result = await executeQuery(
+    `
+    SELECT TOP 1 YearLevelId, YearLevelName
+    FROM dbo.YearLevels
+    WHERE IsActive = 1
+      AND YearLevelName = @YearLevelName;
+    `,
+    [
+      { name: "YearLevelName", type: sql.NVarChar, value: yearLevelName },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
+ * Find subject by name.
+ */
+async function findSubjectByName(subjectName) {
+  const result = await executeQuery(
+    `
+    SELECT TOP 1 SubjectId, SubjectName
+    FROM dbo.Subjects
+    WHERE IsActive = 1
+      AND SubjectName = @SubjectName;
+    `,
+    [
+      { name: "SubjectName", type: sql.NVarChar, value: subjectName },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
+ * Create user assignment after user import.
+ */
+async function createUserAssignment(data) {
+  const result = await executeQuery(
+    `
+    INSERT INTO dbo.UserAssignments
+    (
+      UserId,
+      AssignmentTypeId,
+      IsPrimary,
+      IsActive,
+      StartDate,
+      EndDate,
+      DepartmentId,
+      SubjectId,
+      YearLevelId,
+      CreatedAt,
+      UpdatedAt
+    )
+    OUTPUT INSERTED.UserAssignmentId
+    VALUES
+    (
+      @UserId,
+      @AssignmentTypeId,
+      @IsPrimary,
+      1,
+      GETDATE(),
+      NULL,
+      @DepartmentId,
+      @SubjectId,
+      @YearLevelId,
+      GETDATE(),
+      GETDATE()
+    );
+    `,
+    [
+      { name: "UserId", type: sql.Int, value: data.userId },
+      { name: "AssignmentTypeId", type: sql.Int, value: data.assignmentTypeId },
+      { name: "IsPrimary", type: sql.Bit, value: data.isPrimary ? 1 : 0 },
+      { name: "DepartmentId", type: sql.Int, value: data.departmentId || null },
+      { name: "SubjectId", type: sql.Int, value: data.subjectId || null },
+      { name: "YearLevelId", type: sql.Int, value: data.yearGroupId || null },
+    ]
+  );
+
+  return insertedId(result, "UserAssignmentId");
+}
+
+/**
+ * Create user assignment scope.
+ */
+async function createUserAssignmentScope(data) {
+  await executeQuery(
+    `
+    INSERT INTO dbo.UserAssignmentScopes
+    (
+      UserAssignmentId,
+      ScopeType,
+      ScopeValue,
+      ScopeEntityId,
+      ScopeVersion,
+      IsActive,
+      CreatedAt
+    )
+    VALUES
+    (
+      @UserAssignmentId,
+      @ScopeType,
+      CONVERT(nvarchar(50), @ScopeEntityId),
+      @ScopeEntityId,
+      1,
+      1,
+      GETDATE()
+    );
+    `,
+    [
+      { name: "UserAssignmentId", type: sql.Int, value: data.userAssignmentId },
+      { name: "ScopeType", type: sql.NVarChar, value: data.scopeType },
+      { name: "ScopeEntityId", type: sql.Int, value: data.scopeEntityId },
+    ]
+  );
+}
+
 module.exports = {
   createBatch,
   insertStagingRow,
@@ -451,4 +627,10 @@ module.exports = {
   updateBatchImportSummary,
   getImportHistory,
   logImportError,
+  findAssignmentTypeByKey,
+  findDepartmentByName,
+  findYearLevelByName,
+  findSubjectByName,
+  createUserAssignment,
+  createUserAssignmentScope,
 };

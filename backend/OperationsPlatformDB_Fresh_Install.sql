@@ -138,6 +138,9 @@ CREATE TABLE [dbo].[StaffImportStaging](
 	[ValidationMessage] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[ImportStatus] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[ImportMessage] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[AssignmentKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ScopeType] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ScopeName] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[CreatedAt] [datetime] NOT NULL,
 	[ImportedAt] [datetime] NULL,
 PRIMARY KEY CLUSTERED 

@@ -50,6 +50,7 @@ import {
   commitUserImport,
   downloadCSVUserTemplate,
   downloadExcelUserTemplate,
+  exportUsers,
 } from "../../../services/userService";
 
 import { getRoles } from "../../../services/lookupService";
@@ -308,7 +309,7 @@ export default function UserManagement() {
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Required columns: FullName, EmployeeId, SchoolEmail, Role
+          Required columns: FullName, EmployeeId, SchoolEmail, Role. Optional: AssignmentKey, ScopeType, ScopeName
         </Typography>
 
         <Box
@@ -325,6 +326,10 @@ export default function UserManagement() {
 
           <Button variant="outlined" onClick={downloadExcelUserTemplate}>
             Download Excel Template
+          </Button>
+
+          <Button variant="outlined" onClick={exportUsers}>
+            Export Users
           </Button>
         </Box>
 
@@ -373,12 +378,22 @@ export default function UserManagement() {
         </Box>
 
         {importPreview && (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Preview ready. Total: {importPreview.summary?.totalRows || 0}, Valid:{" "}
-            {importPreview.summary?.validRows || 0}, Invalid:{" "}
-            {importPreview.summary?.invalidRows || 0}, Duplicates:{" "}
-            {importPreview.summary?.duplicateRows || 0}
-          </Alert>
+          <>
+            <Alert severity={importPreview.summary?.duplicateRows > 0 ? "warning" : "info"} sx={{ mt: 2 }}>
+              Preview ready. Total: {importPreview.summary?.totalRows || 0}, Valid:{" "}
+              {importPreview.summary?.validRows || 0}, Invalid:{" "}
+              {importPreview.summary?.invalidRows || 0}, Duplicates:{" "}
+              {importPreview.summary?.duplicateRows || 0}
+              {importPreview.summary?.duplicateRows > 0 && " — duplicates will be skipped before updating the database."}
+            </Alert>
+
+            {importPreview.summary?.duplicateRows > 0 && (
+              <Alert severity="error" sx={{ mt: 1 }}>
+                Duplicate EmployeeId or SchoolEmail detected. These rows will NOT be imported.
+                Please review the preview below.
+              </Alert>
+            )}
+          </>
         )}
 
         {commitResult && (
@@ -397,6 +412,8 @@ export default function UserManagement() {
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Role</TableCell>
+                  <TableCell>Assignment</TableCell>
+                  <TableCell>Scope</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Message</TableCell>
                 </TableRow>
@@ -409,7 +426,15 @@ export default function UserManagement() {
                     <TableCell>{row.fullName}</TableCell>
                     <TableCell>{row.schoolEmail}</TableCell>
                     <TableCell>{row.role}</TableCell>
-                    <TableCell>{row.validationStatus}</TableCell>
+                    <TableCell>{row.assignmentKey || "-"}</TableCell>
+                    <TableCell>{row.scopeType && row.scopeName ? `${row.scopeType}: ${row.scopeName}` : "-"}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={row.validationStatus}
+                        size="small"
+                        color={row.validationStatus === "Valid" ? "success" : "error"}
+                      />
+                    </TableCell>
                     <TableCell>{row.validationMessage}</TableCell>
                   </TableRow>
                 ))}
