@@ -9,16 +9,14 @@
 // Supports nested children, active routes, and dropdown state.
 // ============================================
 
-import { useEffect, useState } from "react";
-
-import { Box, Collapse, List } from "@mui/material";
 import { useLocation } from "react-router-dom";
 
+import { Box, List } from "@mui/material";
+
 import PlatformSidebarItem from "./PlatformSidebarItem";
-import PlatformSidebarSection from "./PlatformSidebarSection";
 import { useSidebarState } from "../hooks/useSidebarState";
 import {
-  buildExpandedOpenSections,
+  buildExpandedOpenMenus,
   getSidebarItemKey,
 } from "../utils/sidebarHelpers";
 
@@ -29,60 +27,29 @@ export default function PlatformSidebarTree({
   showHierarchy = true,
 }) {
   const location = useLocation();
-  const [openSections, setOpenSections] = useState({});
-
   const { openMenus, toggleMenu } = useSidebarState(
     sections,
     location.pathname,
     { defaultOpenAll }
   );
 
-  useEffect(() => {
-    setOpenSections((current) => ({
-      ...(defaultOpenAll ? buildExpandedOpenSections(sections) : {}),
-      ...current,
-    }));
-  }, [defaultOpenAll, sections]);
-
-  const toggleSection = (title) => {
-    setOpenSections((current) => ({
-      ...current,
-      [title]: !current[title],
-    }));
-  };
+  const allItems = sections.flatMap((section) => section.items || []);
 
   return (
-    <Box sx={{ px: 2.5, pt: 2, pb: 2 }}>
-      {sections.map((section) => {
-        const sectionTitle = section.title || "Main";
-        const isOpen = Boolean(openSections[sectionTitle]);
-
-        return (
-          <Box key={sectionTitle} sx={{ mb: 1.4 }}>
-            <PlatformSidebarSection
-              title={sectionTitle}
-              open={isOpen}
-              showHierarchy={showHierarchy}
-              onToggle={() => toggleSection(sectionTitle)}
-            />
-
-            <Collapse in={isOpen} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {section.items?.map((item) => (
-                  <PlatformSidebarItem
-                    key={getSidebarItemKey(item)}
-                    item={item}
-                    openMenus={openMenus}
-                    toggleMenu={toggleMenu}
-                    onNavigate={onNavigate}
-                    showHierarchy={showHierarchy}
-                  />
-                ))}
-              </List>
-            </Collapse>
-          </Box>
-        );
-      })}
+    <Box sx={{ px: 1.5, pt: 1.5, pb: 3 }}>
+      <List disablePadding sx={{ pt: 0.5 }}>
+        {allItems.map((item, index) => (
+          <PlatformSidebarItem
+            key={getSidebarItemKey(item)}
+            item={item}
+            isLastChild={index === allItems.length - 1}
+            openMenus={openMenus}
+            toggleMenu={toggleMenu}
+            onNavigate={onNavigate}
+            showHierarchy={showHierarchy}
+          />
+        ))}
+      </List>
     </Box>
   );
 }

@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Printing Admin - Master Data Management
-// Manage Subjects, Sections, and Purposes
+// Printing Admin - Purpose Management
+// Manage printing request purposes
 // No hard delete: activate / deactivate only
 // ============================================
 
@@ -44,8 +44,6 @@ import {
 } from "../../../services/masterService";
 
 const tabs = [
-  { label: "Subjects", type: "subjects" },
-  { label: "Departments", type: "departments" },
   { label: "Purposes", type: "purposes" },
 ];
 
@@ -199,8 +197,8 @@ const MasterData = () => {
   return (
     <>
       <PageHeader
-        title="Master Data"
-        subtitle="Manage subjects, sections, and purposes used in photocopy requests."
+        title="Printing Purposes"
+        subtitle="Manage the purposes available for photocopy requests."
       />
 
       {success && (

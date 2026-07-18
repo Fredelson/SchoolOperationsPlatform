@@ -53,6 +53,7 @@ import UserPermissionOverridesPage from "../user-access/pages/UserPermissionOver
 import AssignmentTypesPage from "../user-access/pages/AssignmentTypesPage";
 import WorkspaceManagerPage from "../workspaces/pages/WorkspaceManagerPage";
 import WorkspacePreviewPage from "../workspaces/pages/WorkspacePreviewPage";
+import SchoolConfigPage from "../school-config/pages/SchoolConfigPage";
 
 
 // ============================================
@@ -142,7 +143,7 @@ const superAdminLayoutRoutes = [
       },
       {
         path: "access-levels",
-        element: <AccessLevelsPage />,
+        element: <Navigate to="/super-admin/school-configuration/access-levels" replace />,
       },
       {
         path: "user-assignments",
@@ -167,6 +168,42 @@ const superAdminLayoutRoutes = [
       {
         path: "user-permission-overrides",
         element: <UserPermissionOverridesPage />,
+      },
+      {
+        path: "school-configuration",
+        element: <Navigate to="/super-admin/school-configuration/subjects" replace />,
+      },
+      {
+        path: "school-configuration/subjects",
+        element: <SchoolConfigPage section="subjects" />,
+      },
+      {
+        path: "school-configuration/departments",
+        element: <SchoolConfigPage section="departments" />,
+      },
+      {
+        path: "school-configuration/sections",
+        element: <SchoolConfigPage section="sections" />,
+      },
+      {
+        path: "school-configuration/access-levels",
+        element: <SchoolConfigPage section="access-levels" />,
+      },
+      {
+        path: "school-config",
+        element: <Navigate to="/super-admin/school-configuration/subjects" replace />,
+      },
+      {
+        path: "settings/subjects",
+        element: <Navigate to="/super-admin/school-configuration/subjects" replace />,
+      },
+      {
+        path: "settings/departments",
+        element: <Navigate to="/super-admin/school-configuration/departments" replace />,
+      },
+      {
+        path: "settings/sections",
+        element: <Navigate to="/super-admin/school-configuration/sections" replace />,
       },
 
       // Operations Modules

@@ -5,6 +5,7 @@
 // Manages:
 // - Subjects
 // - Departments
+// - Sections
 // - Purposes
 // - Roles
 // - Access Levels
@@ -24,18 +25,28 @@ const masterTables = {
   subjects: {
     table: "Subjects",
     id: "SubjectId",
+    key: "SubjectKey",
     name: "SubjectName",
   },
 
   departments: {
     table: "Departments",
     id: "DepartmentId",
+    key: "DepartmentKey",
     name: "DepartmentName",
+  },
+
+  sections: {
+    table: "Sections",
+    id: "SectionId",
+    key: "SectionKey",
+    name: "SectionName",
   },
 
   purposes: {
     table: "Purposes",
     id: "PurposeId",
+    key: "PurposeKey",
     name: "PurposeName",
   },
 };
@@ -46,6 +57,14 @@ const masterTables = {
 const getConfig = (type) => {
   return masterTables[type] || null;
 };
+
+const buildMasterKey = (name) =>
+  String(name || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 50);
 
 // ============================================
 // GET /api/master/:type
@@ -298,13 +317,23 @@ const createMasterData = async (req, res) => {
       });
     }
 
+    const masterKey = buildMasterKey(name);
+
+    if (!masterKey) {
+      return res.status(400).json({
+        message: "Name must contain at least one letter or number",
+      });
+    }
+
     const duplicate = await pool
       .request()
       .input("Name", sql.NVarChar(100), name.trim())
+      .input("MasterKey", sql.NVarChar(50), masterKey)
       .query(`
         SELECT ${config.id}
         FROM ${config.table}
         WHERE ${config.name} = @Name
+           OR ${config.key} = @MasterKey
       `);
 
     if (duplicate.recordset.length > 0) {
@@ -316,13 +345,14 @@ const createMasterData = async (req, res) => {
     const result = await pool
       .request()
       .input("Name", sql.NVarChar(100), name.trim())
+      .input("MasterKey", sql.NVarChar(50), masterKey)
       .query(`
-        INSERT INTO ${config.table} (${config.name}, IsActive)
+        INSERT INTO ${config.table} (${config.key}, ${config.name}, IsActive)
         OUTPUT
           INSERTED.${config.id} AS Id,
           INSERTED.${config.name} AS Name,
           INSERTED.IsActive
-        VALUES (@Name, 1)
+        VALUES (@MasterKey, @Name, 1)
       `);
 
     return res.status(201).json({

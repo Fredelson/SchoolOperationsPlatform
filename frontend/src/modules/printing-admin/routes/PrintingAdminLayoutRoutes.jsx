@@ -36,7 +36,6 @@ import InventoryTransactions from "../pages/InventoryTransactions";
 import PaperPurchases from "../pages/PaperPurchases";
 import PaperDistributions from "../pages/PaperDistributions";
 import MasterData from "../pages/MasterData";
-import AccessLevelsPage from "../pages/AccessLevelsPage";
 import DepartmentLimitsPage from "../pages/DepartmentLimitsPage";
 import { UserManagement } from "../../admin/pages";
 
@@ -133,15 +132,13 @@ const printingAdminLayoutRoutes = [
         path: "user-management",
         element: permitted("users.view",<UserManagement />),
       },
-
       {
-        path: "master-data",
+        path: "purposes",
         element: permitted("printing.master-data.view",<MasterData />),
       },
-
       {
-        path: "access-levels",
-        element: permitted("printing.access-levels.view",<AccessLevelsPage />),
+        path: "master-data",
+        element: <Navigate to="/printing/purposes" replace />,
       },
       { path: "profile", element: <Profile /> },
     ],

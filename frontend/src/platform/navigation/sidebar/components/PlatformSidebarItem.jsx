@@ -21,8 +21,7 @@ import {
   useTheme,
 } from "@mui/material";
 
-import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
-import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -40,6 +39,7 @@ export default function PlatformSidebarItem({
   toggleMenu,
   onNavigate,
   showHierarchy = false,
+  isLastChild = false,
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -54,70 +54,168 @@ export default function PlatformSidebarItem({
   const isComingSoon = Boolean(item?.comingSoon);
   const isActive = isSidebarItemActive(item, location.pathname);
 
-  const leftPadding = 2 + level * 2.2;
+  const isRoot = level === 0;
+  const rowInset = level * 2.2;
+  const rowHeight = isRoot ? 52 : hasChildren ? 44 : 40;
+  const rowRadius = isRoot ? 2 : 1.5;
   const icon = item.icon || getSidebarIcon(item.iconKey, level);
-  const branchLineColor = alpha(sidebarText, isActive ? 0.34 : 0.2);
-  const branchLeft = theme.spacing(2 + Math.max(level - 1, 0) * 2.2);
+  const branchLineColor = isActive
+    ? alpha(accent, 0.72)
+    : alpha(sidebarText, 0.18);
+  const branchOffset = theme.spacing(-1.1);
   const branchWidth = theme.spacing(1.1);
-  const hierarchySx = showHierarchy && level > 0
+  const branchStemLeft = theme.spacing(rowInset - 1.1);
+  const hierarchyBranchSx = showHierarchy && level > 0
     ? {
         position: "relative",
         "&::before": {
           content: '""',
           position: "absolute",
-          left: branchLeft,
+          left: branchOffset,
           top: "50%",
           width: branchWidth,
           borderTop: `1px solid ${branchLineColor}`,
         },
+      }
+    : {};
+  const hierarchyStemSx = showHierarchy && level > 0
+    ? {
+        position: "relative",
         "&::after": {
           content: '""',
           position: "absolute",
-          left: branchLeft,
-          top: -4,
-          bottom: -4,
+          left: branchStemLeft,
+          top: -5,
+          height: isLastChild ? rowHeight / 2 + 5 : "auto",
+          bottom: isLastChild ? "auto" : -5,
           borderLeft: `1px solid ${branchLineColor}`,
         },
       }
     : {};
+  const leafHierarchyStemSx = showHierarchy && level > 0
+    ? {
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          left: branchOffset,
+          top: -5,
+          bottom: isLastChild ? "50%" : -5,
+          borderLeft: `1px solid ${branchLineColor}`,
+        },
+      }
+    : {};
+  const rowLayoutSx = {
+    width: level > 0
+      ? `calc(100% - ${theme.spacing(rowInset)})`
+      : "100%",
+    minHeight: rowHeight,
+    ml: rowInset,
+    mb: isRoot ? 0.65 : 0.35,
+    px: isRoot ? 1.15 : 1.25,
+    borderRadius: rowRadius,
+    border: "1px solid transparent",
+  };
+  const iconSx = {
+    color: "inherit",
+    minWidth: isRoot ? 42 : 30,
+    "& svg": {
+      fontSize: isRoot ? 21 : hasChildren ? 17 : 14,
+    },
+  };
+  const rootIconSurfaceSx = isRoot
+    ? {
+        width: 32,
+        height: 32,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: 1.5,
+        bgcolor: isActive ? alpha(accent, 0.22) : alpha(sidebarText, 0.07),
+        border: `1px solid ${
+          isActive ? alpha(accent, 0.3) : alpha(sidebarText, 0.08)
+        }`,
+      }
+    : {
+        width: 18,
+        height: 18,
+        display: "grid",
+        placeItems: "center",
+      };
+  const textSx = {
+    fontSize: isRoot ? 15.25 : hasChildren ? 13.75 : 13.25,
+    lineHeight: 1.25,
+    fontWeight: isRoot ? 800 : hasChildren ? 750 : 600,
+    letterSpacing: 0,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+  const chevron = (
+    <Box
+      aria-hidden="true"
+      sx={{
+        width: isRoot ? 28 : 24,
+        height: isRoot ? 28 : 24,
+        ml: 0.5,
+        flex: `0 0 ${isRoot ? 28 : 24}px`,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: 1.5,
+        bgcolor: alpha(sidebarText, isOpen ? 0.1 : 0.05),
+      }}
+    >
+      <KeyboardArrowDownRoundedIcon
+        sx={{
+          fontSize: isRoot ? 19 : 17,
+          transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+          transition: theme.transitions.create("transform", {
+            duration: theme.transitions.duration.shortest,
+          }),
+        }}
+      />
+    </Box>
+  );
 
   if (hasChildren) {
     return (
-      <Box key={itemKey}>
+      <Box key={itemKey} sx={hierarchyStemSx}>
         <ListItemButton
           onClick={toggleMenu ? () => toggleMenu(item) : undefined}
           aria-expanded={isOpen}
           sx={{
-            minHeight: 46,
-            borderRadius: 2.8,
-            mb: 0.45,
-            px: 2,
-            pl: leftPadding,
+            ...rowLayoutSx,
             cursor: toggleMenu ? "pointer" : "default",
-            color: isActive ? sidebarText : alpha(sidebarText, 0.78),
-            bgcolor: isActive ? alpha(accent, 0.18) : "transparent",
+            color: isActive ? sidebarText : alpha(sidebarText, isRoot ? 0.9 : 0.76),
+            bgcolor: isActive
+              ? alpha(accent, isRoot ? 0.16 : 0.1)
+              : isRoot
+                ? alpha(sidebarText, 0.035)
+                : "transparent",
+            borderColor: isActive
+              ? alpha(accent, isRoot ? 0.32 : 0.2)
+              : isRoot
+                ? alpha(sidebarText, 0.06)
+                : "transparent",
+            boxShadow: isActive
+              ? `inset ${isRoot ? 3 : 2}px 0 0 ${accent}`
+              : "none",
             transition: theme.transitions.create(
-              ["background-color", "color", "box-shadow"],
+              ["background-color", "border-color", "color", "box-shadow"],
               { duration: theme.transitions.duration.short }
             ),
             "&:hover": {
-              bgcolor: alpha(sidebarText, 0.08),
+              bgcolor: isActive
+                ? alpha(accent, isRoot ? 0.2 : 0.14)
+                : alpha(sidebarText, isRoot ? 0.075 : 0.06),
               color: sidebarText,
             },
-            ...hierarchySx,
+            ...hierarchyBranchSx,
           }}
         >
           {icon && (
             <ListItemIcon
-              sx={{
-                color: "inherit",
-                minWidth: level === 0 ? 44 : 32,
-                "& svg": {
-                  fontSize: level === 0 ? 21 : 16,
-                },
-              }}
+              sx={iconSx}
             >
-              {icon}
+              <Box sx={rootIconSurfaceSx}>{icon}</Box>
             </ListItemIcon>
           )}
 
@@ -125,33 +223,23 @@ export default function PlatformSidebarItem({
             primary={item.label}
             slotProps={{
               primary: {
-                sx: {
-                  fontSize: level === 0 ? 14.5 : 13.3,
-                  fontWeight: level === 0 ? 750 : 700,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                },
+                sx: textSx,
               },
             }}
           />
 
           {isComingSoon && <PlatformSidebarBadge label="Soon" />}
-
-          {isOpen ? (
-            <ExpandLessOutlinedIcon sx={{ fontSize: 20 }} />
-          ) : (
-            <ExpandMoreOutlinedIcon sx={{ fontSize: 20 }} />
-          )}
+          {chevron}
         </ListItemButton>
 
         <Collapse in={isOpen} timeout="auto" unmountOnExit>
-          <List disablePadding>
-            {item.children.map((child) => (
+          <List disablePadding sx={{ pb: isRoot ? 0.45 : 0.2 }}>
+            {item.children.map((child, index) => (
               <PlatformSidebarItem
                 key={getSidebarItemKey(child)}
                 item={child}
                 level={level + 1}
+                isLastChild={index === item.children.length - 1}
                 openMenus={openMenus}
                 toggleMenu={toggleMenu}
                 onNavigate={onNavigate}
@@ -172,49 +260,54 @@ export default function PlatformSidebarItem({
       disabled={isComingSoon}
       onClick={isComingSoon ? undefined : onNavigate}
       sx={{
-        minHeight: 46,
-        borderRadius: 2.8,
-        mb: 0.45,
-        px: 2,
-        pl: leftPadding,
-        color: alpha(sidebarText, isComingSoon ? 0.42 : 0.78),
+        ...rowLayoutSx,
+        color: alpha(
+          sidebarText,
+          isComingSoon ? 0.4 : isRoot ? 0.88 : 0.72
+        ),
+        bgcolor: isRoot ? alpha(sidebarText, 0.025) : "transparent",
+        borderColor: isRoot ? alpha(sidebarText, 0.05) : "transparent",
         transition: theme.transitions.create(
-          ["background-color", "color", "box-shadow"],
+          ["background-color", "border-color", "color", "box-shadow"],
           { duration: theme.transitions.duration.short }
         ),
         "&:hover": {
-          bgcolor: isComingSoon ? "transparent" : alpha(sidebarText, 0.08),
+          bgcolor: isComingSoon
+            ? isRoot
+              ? alpha(sidebarText, 0.025)
+              : "transparent"
+            : alpha(sidebarText, isRoot ? 0.075 : 0.06),
           color: isComingSoon ? alpha(sidebarText, 0.42) : sidebarText,
         },
         "&.active": {
-          bgcolor: accent,
+          bgcolor: isRoot ? accent : alpha(sidebarText, 0.13),
           color: sidebarText,
-          boxShadow: `0 10px 24px ${alpha(accent, 0.25)}`,
+          borderColor: isRoot
+            ? alpha(sidebarText, 0.12)
+            : alpha(accent, 0.32),
+          boxShadow: isRoot
+            ? `0 8px 20px ${alpha(accent, 0.22)}`
+            : `inset 3px 0 0 ${accent}`,
           "& .MuiListItemIcon-root": {
             color: sidebarText,
           },
           "&:hover": {
-            bgcolor: accent,
+            bgcolor: isRoot ? accent : alpha(sidebarText, 0.16),
           },
         },
         "&.Mui-disabled": {
           opacity: 1,
           color: alpha(sidebarText, 0.42),
         },
-        ...hierarchySx,
+        ...hierarchyBranchSx,
+        ...leafHierarchyStemSx,
       }}
     >
       {icon && (
         <ListItemIcon
-          sx={{
-            color: "inherit",
-            minWidth: level === 0 ? 44 : 32,
-            "& svg": {
-              fontSize: level === 0 ? 21 : 16,
-            },
-          }}
+          sx={iconSx}
         >
-          {icon}
+          <Box sx={rootIconSurfaceSx}>{icon}</Box>
         </ListItemIcon>
       )}
 
@@ -222,13 +315,7 @@ export default function PlatformSidebarItem({
         primary={item.label}
         slotProps={{
           primary: {
-            sx: {
-              fontSize: level === 0 ? 14.5 : 13.3,
-              fontWeight: level === 0 ? 750 : 650,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            },
+            sx: textSx,
           },
         }}
       />

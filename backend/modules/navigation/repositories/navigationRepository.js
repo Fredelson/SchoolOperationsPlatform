@@ -76,6 +76,11 @@ async function getSidebarMenusForUser(userId) {
         -- Menu item
         m.MenuId,
         m.ModuleId,
+        module.ModuleKey,
+        module.ModuleName,
+        module.Icon AS ModuleIcon,
+        module.BaseRoute AS ModuleBaseRoute,
+        module.SortOrder AS ModuleSortOrder,
         CASE WHEN @IsSuperAdmin=1 THEN COALESCE(wm.ParentMenuId, m.ParentMenuId) ELSE wm.ParentMenuId END AS ParentMenuId,
         m.MenuKey,
         m.MenuName,

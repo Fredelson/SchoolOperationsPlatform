@@ -9,7 +9,8 @@
 // Keeps sidebar rendering logic clean and reusable.
 // ============================================
 
-export const getSidebarItemKey = (item) => item?.path || item?.label;
+export const getSidebarItemKey = (item) =>
+  item?.id ?? item?.key ?? item?.path ?? item?.label;
 
 export const hasActiveChild = (item, pathname) => {
   if (!item?.children?.length) return false;

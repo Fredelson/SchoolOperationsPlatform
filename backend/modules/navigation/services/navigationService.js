@@ -23,47 +23,158 @@ function isNavigationAdmin(profile) {
   return roleKey === "superadmin" || roleKey === "platformadmin";
 }
 
-// ============================================
-// Remove Empty Children Recursively
-// ============================================
-
-function cleanChildren(node) {
-  if (!node.children || node.children.length === 0) {
-    delete node.children;
-    return node;
-  }
-
-  node.children = node.children.map(cleanChildren);
-  return node;
+function normalizeToken(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
-// ============================================
-// Build Menu Tree
-// ============================================
-//
-// Important:
-// SQL returns both root menus and child menus.
-// Only menus with a valid parent should be nested.
-// Only menus without ParentMenuId should become
-// root sidebar items.
-//
-// This prevents child items like:
-// IT Asset Management → Dashboard
-//
-// from appearing as:
-// Main → Dashboard
-// Main → Dashboard
-// ============================================
+function normalizeRoute(value) {
+  const route = String(value || "").trim().toLowerCase();
+  if (!route) return "";
+  return route.length > 1 ? route.replace(/\/+$/, "") : route;
+}
+
+function numericSortOrder(value, fallback = 999) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function getMenuRowIdentity(menu, index = 0) {
+  if (menu?.MenuId !== null && menu?.MenuId !== undefined) {
+    return `id:${menu.MenuId}`;
+  }
+
+  const route = normalizeRoute(menu?.Route);
+  if (route) return `route:${route}`;
+
+  const key = normalizeToken(menu?.MenuKey);
+  if (key) return `key:${key}`;
+
+  return `row:${index}`;
+}
+
+function dedupeMenuRows(menus = []) {
+  const seen = new Set();
+
+  return menus.filter((menu, index) => {
+    const identity = getMenuRowIdentity(menu, index);
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
+function retainAllowedMenus(rawMenus, allowedPermissions, bypassPermissions) {
+  const menus = dedupeMenuRows(rawMenus);
+  const byId = new Map(
+    menus
+      .filter((menu) => menu.MenuId !== null && menu.MenuId !== undefined)
+      .map((menu) => [String(menu.MenuId), menu])
+  );
+  const retained = new Set();
+
+  menus.forEach((menu, index) => {
+    const isAllowed =
+      bypassPermissions ||
+      (menu.PermissionKey && allowedPermissions.has(menu.PermissionKey));
+
+    if (!isAllowed) return;
+
+    let current = menu;
+    const visited = new Set();
+
+    while (current) {
+      const identity = getMenuRowIdentity(current, index);
+      if (visited.has(identity)) break;
+
+      visited.add(identity);
+      retained.add(identity);
+
+      if (current.ParentMenuId === null || current.ParentMenuId === undefined) {
+        break;
+      }
+
+      current = byId.get(String(current.ParentMenuId));
+    }
+  });
+
+  return menus.filter((menu, index) =>
+    retained.has(getMenuRowIdentity(menu, index))
+  );
+}
+
+function compareNodes(left, right) {
+  const sortDifference = left._sortOrder - right._sortOrder;
+  if (sortDifference !== 0) return sortDifference;
+
+  const labelDifference = String(left.label || "").localeCompare(
+    String(right.label || "")
+  );
+  if (labelDifference !== 0) return labelDifference;
+
+  return String(left.id || "").localeCompare(String(right.id || ""));
+}
+
+function sortNodes(nodes = []) {
+  nodes.forEach((node) => {
+    node.children = sortNodes(node.children || []);
+  });
+
+  return nodes.sort(compareNodes);
+}
+
+function canonicalNodeKey(key) {
+  return normalizeToken(String(key || "").replace(/(?:[_\s-]?root)$/i, ""));
+}
+
+function getNodeIdentity(node) {
+  const route = normalizeRoute(node.path);
+  if (route) return `route:${route}`;
+
+  const key = canonicalNodeKey(node.key);
+  if (key) return `key:${key}`;
+
+  if (node.id !== null && node.id !== undefined) return `id:${node.id}`;
+
+  return `label:${normalizeToken(node.label)}`;
+}
+
+function dedupeNodes(nodes = []) {
+  const deduped = [];
+  const byIdentity = new Map();
+
+  sortNodes(nodes).forEach((node) => {
+    node.children = dedupeNodes(node.children || []);
+    const identity = getNodeIdentity(node);
+    const existing = byIdentity.get(identity);
+
+    if (!existing) {
+      byIdentity.set(identity, node);
+      deduped.push(node);
+      return;
+    }
+
+    existing._sortOrder = Math.min(existing._sortOrder, node._sortOrder);
+    existing.children = dedupeNodes([
+      ...(existing.children || []),
+      ...(node.children || []),
+    ]);
+  });
+
+  return sortNodes(deduped);
+}
 
 function buildMenuTree(menus) {
   const byId = new Map();
+  const menuNodes = new Map();
   const roots = [];
 
-  // First pass:
-  // Create a map of every menu row.
-  menus.forEach((menu) => {
-    byId.set(menu.MenuId, {
-      id: menu.MenuId,
+  menus.forEach((menu, index) => {
+    const identity = getMenuRowIdentity(menu, index);
+    const node = {
+      id: menu.MenuId ?? identity,
       key: menu.MenuKey,
       label: menu.MenuName,
       path: menu.Route,
@@ -73,28 +184,186 @@ function buildMenuTree(menus) {
       backendReady:
         String(menu.VisibilityStatusKey || "").toLowerCase() === "enabled",
       children: [],
-    });
+      _menu: menu,
+      _sortOrder: numericSortOrder(
+        menu.UserSortOrder ?? menu.MenuSortOrder
+      ),
+    };
+
+    menuNodes.set(identity, node);
+
+    if (menu.MenuId !== null && menu.MenuId !== undefined) {
+      byId.set(String(menu.MenuId), node);
+    }
   });
 
-  // Second pass:
-  // Attach each menu to its parent when possible.
-  menus.forEach((menu) => {
-    const node = byId.get(menu.MenuId);
+  menus.forEach((menu, index) => {
+    const node = menuNodes.get(getMenuRowIdentity(menu, index));
+    const parent =
+      menu.ParentMenuId !== null && menu.ParentMenuId !== undefined
+        ? byId.get(String(menu.ParentMenuId))
+        : null;
 
-    if (menu.ParentMenuId) {
-      const parent = byId.get(menu.ParentMenuId);
-
-      if (parent) {
-        parent.children.push(node);
-      }
-
+    if (parent && parent !== node) {
+      parent.children.push(node);
       return;
     }
 
     roots.push(node);
   });
 
-  return roots.map(cleanChildren);
+  return dedupeNodes(roots);
+}
+
+function getModuleMetadata(menu) {
+  const groupIsMain = normalizeToken(menu.GroupKey) === "main";
+
+  return {
+    id: menu.ModuleId,
+    key:
+      menu.ModuleKey ||
+      (!groupIsMain ? menu.GroupKey : null) ||
+      `module-${menu.ModuleId}`,
+    name:
+      menu.ModuleName ||
+      (!groupIsMain ? menu.GroupName : null) ||
+      "Module",
+    iconKey: menu.ModuleIcon || null,
+    sortOrder: numericSortOrder(
+      !groupIsMain ? menu.GroupSortOrder : menu.ModuleSortOrder
+    ),
+  };
+}
+
+function mergeModuleMetadata(current, menu) {
+  const incoming = getModuleMetadata(menu);
+  if (!current) return incoming;
+
+  return {
+    id: current.id ?? incoming.id,
+    key: current.key || incoming.key,
+    name: current.name || incoming.name,
+    iconKey: current.iconKey || incoming.iconKey,
+    sortOrder: Math.min(current.sortOrder, incoming.sortOrder),
+  };
+}
+
+function isModuleContainer(node, module) {
+  if (node.path) return false;
+
+  const moduleKey = normalizeToken(module.key);
+  const moduleName = normalizeToken(module.name);
+  const nodeKey = canonicalNodeKey(node.key);
+  const nodeLabel = normalizeToken(node.label);
+
+  return Boolean(
+    (moduleKey && nodeKey === moduleKey) ||
+    (moduleName && nodeLabel === moduleName)
+  );
+}
+
+function pruneEmptyContainers(nodes = []) {
+  return nodes
+    .map((node) => ({
+      ...node,
+      children: pruneEmptyContainers(node.children || []),
+    }))
+    .filter(
+      (node) =>
+        node.path ||
+        node.comingSoon ||
+        (node.children && node.children.length > 0)
+    );
+}
+
+function toPublicNode(node) {
+  const publicNode = {
+    id: node.id,
+    key: node.key,
+    label: node.label,
+    path: node.path,
+    iconKey: node.iconKey,
+    comingSoon: node.comingSoon,
+    backendReady: node.backendReady,
+  };
+
+  if (node.children?.length) {
+    publicNode.children = node.children.map(toPublicNode);
+  }
+
+  return publicNode;
+}
+
+function buildSidebarSections(menus) {
+  const roots = buildMenuTree(menus);
+  const mainItems = [];
+  const moduleBuckets = new Map();
+
+  roots.forEach((root) => {
+    const menu = root._menu;
+    const moduleId = menu.ModuleId ?? `unknown-${moduleBuckets.size}`;
+    const module = getModuleMetadata(menu);
+    const isMainGroup = normalizeToken(menu.GroupKey) === "main";
+
+    if (isMainGroup && !isModuleContainer(root, module)) {
+      mainItems.push(root);
+      return;
+    }
+
+    const bucket = moduleBuckets.get(moduleId) || {
+      module: null,
+      roots: [],
+    };
+
+    bucket.module = mergeModuleMetadata(bucket.module, menu);
+    bucket.roots.push(root);
+    moduleBuckets.set(moduleId, bucket);
+  });
+
+  const moduleItems = Array.from(moduleBuckets.values()).map((bucket) => {
+    const rootsForModule = dedupeNodes(bucket.roots);
+    const children = [];
+
+    rootsForModule.forEach((root) => {
+      if (isModuleContainer(root, bucket.module)) {
+        children.push(...(root.children || []));
+      } else {
+        children.push(root);
+      }
+    });
+
+    return {
+      id: `module-${bucket.module.id}`,
+      key: `module-${bucket.module.key}`,
+      label: bucket.module.name,
+      path: null,
+      iconKey: bucket.module.iconKey,
+      comingSoon: false,
+      backendReady: true,
+      children: dedupeNodes(children),
+      _sortOrder: bucket.module.sortOrder,
+    };
+  });
+
+  const cleanMainItems = dedupeNodes(pruneEmptyContainers(mainItems));
+  const cleanModuleItems = dedupeNodes(pruneEmptyContainers(moduleItems));
+  const sections = [];
+
+  if (cleanMainItems.length) {
+    sections.push({
+      title: "Main",
+      items: cleanMainItems.map(toPublicNode),
+    });
+  }
+
+  if (cleanModuleItems.length) {
+    sections.push({
+      title: "Modules",
+      items: cleanModuleItems.map(toPublicNode),
+    });
+  }
+
+  return sections;
 }
 
 // ============================================
@@ -122,70 +391,13 @@ async function getMySidebar(user) {
   ]);
   const allowedPermissions = new Set(permissionProfile.allowedPermissionKeys || []);
   const bypassPermissions = isNavigationAdmin(permissionProfile);
-  const menus = rawMenus.filter(
-    (menu) =>
-      bypassPermissions ||
-      (menu.PermissionKey && allowedPermissions.has(menu.PermissionKey))
+  const menus = retainAllowedMenus(
+    rawMenus,
+    allowedPermissions,
+    bypassPermissions
   );
 
-  const groups = {};
-
-  // Only root menus should create sidebar group buckets.
-  // Child menus are added later by buildMenuTree().
-  menus
-    .filter((menu) => !menu.ParentMenuId)
-    .forEach((menu) => {
-      const groupKey = menu.GroupKey || "MAIN";
-
-      if (!groups[groupKey]) {
-        groups[groupKey] = {
-          title: menu.GroupName || "Main",
-          sortOrder: menu.GroupSortOrder || 999,
-          rawMenus: [],
-        };
-      }
-    });
-
-  // Add every menu row into the group where its root parent belongs.
-  // This lets nested child menus stay inside the correct section.
-  Object.keys(groups).forEach((groupKey) => {
-    const rootMenuIds = menus
-      .filter((menu) => !menu.ParentMenuId && (menu.GroupKey || "MAIN") === groupKey)
-      .map((menu) => menu.MenuId);
-
-    groups[groupKey].rawMenus = menus.filter((menu) => {
-      if (rootMenuIds.includes(menu.MenuId)) {
-        return true;
-      }
-
-      // Include descendants whose parent chain belongs to this group.
-      let currentParentId = menu.ParentMenuId;
-
-      while (currentParentId) {
-        const parent = menus.find((item) => item.MenuId === currentParentId);
-
-        if (!parent) return false;
-
-        if (rootMenuIds.includes(parent.MenuId)) {
-          return true;
-        }
-
-        currentParentId = parent.ParentMenuId;
-      }
-
-      return false;
-    });
-  });
-
-  const sidebar = Object.values(groups)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((group) => ({
-      title: group.title,
-      items: buildMenuTree(group.rawMenus),
-    }))
-    .filter((group) => group.items.length > 0);
-
-  return sidebar;
+  return buildSidebarSections(menus);
 }
 
 async function getMyRuntimeControls(user) {

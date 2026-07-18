@@ -82,10 +82,28 @@ export default function PlatformSidebar({
         top: isMobile ? 0 : `${topOffset}px`,
         background: sidebarBg,
         color: sidebarText,
-        borderRight: `1px solid ${alpha(sidebarText, 0.08)}`,
+        borderRight: `1px solid ${alpha(sidebarText, 0.1)}`,
+        boxShadow: isMobile
+          ? "none"
+          : `8px 0 24px ${alpha(theme.palette.common.black, 0.08)}`,
         overflowY: "auto",
         overflowX: "hidden",
         zIndex: 1200,
+        scrollbarWidth: "thin",
+        scrollbarColor: `${alpha(sidebarText, 0.22)} transparent`,
+        "&::-webkit-scrollbar": {
+          width: 6,
+        },
+        "&::-webkit-scrollbar-track": {
+          background: "transparent",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          bgcolor: alpha(sidebarText, 0.2),
+          borderRadius: 2,
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          bgcolor: alpha(sidebarText, 0.32),
+        },
       }}
     >
       {loading && (
