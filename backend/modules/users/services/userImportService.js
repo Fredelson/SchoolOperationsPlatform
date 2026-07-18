@@ -38,6 +38,7 @@ const {
   validateOptionalColumns,
   validateRowCount,
   normalizeRow,
+  normalizeAssignmentKey,
   validateRequiredFields,
   validateEmail,
   validateMainRole,
@@ -348,6 +349,56 @@ async function previewUserImport(file, currentUser) {
         duplicateRows--;
       }
 
+      if (
+        validationStatus !== "Invalid" &&
+        duplicateUser &&
+        validationErrors.length === 0 &&
+        assignmentKey
+      ) {
+        const existingAssignments = await userImportRepository.findUserAssignments(
+          duplicateUser.UserId
+        );
+
+        const existingAssignment = existingAssignments[0] || null;
+        const existingAssignmentKey = existingAssignment
+          ? String(existingAssignment.AssignmentKey || "").trim().toLowerCase().replace(/[\s_-]/g, "")
+          : null;
+        const importedAssignmentKey = String(assignmentKey).trim().toLowerCase().replace(/[\s_-]/g, "");
+
+        const assignmentChanged =
+          existingAssignmentKey !== importedAssignmentKey ||
+          (existingAssignment?.DepartmentId || null) !== (resolvedDepartmentId || null) ||
+          (existingAssignment?.SubjectId || null) !== (resolvedSubjectId || null) ||
+          (existingAssignment?.YearLevelId || null) !== (resolvedYearGroupId || null);
+
+        console.log("[IMPORT PREVIEW] Assignment check:", {
+          employeeId: normalized.employeeId,
+          existingAssignmentKey,
+          importedAssignmentKey,
+          existingDept: existingAssignment?.DepartmentId,
+          resolvedDept: resolvedDepartmentId,
+          existingSubject: existingAssignment?.SubjectId,
+          resolvedSubject: resolvedSubjectId,
+          existingYear: existingAssignment?.YearLevelId,
+          resolvedYear: resolvedYearGroupId,
+          assignmentChanged,
+        });
+
+        if (assignmentChanged) {
+          if (validationStatus === "Ignored") {
+            validationStatus = "Update";
+            updateRows++;
+            ignoredRows--;
+          }
+
+          updateChanges.push({
+            field: "Assignment",
+            oldValue: existingAssignmentKey || "None",
+            newValue: importedAssignmentKey,
+          });
+        }
+      }
+
       if (validationStatus === "Valid") {
         validRows++;
       } else if (validationStatus === "Invalid") {
@@ -468,6 +519,8 @@ async function previewUserImport(file, currentUser) {
  * Commit valid preview rows into dbo.Users.
  */
 async function commitUserImport(batchId, currentUser) {
+  console.log("[IMPORT COMMIT] Starting commit for batchId:", batchId);
+  
   if (!batchId) {
     const error = new Error("Import batch ID is required.");
     error.statusCode = 400;
@@ -477,6 +530,16 @@ async function commitUserImport(batchId, currentUser) {
   const stagingRows = await userImportRepository.getStagingRowsByBatch(
     Number(batchId)
   );
+
+  console.log("[IMPORT COMMIT] Fetched staging rows:", stagingRows.length);
+  if (stagingRows.length > 0) {
+    console.log("[IMPORT COMMIT] First row sample:", {
+      stagingId: stagingRows[0].StaffImportStagingId,
+      validationStatus: stagingRows[0].ValidationStatus,
+      importStatus: stagingRows[0].ImportStatus,
+      assignmentKey: stagingRows[0].AssignmentKey,
+    });
+  }
 
   if (!stagingRows || stagingRows.length === 0) {
     const error = new Error("No staging rows found for this batch.");
@@ -491,8 +554,11 @@ async function commitUserImport(batchId, currentUser) {
 
   for (const row of stagingRows) {
     try {
+      console.log("[IMPORT COMMIT] Processing row:", row.StaffImportStagingId, "ValidationStatus:", row.ValidationStatus, "ImportStatus:", row.ImportStatus, "AssignmentKey:", row.AssignmentKey);
+      
       if (row.ValidationStatus !== "Valid" && row.ValidationStatus !== "Update") {
         skippedRows++;
+        console.log("[IMPORT COMMIT] Skipping - not Valid/Update");
         await userImportRepository.markStagingFailed(
           row.StaffImportStagingId,
           "Skipped because row is not valid."
@@ -502,12 +568,16 @@ async function commitUserImport(batchId, currentUser) {
 
       if (row.ImportStatus === "Imported") {
         skippedRows++;
+        console.log("[IMPORT COMMIT] Skipping - already imported");
         continue;
       }
 
       const isUpdate = row.ValidationStatus === "Update";
+      console.log("[IMPORT COMMIT] isUpdate:", isUpdate);
 
       if (isUpdate) {
+        console.log("[IMPORT UPDATE] Processing update for:", row.EmployeeId, row.SchoolEmail);
+
         const existingUser = await userImportRepository.findDuplicateUser(
           row.EmployeeId,
           row.SchoolEmail
@@ -521,6 +591,8 @@ async function commitUserImport(batchId, currentUser) {
           );
           continue;
         }
+
+        console.log("[IMPORT UPDATE] Found existing user:", existingUser.UserId, existingUser.FullName);
 
         const role = await userImportRepository.findRoleByKey(row.DerivedRoleKey);
 
@@ -542,11 +614,18 @@ async function commitUserImport(batchId, currentUser) {
         });
 
         if (row.AssignmentKey) {
-          await userImportRepository.deleteUserAssignments(existingUser.UserId);
-
+          console.log("[IMPORT UPDATE] >>> ENTERED assignment block for:", row.EmployeeId, "AssignmentKey:", row.AssignmentKey);
           const assignmentType = await userImportRepository.findAssignmentTypeByKey(row.AssignmentKey);
+          console.log("[IMPORT UPDATE] >>> AssignmentType result:", assignmentType);
 
           if (assignmentType) {
+            console.log("[IMPORT UPDATE] >>> Assignment type found, proceeding with update");
+            const existingAssignments = await userImportRepository.findUserAssignments(existingUser.UserId);
+            console.log("[IMPORT UPDATE] >>> Existing assignments:", existingAssignments);
+
+            await userImportRepository.deleteUserAssignments(existingUser.UserId);
+            console.log("[IMPORT UPDATE] >>> Deleted old assignments");
+
             let departmentId = null;
             let subjectId = null;
             let yearGroupId = null;
@@ -582,25 +661,38 @@ async function commitUserImport(batchId, currentUser) {
               }
             }
 
-            if (departmentId || subjectId || yearGroupId) {
-              const assignmentId = await userImportRepository.createUserAssignment({
-                userId: existingUser.UserId,
-                assignmentTypeId: assignmentType.AssignmentTypeId,
-                isPrimary: true,
-                departmentId,
-                subjectId,
-                yearGroupId,
-              });
+            console.log("[IMPORT UPDATE] >>> Creating assignment:", { userId: existingUser.UserId, assignmentTypeId: assignmentType.AssignmentTypeId, departmentId, subjectId, yearGroupId });
 
-              if (scopeType && scopeEntityId) {
-                await userImportRepository.createUserAssignmentScope({
-                  userAssignmentId: assignmentId,
-                  scopeType,
-                  scopeEntityId,
-                });
-              }
+            const assignmentId = await userImportRepository.createUserAssignment({
+              userId: existingUser.UserId,
+              assignmentTypeId: assignmentType.AssignmentTypeId,
+              isPrimary: true,
+              departmentId,
+              subjectId,
+              yearGroupId,
+            });
+
+            console.log("[IMPORT UPDATE] >>> Created assignment:", assignmentId);
+
+            if (scopeType && scopeEntityId) {
+              const scopeValue =
+                scopeType === "Department" ? row.DepartmentName :
+                scopeType === "Subject" ? row.SubjectName :
+                row.ScopeName;
+
+              await userImportRepository.createUserAssignmentScope({
+                userAssignmentId: assignmentId,
+                scopeType,
+                scopeValue,
+                scopeEntityId,
+              });
+              console.log("[IMPORT UPDATE] >>> Created scope:", scopeType, scopeValue, scopeEntityId);
             }
+          } else {
+            console.log("[IMPORT UPDATE] >>> Assignment type NOT FOUND for key:", row.AssignmentKey);
           }
+        } else {
+          console.log("[IMPORT UPDATE] >>> NO AssignmentKey for row:", row.EmployeeId);
         }
 
         await userImportRepository.markStagingImported(
@@ -608,7 +700,7 @@ async function commitUserImport(batchId, currentUser) {
           existingUser.UserId
         );
 
-        importedRows++;
+        updatedRows++;
         continue;
       }
 
@@ -712,23 +804,27 @@ async function commitUserImport(batchId, currentUser) {
             }
           }
 
-          if (departmentId || subjectId || yearGroupId) {
-            const assignmentId = await userImportRepository.createUserAssignment({
-              userId,
-              assignmentTypeId: assignmentType.AssignmentTypeId,
-              isPrimary: true,
-              departmentId,
-              subjectId,
-              yearGroupId,
-            });
+          const assignmentId = await userImportRepository.createUserAssignment({
+            userId,
+            assignmentTypeId: assignmentType.AssignmentTypeId,
+            isPrimary: true,
+            departmentId,
+            subjectId,
+            yearGroupId,
+          });
 
-            if (scopeType && scopeEntityId) {
-              await userImportRepository.createUserAssignmentScope({
-                userAssignmentId: assignmentId,
-                scopeType,
-                scopeEntityId,
-              });
-            }
+          if (scopeType && scopeEntityId) {
+            const scopeValue =
+              scopeType === "Department" ? row.DepartmentName :
+              scopeType === "Subject" ? row.SubjectName :
+              row.ScopeName;
+
+            await userImportRepository.createUserAssignmentScope({
+              userAssignmentId: assignmentId,
+              scopeType,
+              scopeValue,
+              scopeEntityId,
+            });
           }
         }
       }
@@ -740,6 +836,7 @@ async function commitUserImport(batchId, currentUser) {
 
       importedRows++;
     } catch (error) {
+      console.log("[IMPORT COMMIT] Error processing row:", row.StaffImportStagingId, error.message);
       skippedRows++;
 
       await userImportRepository.markStagingFailed(
@@ -763,6 +860,8 @@ async function commitUserImport(batchId, currentUser) {
     }
   }
 
+  console.log("[IMPORT COMMIT] Finished loop. importedRows:", importedRows, "updatedRows:", updatedRows, "skippedRows:", skippedRows, "errors:", errors.length);
+
   await userImportRepository.updateBatchImportSummary(Number(batchId), {
     importedRows,
     updatedRows,
@@ -772,6 +871,8 @@ async function commitUserImport(batchId, currentUser) {
         ? "Import completed with some skipped or failed rows."
         : "Import completed successfully.",
   });
+
+  console.log("[IMPORT COMMIT] Returning result:", { batchId: Number(batchId), importedRows, updatedRows, skippedRows, errors: errors.length });
 
   return {
     batchId: Number(batchId),

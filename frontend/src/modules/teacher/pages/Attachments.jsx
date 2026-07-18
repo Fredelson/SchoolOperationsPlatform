@@ -32,6 +32,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import usePageTitle from "@platform/hooks/usePageTitle";
+import AppFilterBar from "@platform/ui/AppFilterBar";
 
 import { useAuth } from "../../../context/AuthContext";
 
@@ -243,18 +244,29 @@ export default function Attachments() {
         >
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
             {/* Filters */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  md: "1.7fr 0.9fr 0.9fr 0.7fr",
-                },
-                gap: 2,
-                mb: 3,
-              }}
+            <AppFilterBar
+              columns={3}
+              contained={false}
+              sx={{ mb: 2 }}
+              actions={
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<RestartAltIcon />}
+                  onClick={clearFilters}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 800,
+                    color: "#2563EB",
+                    borderColor: "#D6E2FF",
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              }
             >
               <TextField
+                size="small"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -273,6 +285,8 @@ export default function Attachments() {
 
               <TextField
                 select
+                size="small"
+                label="Purpose"
                 value={purposeFilter}
                 onChange={(e) => {
                   setPurposeFilter(e.target.value);
@@ -290,6 +304,8 @@ export default function Attachments() {
 
               <TextField
                 select
+                size="small"
+                label="File type"
                 value={typeFilter}
                 onChange={(e) => {
                   setTypeFilter(e.target.value);
@@ -305,21 +321,7 @@ export default function Attachments() {
                 ))}
               </TextField>
 
-              <Button
-                variant="outlined"
-                startIcon={<RestartAltIcon />}
-                onClick={clearFilters}
-                sx={{
-                  borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 800,
-                  color: "#2563EB",
-                  borderColor: "#D6E2FF",
-                }}
-              >
-                Clear Filters
-              </Button>
-            </Box>
+            </AppFilterBar>
 
             {/* Count and Sort */}
             <Box

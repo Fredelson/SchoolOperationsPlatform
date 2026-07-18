@@ -19,11 +19,7 @@
 // • No dialog logic
 // ============================================
 
-import {
-  Grid,
-  MenuItem,
-  TextField,
-} from "@mui/material";
+import { MenuItem, TextField } from "@mui/material";
 
 import AppButton from "../../../../platform/ui/AppButton";
 import AppToolbar from "../../../../platform/ui/AppToolbar";
@@ -37,12 +33,9 @@ export default function ButtonFilters({
   onCreate,
 }) {
   return (
-    <AppToolbar>
-      <Grid container spacing={2} alignItems="center">
-        {/* ============================================
-            Search
-        ============================================ */}
-        <Grid item xs={12} md={4}>
+    <AppToolbar
+      left={
+        <>
           <TextField
             fullWidth
             size="small"
@@ -53,12 +46,7 @@ export default function ButtonFilters({
               onFilterChange("search", event.target.value)
             }
           />
-        </Grid>
 
-        {/* ============================================
-            Module Filter
-        ============================================ */}
-        <Grid item xs={12} md={3}>
           <TextField
             select
             fullWidth
@@ -80,12 +68,7 @@ export default function ButtonFilters({
               </MenuItem>
             ))}
           </TextField>
-        </Grid>
 
-        {/* ============================================
-            Visibility Filter
-        ============================================ */}
-        <Grid item xs={12} md={3}>
           <TextField
             select
             fullWidth
@@ -116,23 +99,12 @@ export default function ButtonFilters({
               </MenuItem>
             ))}
           </TextField>
-        </Grid>
-
-        {/* ============================================
-            Actions
-        ============================================ */}
-        <Grid
-          item
-          xs={12}
-          md={2}
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 1,
-            flexWrap: "wrap",
-          }}
-        >
+        </>
+      }
+      right={
+        <>
           <AppButton
+            size="small"
             variant="outlined"
             onClick={onReset}
           >
@@ -140,6 +112,7 @@ export default function ButtonFilters({
           </AppButton>
 
           <AppButton
+            size="small"
             variant="outlined"
             onClick={onRefresh}
           >
@@ -147,13 +120,14 @@ export default function ButtonFilters({
           </AppButton>
 
           <AppButton
+            size="small"
             variant="contained"
             onClick={onCreate}
           >
             New Button
           </AppButton>
-        </Grid>
-      </Grid>
+        </>
+      }
     </AppToolbar>
   );
 }

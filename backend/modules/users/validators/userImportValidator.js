@@ -67,11 +67,24 @@ function validateImportFile(file) {
 /**
  * Validate workbook/CSV columns.
  */
+function getRowField(row, fieldName) {
+  const target = String(fieldName || "").toLowerCase();
+  const keys = Object.keys(row || {});
+
+  for (const key of keys) {
+    if (String(key || "").toLowerCase() === target) {
+      return row[key];
+    }
+  }
+
+  return undefined;
+}
+
 function validateColumns(row) {
   const missingColumns = [];
 
   REQUIRED_COLUMNS.forEach((column) => {
-    if (!Object.prototype.hasOwnProperty.call(row, column)) {
+    if (!Object.prototype.hasOwnProperty.call(row, column) && getRowField(row, column) === undefined) {
       missingColumns.push(column);
     }
   });
@@ -83,7 +96,8 @@ function validateOptionalColumns(row) {
   const warnings = [];
 
   OPTIONAL_COLUMNS.forEach((column) => {
-    if (Object.prototype.hasOwnProperty.call(row, column) && row[column] && String(row[column]).trim()) {
+    const value = getRowField(row, column);
+    if (value && String(value).trim()) {
     }
   });
 
@@ -103,6 +117,33 @@ function validateRowCount(rows) {
   }
 
   return null;
+}
+
+const ASSIGNMENT_KEY_MAP = {
+  hod: "HOD",
+  hos: "HOS",
+  homeroomteacher: "HOMEROOM_TEACHER",
+  "yearleader": "YEAR_LEADER",
+  "year leader": "YEAR_LEADER",
+  deputyhead: "DEPUTY_HEAD",
+  "deputy head": "DEPUTY_HEAD",
+  headofoperations: "HEAD_OF_OPERATIONS",
+  "head of operations": "HEAD_OF_OPERATIONS",
+  nurse: "NURSE",
+  teachingassistant: "TEACHING_ASSISTANT",
+  "teaching assistant": "TEACHING_ASSISTANT",
+  itcoordinator: "IT_COORDINATOR",
+  "it coordinator": "IT_COORDINATOR",
+  printingcoordinator: "PRINTING_COORDINATOR",
+  "printing coordinator": "PRINTING_COORDINATOR",
+};
+
+function normalizeAssignmentKey(key) {
+  const compact = String(key || "")
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+  return ASSIGNMENT_KEY_MAP[compact] || String(key || "").trim();
 }
 
 /**
@@ -137,15 +178,15 @@ function validateMainRole(role) {
  */
 function normalizeRow(row) {
   return {
-    employeeId: String(row.EmployeeId || "").trim(),
-    fullName: String(row.FullName || "").trim(),
-    schoolEmail: String(row.SchoolEmail || "").trim().toLowerCase(),
-    role: normalizeRoleKey(row.Role),
-    assignmentKey: String(row.AssignmentKey || "").trim(),
-    scopeType: String(row.ScopeType || "").trim(),
-    scopeName: String(row.ScopeName || "").trim(),
-    department: String(row.Department || "").trim(),
-    subject: String(row.Subject || "").trim(),
+    employeeId: String(getRowField(row, "EmployeeId") || "").trim(),
+    fullName: String(getRowField(row, "FullName") || "").trim(),
+    schoolEmail: String(getRowField(row, "SchoolEmail") || "").trim().toLowerCase(),
+    role: normalizeRoleKey(getRowField(row, "Role")),
+    assignmentKey: normalizeAssignmentKey(getRowField(row, "AssignmentKey")),
+    scopeType: String(getRowField(row, "ScopeType") || "").trim(),
+    scopeName: String(getRowField(row, "ScopeName") || "").trim(),
+    department: String(getRowField(row, "Department") || "").trim(),
+    subject: String(getRowField(row, "Subject") || "").trim(),
   };
 }
 
@@ -200,6 +241,7 @@ module.exports = {
   validateOptionalColumns,
   validateRowCount,
   normalizeRoleKey,
+  normalizeAssignmentKey,
   normalizeRow,
   validateMainRole,
   validateRequiredFields,

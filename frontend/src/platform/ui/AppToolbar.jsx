@@ -9,8 +9,8 @@
 // search, exports, and page actions.
 // ============================================
 
-import { Box, Stack } from "@mui/material";
 import AppSearch from "./AppSearch";
+import AppFilterBar from "./AppFilterBar";
 
 // ============================================
 // Component
@@ -22,51 +22,28 @@ export default function AppToolbar({
   children = null,
   searchValue,
   onSearchChange,
-  card = false,
+  searchPlaceholder = "Search...",
+  columns = "auto",
+  card = true,
+  actions = null,
   sx = {},
 }) {
   return (
-    <Box
-      sx={{
-        mb: 2,
-        display: "flex",
-        alignItems: { xs: "stretch", md: "center" },
-        justifyContent: "space-between",
-        gap: 2,
-        flexDirection: { xs: "column", md: "row" },
-
-        ...(card && {
-          p: 2,
-          borderRadius: 3,
-          bgcolor: "background.paper",
-          border: "1px solid",
-          borderColor: "divider",
-        }),
-
-        ...sx,
-      }}
+    <AppFilterBar
+      columns={columns}
+      contained={card}
+      actions={right || actions}
+      sx={sx}
     >
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1.5}
-        sx={{ flex: 1 }}
-      >
-        {searchValue !== undefined && onSearchChange && (
-          <AppSearch value={searchValue} onChange={onSearchChange} />
-        )}
-        {left || children}
-      </Stack>
-
-      {right && (
-        <Stack
-          direction="row"
-          spacing={1.5}
-          justifyContent={{ xs: "flex-start", md: "flex-end" }}
-          flexWrap="wrap"
-        >
-          {right}
-        </Stack>
+      {searchValue !== undefined && onSearchChange && (
+        <AppSearch
+          value={searchValue}
+          onChange={onSearchChange}
+          placeholder={searchPlaceholder}
+          sx={{ maxWidth: "none" }}
+        />
       )}
-    </Box>
+      {left || children}
+    </AppFilterBar>
   );
 }

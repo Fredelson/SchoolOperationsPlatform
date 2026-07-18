@@ -38,7 +38,7 @@ import {
   AssignmentInd,
 } from "@mui/icons-material";
 
-import { AppPageHeader } from "../../../platform/ui";
+import { AppFilterBar, AppPageHeader } from "../../../platform/ui";
 
 import {
   getUsers,
@@ -103,6 +103,7 @@ export default function UserManagement() {
         response?.items ||
         [];
 
+      console.log("Load users response:", response, "usersList length:", usersList.length);
       setUsers(Array.isArray(usersList) ? usersList : []);
     } catch (error) {
       console.error("Load users error:", error);
@@ -256,6 +257,7 @@ export default function UserManagement() {
       const response = await previewUserImport(importFile);
       const data = response?.data || response;
 
+      console.log("Preview import response:", data);
       setImportPreview(data);
     } catch (error) {
       console.error("Preview user import error:", error);
@@ -277,8 +279,10 @@ export default function UserManagement() {
       const response = await commitUserImport(importPreview.batchId);
       const data = response?.data || response;
 
+      console.log("Commit import response:", data);
       setCommitResult(data);
       setImportFile(null);
+      setImportPreview(null);
 
       await loadUsers();
     } catch (error) {
@@ -308,9 +312,11 @@ export default function UserManagement() {
           Import Users
         </Typography>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Required columns: FullName, EmployeeId, SchoolEmail, Role. Optional: AssignmentKey, ScopeType, ScopeName
-        </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Required: FullName, EmployeeId, SchoolEmail, Role. Optional: Department, Subject, AssignmentKey, ScopeType, ScopeName.
+            Role examples: Teacher, Admin. AssignmentKey examples: HOD, HOS, YEAR_LEADER, HOMEROOM_TEACHER, DEPUTY_HEAD.
+            ScopeType examples: Department, Subject, YearGroup. ScopeName should be the actual name (e.g., Primary, English, Grade 1), not an ID.
+          </Typography>
 
         <Box
           sx={{
@@ -402,6 +408,23 @@ export default function UserManagement() {
           <Alert severity="success" sx={{ mt: 2 }}>
             Import committed. Imported: {commitResult.importedRows || 0}, Updated:{" "}
             {commitResult.updatedRows || 0}, Skipped: {commitResult.skippedRows || 0}
+            {commitResult.errors && commitResult.errors.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" display="block">
+                  Some rows were skipped:
+                </Typography>
+                {commitResult.errors.slice(0, 5).map((err, idx) => (
+                  <Typography key={idx} variant="caption" display="block">
+                    - {err.employeeId}: {err.message}
+                  </Typography>
+                ))}
+                {commitResult.errors.length > 5 && (
+                  <Typography variant="caption" display="block">
+                    ...and {commitResult.errors.length - 5} more.
+                  </Typography>
+                )}
+              </Box>
+            )}
           </Alert>
         )}
 
@@ -472,47 +495,40 @@ export default function UserManagement() {
           boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 2,
-            mb: 3,
-            flexWrap: "wrap",
-          }}
+        <AppFilterBar
+          contained={false}
+          sx={{ mb: 2 }}
+          actions={
+            <Button size="small" variant="contained" startIcon={<Add />} onClick={handleAdd}>
+              Add User
+            </Button>
+          }
         >
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <TextField
-              size="small"
-              label="Search user"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <TextField
+            size="small"
+            label="Search user"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-            <TextField
-              select
-              size="small"
-              label="Role"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              sx={{ minWidth: 180 }}
-            >
-              <MenuItem value="All">All Roles</MenuItem>
-              {roles.map((role) => (
-                <MenuItem
-                  key={role.RoleId || role.roleId}
-                  value={role.RoleName || role.RoleKey || role.roleName}
-                >
-                  {role.DisplayName || role.RoleName || role.RoleKey}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
-
-          <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
-            Add User
-          </Button>
-        </Box>
+          <TextField
+            select
+            size="small"
+            label="Role"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <MenuItem value="All">All Roles</MenuItem>
+            {roles.map((role) => (
+              <MenuItem
+                key={role.RoleId || role.roleId}
+                value={role.RoleName || role.RoleKey || role.roleName}
+              >
+                {role.DisplayName || role.RoleName || role.RoleKey}
+              </MenuItem>
+            ))}
+          </TextField>
+        </AppFilterBar>
 
         <Typography fontWeight={700} mb={2}>
           Total Users: {filteredUsers.length}

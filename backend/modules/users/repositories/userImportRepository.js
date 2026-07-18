@@ -474,6 +474,8 @@ async function logImportError(data) {
  * Find assignment type by key.
  */
 async function findAssignmentTypeByKey(assignmentKey) {
+  if (!assignmentKey) return null;
+
   const result = await executeQuery(
     `
     SELECT TOP 1
@@ -483,10 +485,10 @@ async function findAssignmentTypeByKey(assignmentKey) {
       IsActive
     FROM dbo.AssignmentTypes
     WHERE IsActive = 1
-      AND AssignmentKey = @AssignmentKey;
+      AND UPPER(AssignmentKey) = UPPER(@AssignmentKey);
     `,
     [
-      { name: "AssignmentKey", type: sql.NVarChar, value: assignmentKey },
+      { name: "AssignmentKey", type: sql.NVarChar, value: String(assignmentKey) },
     ]
   );
 
@@ -554,6 +556,7 @@ async function findSubjectByName(subjectName) {
  * Update existing user from import data.
  */
 async function updateUserFromImport(data) {
+  console.log("[IMPORT REPO] updateUserFromImport:", data);
   await executeQuery(
     `
     UPDATE dbo.Users
@@ -573,12 +576,14 @@ async function updateUserFromImport(data) {
       { name: "LegacyRole", type: sql.NVarChar, value: data.legacyRole },
     ]
   );
+  console.log("[IMPORT REPO] updateUserFromImport: done");
 }
 
 /**
  * Create user assignment after user import.
  */
 async function createUserAssignment(data) {
+  console.log("[IMPORT REPO] createUserAssignment:", data);
   const result = await executeQuery(
     `
     INSERT INTO dbo.UserAssignments
@@ -621,13 +626,16 @@ async function createUserAssignment(data) {
     ]
   );
 
-  return insertedId(result, "UserAssignmentId");
+  const id = insertedId(result, "UserAssignmentId");
+  console.log("[IMPORT REPO] createUserAssignment: created id", id);
+  return id;
 }
 
 /**
  * Create user assignment scope.
  */
 async function createUserAssignmentScope(data) {
+  console.log("[IMPORT REPO] createUserAssignmentScope:", data);
   await executeQuery(
     `
     INSERT INTO dbo.UserAssignmentScopes
@@ -644,7 +652,7 @@ async function createUserAssignmentScope(data) {
     (
       @UserAssignmentId,
       @ScopeType,
-      CONVERT(nvarchar(50), @ScopeEntityId),
+      @ScopeValue,
       @ScopeEntityId,
       1,
       1,
@@ -654,31 +662,38 @@ async function createUserAssignmentScope(data) {
     [
       { name: "UserAssignmentId", type: sql.Int, value: data.userAssignmentId },
       { name: "ScopeType", type: sql.NVarChar, value: data.scopeType },
+      { name: "ScopeValue", type: sql.NVarChar, value: data.scopeValue || null },
       { name: "ScopeEntityId", type: sql.Int, value: data.scopeEntityId },
     ]
   );
+  console.log("[IMPORT REPO] createUserAssignmentScope: done");
 }
 
 /**
  * Find all assignments for a user.
  */
 async function findUserAssignments(userId) {
+  console.log("[IMPORT REPO] findUserAssignments for userId:", userId);
   const result = await executeQuery(
     `
-    SELECT UserAssignmentId, AssignmentTypeId, DepartmentId, SubjectId, YearLevelId, ClassId, RoomId
-    FROM dbo.UserAssignments
-    WHERE UserId = @UserId;
+    SELECT ua.UserAssignmentId, ua.AssignmentTypeId, ua.DepartmentId, ua.SubjectId, ua.YearLevelId, ua.ClassId, ua.RoomId, at.AssignmentKey
+    FROM dbo.UserAssignments ua
+    JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId = ua.AssignmentTypeId
+    WHERE ua.UserId = @UserId;
     `,
     [{ name: "UserId", type: sql.Int, value: Number(userId) }]
   );
 
-  return rows(result);
+  const assignments = rows(result);
+  console.log("[IMPORT REPO] findUserAssignments result:", assignments);
+  return assignments;
 }
 
 /**
  * Delete all assignments and scopes for a user.
  */
 async function deleteUserAssignments(userId) {
+  console.log("[IMPORT REPO] deleteUserAssignments for userId:", userId);
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
 
@@ -702,6 +717,7 @@ async function deleteUserAssignments(userId) {
       `);
 
     await transaction.commit();
+    console.log("[IMPORT REPO] deleteUserAssignments: done");
   } catch (error) {
     if (transaction._aborted !== true) {
       await transaction.rollback();

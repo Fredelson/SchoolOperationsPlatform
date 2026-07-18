@@ -3,7 +3,7 @@
 // Arab Unity School Operations Platform
 // ============================================
 
-import { Button, MenuItem, Stack, TextField } from "@mui/material";
+import { Box, Button, MenuItem, TextField } from "@mui/material";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
 
 const getId = (item, keys) => {
@@ -46,7 +46,7 @@ const AssetExplorerFilters = ({
   };
 
   return (
-    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+    <Box sx={{ display: "contents" }}>
       <TextField
         select
         size="small"
@@ -116,23 +116,22 @@ const AssetExplorerFilters = ({
         startIcon={<ClearRoundedIcon />}
         onClick={onClear}
         sx={{
-          height: 38,
-          borderRadius: 2.5,
+          height: 36,
+          borderRadius: 2,
           fontWeight: 800,
           whiteSpace: "nowrap",
         }}
       >
         Clear
       </Button>
-    </Stack>
+    </Box>
   );
 };
 
 const selectSx = {
-  minWidth: 160,
   "& .MuiOutlinedInput-root": {
-    height: 38,
-    borderRadius: 2.5,
+    height: 36,
+    borderRadius: 2,
   },
 };
 

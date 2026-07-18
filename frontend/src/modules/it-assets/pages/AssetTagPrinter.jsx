@@ -33,8 +33,8 @@ import {
   AppButton,
   AppCard,
   AppEmptyState,
+  AppFilterBar,
   AppFormField,
-  AppFormGrid,
   AppPageHeader,
 } from "../../../platform/ui";
 
@@ -525,7 +525,19 @@ function AssetTagPrinter() {
           <AppCard>
             <Stack spacing={2}>
               <Typography variant="subtitle1" fontWeight={900}>Asset Filters</Typography>
-              <AppFormGrid>
+              <AppFilterBar
+                columns={5}
+                contained={false}
+                actions={
+                  <>
+                    <AppButton size="small" onClick={() => setFilters(draftFilters)}>Apply</AppButton>
+                    <AppButton size="small" variant="outlined" onClick={() => {
+                      setDraftFilters(emptyFilters);
+                      setFilters(emptyFilters);
+                    }}>Reset</AppButton>
+                  </>
+                }
+              >
                 {[
                   ["categoryId", "Category", lookups.categories, "ITAssetCategoryId", "CategoryName"],
                   ["brandId", "Brand", brandOptions, "ITAssetBrandId", "BrandName"],
@@ -537,7 +549,7 @@ function AssetTagPrinter() {
                   ["roomId", "Room", roomOptions, "RoomId", "RoomName"],
                   ["assignedUserId", "Assigned User", lookups.users, "UserId", "FullName"],
                 ].map(([key, label, optionsList, valueKey, labelKey]) => (
-                  <AppFormField key={key} type="autocomplete" label={label}
+                  <AppFormField key={key} type="autocomplete" size="small" label={label}
                     value={draftFilters[key]} options={optionsList || []}
                     valueKey={valueKey} labelKey={labelKey}
                     onChange={(value) => setDraftFilters((current) => ({
@@ -547,14 +559,7 @@ function AssetTagPrinter() {
                       ...(key === "locationId" ? { roomId: "" } : {}),
                     }))} />
                 ))}
-              </AppFormGrid>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <AppButton onClick={() => setFilters(draftFilters)}>Apply Filters</AppButton>
-                <AppButton variant="outlined" onClick={() => {
-                  setDraftFilters(emptyFilters);
-                  setFilters(emptyFilters);
-                }}>Reset Filters</AppButton>
-              </Stack>
+              </AppFilterBar>
             </Stack>
           </AppCard>
         )}

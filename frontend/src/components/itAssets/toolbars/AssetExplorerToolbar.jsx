@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   InputAdornment,
-  Paper,
   Stack,
   TextField,
   Typography,
@@ -17,6 +16,9 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import AppFilterBar from "../../../platform/ui/AppFilterBar";
 
 const AssetExplorerToolbar = ({
   title = "Asset Management",
@@ -28,6 +30,8 @@ const AssetExplorerToolbar = ({
   onRefresh,
   onImport,
   onAddAsset,
+  onExport,
+  onDownloadTemplate,
 }) => {
   return (
     <Box sx={{ mb: 2 }}>
@@ -68,6 +72,26 @@ const AssetExplorerToolbar = ({
           <Button
             size="small"
             variant="outlined"
+            startIcon={<DownloadRoundedIcon />}
+            onClick={onDownloadTemplate}
+            sx={actionButtonSx}
+          >
+            Template
+          </Button>
+
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadRoundedIcon />}
+            onClick={onExport}
+            sx={actionButtonSx}
+          >
+            Export
+          </Button>
+
+          <Button
+            size="small"
+            variant="outlined"
             startIcon={<UploadFileRoundedIcon />}
             onClick={onImport}
             sx={actionButtonSx}
@@ -87,45 +111,30 @@ const AssetExplorerToolbar = ({
         </Stack>
       </Stack>
 
-      <Paper
-        elevation={0}
-        sx={(theme) => ({
-          p: 1,
-          borderRadius: 3,
-          border: `1px solid ${theme.palette.divider}`,
-          bgcolor: theme.palette.background.paper,
-        })}
-      >
-        <Stack
-          direction={{ xs: "column", xl: "row" }}
-          spacing={1}
-          alignItems={{ xs: "stretch", xl: "center" }}
-        >
-          <TextField
-            fullWidth
-            size="small"
-            value={search}
-            onChange={(event) => onSearchChange?.(event.target.value)}
-            placeholder={searchPlaceholder}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon color="action" fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              maxWidth: { xl: 560 },
-              "& .MuiOutlinedInput-root": {
-                height: 38,
-                borderRadius: 2.5,
-              },
-            }}
-          />
+      <AppFilterBar columns={5} sx={{ mb: 0 }}>
+        <TextField
+          fullWidth
+          size="small"
+          value={search}
+          onChange={(event) => onSearchChange?.(event.target.value)}
+          placeholder={searchPlaceholder}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon color="action" fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              height: 36,
+              borderRadius: 2,
+            },
+          }}
+        />
 
-          {filtersContent}
-        </Stack>
-      </Paper>
+        {filtersContent}
+      </AppFilterBar>
     </Box>
   );
 };

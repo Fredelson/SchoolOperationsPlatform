@@ -47,6 +47,61 @@ const getAssetById = async (assetId) => {
   return asset;
 };
 
+const exportAssets = async () => {
+  const assets = await itAssetRepository.getAssetsForExport();
+
+  const headers = [
+    "AssetCode",
+    "Category",
+    "Brand",
+    "Model",
+    "AssetName",
+    "SerialNumber",
+    "Status",
+    "Condition",
+    "AssignedTo",
+    "EmployeeCode",
+    "Department",
+    "Location",
+    "Room",
+    "PurchaseDate",
+    "PreviousOwner",
+    "IsActive",
+    "CreatedAt",
+    "UpdatedAt",
+  ];
+
+  const rows = assets.map((asset) => [
+    asset.AssetTag || "",
+    asset.CategoryName || "",
+    asset.BrandName || "",
+    asset.ModelName || "",
+    asset.ModelDescription || "",
+    asset.SerialIpMac || "",
+    asset.StatusName || "",
+    asset.ConditionName || "",
+    asset.CurrentAssignedUserName || asset.CurrentAssignedName || "",
+    asset.CurrentAssignedEmployeeCode || "",
+    asset.DepartmentName || "",
+    asset.LocationName || "",
+    asset.RoomName || "",
+    asset.AcquiredChangedDate ? new Date(asset.AcquiredChangedDate).toISOString().slice(0, 10) : "",
+    asset.PreviousOwner || "",
+    asset.IsActive ? "Active" : "Inactive",
+    asset.CreatedAt ? new Date(asset.CreatedAt).toISOString().slice(0, 10) : "",
+    asset.UpdatedAt ? new Date(asset.UpdatedAt).toISOString().slice(0, 10) : "",
+  ]);
+
+  const csv = [
+    headers.join(","),
+    ...rows.map((row) =>
+      row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(",")
+    ),
+  ].join("\n");
+
+  return { csv };
+};
+
 module.exports = {
   getAssets,
   getAssetById,

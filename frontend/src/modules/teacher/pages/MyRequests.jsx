@@ -43,6 +43,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
+import AppFilterBar from "@platform/ui/AppFilterBar";
 import DescriptionIcon from "@mui/icons-material/Description";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
@@ -316,16 +317,7 @@ export default function MyRequests() {
         }}
       >
         <CardContent>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                md: "1fr 220px",
-              },
-              gap: 2,
-            }}
-          >
+          <AppFilterBar contained={false}>
             <TextField
               size="small"
               placeholder="Search request ID, purpose or subject..."
@@ -364,7 +356,7 @@ export default function MyRequests() {
               <MenuItem value="Rejected by HOD">Rejected by HOD</MenuItem>
               <MenuItem value="Rejected by HOS">Rejected by HOS</MenuItem>
             </TextField>
-          </Box>
+          </AppFilterBar>
         </CardContent>
       </Card>
 

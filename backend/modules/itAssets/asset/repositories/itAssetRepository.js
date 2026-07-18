@@ -201,6 +201,62 @@ const getAssets = async ({
 };
 
 /**
+ * Get all active assets for export (no pagination).
+ */
+const getAssetsForExport = async () => {
+  const pool = await poolPromise;
+
+  const result = await pool.request().query(`
+    SELECT
+      a.AssetTag,
+      c.CategoryName,
+      b.BrandName,
+      m.ModelName,
+      a.ModelDescription,
+      a.SerialIpMac,
+      s.StatusName,
+      con.ConditionName,
+      u.FullName AS CurrentAssignedUserName,
+      a.CurrentAssignedName,
+      a.CurrentAssignedEmployeeCode,
+      a.CurrentAssignedEmail,
+      r.RoomName,
+      d.DepartmentName,
+      l.LocationName,
+      a.AcquiredChangedDate,
+      a.PreviousOwner,
+      a.IsActive,
+      a.CreatedAt,
+      a.UpdatedAt
+    FROM dbo.ITAssets a
+    INNER JOIN dbo.ITAssetCategories c
+      ON a.ITAssetCategoryId = c.ITAssetCategoryId
+    LEFT JOIN dbo.ITAssetModels m
+      ON a.ITAssetModelId = m.ITAssetModelId
+    LEFT JOIN dbo.ITAssetBrands b
+      ON m.ITAssetBrandId = b.ITAssetBrandId
+    INNER JOIN dbo.ITAssetStatuses s
+      ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetConditions con
+      ON a.ITAssetConditionId = con.ITAssetConditionId
+    LEFT JOIN dbo.Users u
+      ON a.CurrentAssignedUserId = u.UserId
+    LEFT JOIN dbo.Rooms r
+      ON a.CurrentRoomId = r.RoomId
+    LEFT JOIN dbo.Departments d
+      ON a.CurrentDepartmentId = d.DepartmentId
+    LEFT JOIN dbo.Locations l
+      ON a.CurrentLocationId = l.LocationId
+    WHERE
+      a.IsDeleted = 0
+      AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+    ORDER BY a.AssetId DESC;
+  `);
+
+  return result.recordset || [];
+};
+
+/**
  * Get one asset by ID.
  *
  * Important:

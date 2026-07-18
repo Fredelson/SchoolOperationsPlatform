@@ -18,6 +18,7 @@ import {
   AppButton,
   AppCard,
   AppEmptyState,
+  AppFilterBar,
   AppLoadingState,
   AppPageHeader,
 } from "../../../platform/ui";
@@ -232,7 +233,7 @@ export default function RoundedAssetTagPrinter() {
         {!error && (
           <AppCard sx={{ mb: 2 }}>
             <Stack spacing={2}>
-              <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+              <AppFilterBar contained={false}>
                 <TextField
                   size="small"
                   label="Search assets"
@@ -257,7 +258,7 @@ export default function RoundedAssetTagPrinter() {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Stack>
+              </AppFilterBar>
 
               <Alert severity="info">
                 Print using 100% or Actual Size. Disable Fit to Page.

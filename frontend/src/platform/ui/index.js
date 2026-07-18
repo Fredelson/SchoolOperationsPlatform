@@ -35,3 +35,4 @@ export { default as AppConfirmDialog } from "./AppConfirmDialog";
 // States
 export { default as AppEmptyState } from "./AppEmptyState";
 export { default as AppLoadingState } from "./AppLoadingState";
+export { default as AppFilterBar } from "./AppFilterBar";

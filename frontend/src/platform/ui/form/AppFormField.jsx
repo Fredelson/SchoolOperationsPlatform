@@ -59,6 +59,7 @@ export default function AppFormField({
   helperText = "",
   multiple = false,
   inputType = "text",
+  size = "medium",
 }) {
   // Full-width field inside AppDialogForm grid
   const gridColumn = full
@@ -79,6 +80,7 @@ export default function AppFormField({
         fullWidth
         label={label}
         value={value}
+        size={size}
         required={required}
         disabled={disabled}
         helperText={helperText}
@@ -123,6 +125,7 @@ export default function AppFormField({
     return (
       <Autocomplete
         multiple={multiple}
+        size={size}
         options={options}
         value={selected}
         disabled={disabled}
@@ -154,6 +157,7 @@ export default function AppFormField({
           <TextField
             {...params}
             label={label}
+            size={size}
             required={required}
             helperText={helperText}
           />
@@ -172,6 +176,7 @@ export default function AppFormField({
       fullWidth
       label={label}
       value={value}
+      size={size}
       required={required}
       disabled={disabled}
       multiline={multiline}

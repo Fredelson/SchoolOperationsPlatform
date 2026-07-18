@@ -161,3 +161,25 @@ export const getItAssetBorrowHistoryApi = async (params = {}) => {
   const response = await api.get("/it-assets/borrow/history", { params });
   return response.data;
 };
+
+/**
+ * Export all IT assets as CSV.
+ */
+export const exportItAssetsApi = async () => {
+  const response = await api.get("/it-assets/export", {
+    responseType: "blob",
+  });
+
+  const blob = new Blob([response.data], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "ITAssetsExport.csv";
+  link.click();
+
+  URL.revokeObjectURL(url);
+};

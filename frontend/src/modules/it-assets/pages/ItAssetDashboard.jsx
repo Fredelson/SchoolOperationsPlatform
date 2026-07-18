@@ -10,7 +10,7 @@ import usePageTitle from "../../../platform/hooks/usePageTitle";
 import { useAuth } from "../../../context/AuthContext";
 import {
   AppBreadcrumbs, AppButton, AppCard, AppChip, AppEmptyState, AppFormField,
-  AppDataTable, AppFormGrid, AppLoadingState, AppPageHeader, AppStatCards, AppToolbar,
+  AppDataTable, AppFilterBar, AppLoadingState, AppPageHeader, AppStatCards, AppToolbar,
 } from "../../../platform/ui";
 import { getItAssetLookupsService } from "../services/itAssetService";
 import { useItAssetDashboard } from "../hooks/useItAssetDashboard";
@@ -184,25 +184,30 @@ const ItAssetDashboard = ({ reportMode = false }) => {
             </Stack>
             <Collapse in={filtersOpen}>
               <Stack spacing={1.5} sx={{ pt: 1 }}>
-            <AppFormGrid columns={4} gap={1.5}>
-              {FILTER_CONFIG.map(([key, label, source, valueKey, labelKey]) => (
-                <AppFormField key={key} type="autocomplete" label={label}
-                  value={draftFilters[key]}
-                  options={key === "modelId" ? models : key === "roomId" ? rooms : lookups[source] || []}
-                  valueKey={valueKey} labelKey={labelKey}
-                  onChange={(value) => setDraftFilters((current) => ({ ...current, [key]: value,
-                    ...(key === "brandId" ? { modelId: "" } : {}),
-                    ...(key === "locationId" ? { roomId: "" } : {}) }))} />
-              ))}
-              <AppFormField label="Date From (YYYY-MM-DD)" value={draftFilters.dateFrom}
-                onChange={(value) => setDraftFilters((current) => ({ ...current, dateFrom: value }))} />
-              <AppFormField label="Date To (YYYY-MM-DD)" value={draftFilters.dateTo}
-                onChange={(value) => setDraftFilters((current) => ({ ...current, dateTo: value }))} />
-            </AppFormGrid>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
-              <AppButton onClick={applyFilters}>Apply Filters</AppButton>
-              <AppButton variant="outlined" onClick={resetFilters}>Reset Filters</AppButton>
-            </Stack>
+                <AppFilterBar
+                  columns={6}
+                  contained={false}
+                  actions={
+                    <>
+                      <AppButton size="small" onClick={applyFilters}>Apply</AppButton>
+                      <AppButton size="small" variant="outlined" onClick={resetFilters}>Reset</AppButton>
+                    </>
+                  }
+                >
+                  {FILTER_CONFIG.map(([key, label, source, valueKey, labelKey]) => (
+                    <AppFormField key={key} type="autocomplete" size="small" label={label}
+                      value={draftFilters[key]}
+                      options={key === "modelId" ? models : key === "roomId" ? rooms : lookups[source] || []}
+                      valueKey={valueKey} labelKey={labelKey}
+                      onChange={(value) => setDraftFilters((current) => ({ ...current, [key]: value,
+                        ...(key === "brandId" ? { modelId: "" } : {}),
+                        ...(key === "locationId" ? { roomId: "" } : {}) }))} />
+                  ))}
+                  <AppFormField size="small" label="Date From (YYYY-MM-DD)" value={draftFilters.dateFrom}
+                    onChange={(value) => setDraftFilters((current) => ({ ...current, dateFrom: value }))} />
+                  <AppFormField size="small" label="Date To (YYYY-MM-DD)" value={draftFilters.dateTo}
+                    onChange={(value) => setDraftFilters((current) => ({ ...current, dateTo: value }))} />
+                </AppFilterBar>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {filterLabels.length ? filterLabels.map((label) => <AppChip key={label} label={label} />)
                 : <Typography variant="caption" color="text.secondary">No active filters</Typography>}

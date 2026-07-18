@@ -67,6 +67,7 @@ import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
 import usePageTitle from "@platform/hooks/usePageTitle";
+import AppFilterBar from "@platform/ui/AppFilterBar";
 
 import { getTeacherReportsData } from "../../../services/teacherReportService";
 import { getMasterData } from "../../../services/masterService";
@@ -512,16 +513,50 @@ export default function TeacherReports() {
 
         {/* FILTER BAR */}
         <ReportCard sx={{ mt: 2 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                md: "repeat(4, 1fr) auto auto",
-              },
-              gap: 2,
-              alignItems: "end",
-            }}
+          <AppFilterBar
+            columns={4}
+            contained={false}
+            actions={
+              <>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<RestartAltOutlined />}
+                  onClick={resetFilters}
+                  sx={actionButtonStyle}
+                >
+                  Reset
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<FilterAltOutlined />}
+                  onClick={loadReports}
+                  disabled={loading}
+                  sx={{ ...actionButtonStyle, bgcolor: COLORS.navy }}
+                >
+                  Apply
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<TableChartOutlined />}
+                  onClick={handleExportExcel}
+                  sx={{ ...actionButtonStyle, bgcolor: COLORS.green }}
+                >
+                  Excel
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<PictureAsPdfOutlined />}
+                  onClick={handleExportPdf}
+                  sx={{ ...actionButtonStyle, bgcolor: COLORS.blue }}
+                >
+                  PDF
+                </Button>
+              </>
+            }
           >
             <TextField
               select
@@ -584,51 +619,7 @@ export default function TeacherReports() {
               ))}
             </TextField>
 
-            <Button
-              variant="outlined"
-              startIcon={<RestartAltOutlined />}
-              onClick={resetFilters}
-              sx={actionButtonStyle}
-            >
-              Reset Filters
-            </Button>
-
-            <Box sx={{ display: "grid", gap: 1 }}>
-              <Button
-                variant="contained"
-                startIcon={<TableChartOutlined />}
-                onClick={handleExportExcel}
-                sx={{ ...actionButtonStyle, bgcolor: COLORS.green }}
-              >
-                Export Excel
-              </Button>
-
-              <Button
-                variant="contained"
-                startIcon={<PictureAsPdfOutlined />}
-                onClick={handleExportPdf}
-                sx={{ ...actionButtonStyle, bgcolor: COLORS.blue }}
-              >
-                Export PDF
-              </Button>
-            </Box>
-          </Box>
-
-          <Button
-            variant="contained"
-            startIcon={<FilterAltOutlined />}
-            onClick={loadReports}
-            disabled={loading}
-            sx={{
-              mt: 2,
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 900,
-              bgcolor: COLORS.navy,
-            }}
-          >
-            Apply Filters
-          </Button>
+          </AppFilterBar>
         </ReportCard>
 
         {/* CHART ROW */}

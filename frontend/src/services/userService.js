@@ -79,15 +79,15 @@ export const getUserImportHistory = async () => {
 export const downloadCSVUserTemplate = () => {
   const headers = ["FullName", "EmployeeId", "SchoolEmail", "Role", "Department", "Subject", "AssignmentKey", "ScopeType", "ScopeName"];
   const sample = [
-    "Sample Teacher",
+    "Ahmed Ali",
     "T0001",
-    "sample.teacher@arabunityschool.ae",
+    "ahmed.ali@arabunityschool.ae",
     "Teacher",
     "Primary",
     "English",
     "HOD",
-    "YearGroup",
-    "Grade 1",
+    "Department",
+    "Primary",
   ];
 
   const csv = `${headers.join(",")}\n${sample.join(",")}`;

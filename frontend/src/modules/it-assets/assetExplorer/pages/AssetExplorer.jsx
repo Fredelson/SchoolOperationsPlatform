@@ -23,6 +23,9 @@ import {
   commitItAssetsImportService,
 } from "../../services/itAssetImportService";
 
+import { downloadAssetImportTemplate } from "../../utils/assetImportTemplate";
+import { exportItAssetsApi } from "../../api/itAssetApi";
+
 import ImportDialog from "../../../../platform/import/ImportDialog";
 
 import AssetCategoryCard from "../../../../components/itAssets/cards/AssetCategoryCard";
@@ -182,6 +185,20 @@ const AssetExplorer = () => {
     setImportError("");
   };
 
+  const handleExport = async () => {
+    try {
+      await exportItAssetsApi();
+    } catch (err) {
+      alert(
+        err?.response?.data?.message || "Failed to export IT assets."
+      );
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    downloadAssetImportTemplate();
+  };
+
   const sectionTitle =
     level === "categories"
       ? "Asset Categories"
@@ -210,6 +227,8 @@ const AssetExplorer = () => {
         searchPlaceholder={searchPlaceholder}
         onSearchChange={setSearch}
         onRefresh={refresh}
+        onExport={handleExport}
+        onDownloadTemplate={handleDownloadTemplate}
         onImport={() => setImportOpen(true)}
         onAddAsset={() => navigate("/it-assets/new")}
         filtersContent={

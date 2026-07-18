@@ -112,10 +112,32 @@ const deleteAsset = async (req, res) => {
   }
 };
 
+const exportAssets = async (req, res) => {
+  try {
+    const result = await itAssetService.exportAssets();
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=ITAssetsExport.csv"
+    );
+
+    return res.send(result.csv);
+  } catch (error) {
+    console.error("Export IT Assets Error:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to export IT assets.",
+    });
+  }
+};
+
 module.exports = {
   getAssets,
   getAssetById,
   createAsset,
   updateAsset,
   deleteAsset,
+  exportAssets,
 };
