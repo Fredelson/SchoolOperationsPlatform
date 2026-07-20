@@ -61,12 +61,13 @@ import SchoolConfigPage from "../school-config/pages/SchoolConfigPage";
 // ============================================
 
 import {
-  NavigationManagerPage,
   PermissionGroupsPage,
   PermissionManagerPage,
   RolesManagerPage,
-  RolePermissionsPage,
 } from "../enterprise/pages/EnterpriseDataManager";
+
+import NavigationManagerPage from "../navigation-manager/pages/NavigationManagerPage";
+import RolePermissionsPage from "../enterprise/pages/RolePermissionsPage";
 
 // ============================================
 // Monitoring & System Pages

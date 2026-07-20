@@ -153,4 +153,31 @@ FROM dbo.WorkspaceMenus wm
 INNER JOIN dbo.Menus m ON m.MenuId = wm.MenuId
 WHERE m.MenuKey IN ('PURPOSES', 'PRINTING_PURPOSES', 'PRINTING_MASTER_DATA');
 
+UPDATE dbo.Menus
+SET VisibilityStatusId = (
+    SELECT TOP 1 VisibilityStatusId
+    FROM dbo.FeatureVisibilityStatuses
+    WHERE LOWER(StatusKey) = 'disabled'
+),
+    UpdatedAt = GETDATE()
+WHERE MenuKey IN (
+    'IT_ASSET_TAG_PRINTER',
+    'IT_RECTANGULAR_ASSET_TAG_PRINTER',
+    'IT_ROUNDED_ASSET_TAG_PRINTER',
+    'IT_SETTINGS'
+);
+
+UPDATE wm
+SET IsVisible = 0,
+    IsEnabled = 0,
+    UpdatedAt = GETDATE()
+FROM dbo.WorkspaceMenus wm
+INNER JOIN dbo.Menus m ON m.MenuId = wm.MenuId
+WHERE m.MenuKey IN (
+    'IT_ASSET_TAG_PRINTER',
+    'IT_RECTANGULAR_ASSET_TAG_PRINTER',
+    'IT_ROUNDED_ASSET_TAG_PRINTER',
+    'IT_SETTINGS'
+);
+
 COMMIT TRANSACTION;

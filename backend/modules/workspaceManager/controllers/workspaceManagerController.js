@@ -173,6 +173,13 @@ const replaceAssignments = async (req,res) => {
   } catch(error) { return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to save workspace assignments."}); }
 };
 
+const syncRolePermissions = async (req,res) => {
+  try {
+    const result = await workspaceManagerService.syncWorkspaceRolePermissions(req.params.id);
+    return res.status(200).json({success:true,message:`Synced permissions for workspace. ${result.affected} permissions granted.`,data:result});
+  } catch(error) { return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to sync workspace permissions."}); }
+};
+
 const getUserPreview = async (req,res) => {
   try { const data=await workspaceManagerService.getUserPreview(req.params.userId,req.user); return res.status(200).json({success:true,message:"Read-only user preview loaded.",data}); }
   catch(error) { return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to load user preview."}); }
@@ -202,6 +209,7 @@ module.exports = {
   getWorkspaceLookups,
   getWorkspaceConfiguration,
   replaceAssignments,
+  syncRolePermissions,
   getUserPreview,
   searchPreviewUsers,
   setWorkspaceDashboard,

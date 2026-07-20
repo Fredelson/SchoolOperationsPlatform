@@ -134,7 +134,7 @@ export default function UserManagement() {
       const fullName = user.FullName || user.fullName || "";
       const employeeId = user.EmployeeId || user.employeeId || "";
       const schoolEmail = user.SchoolEmail || user.schoolEmail || "";
-      const role = user.Role || user.role || user.RoleName || "";
+      const role = user.RoleKey || user.Role || user.role || user.RoleName || "";
 
       const matchesSearch =
         fullName.toLowerCase().includes(keyword) ||
@@ -210,7 +210,8 @@ export default function UserManagement() {
       }
 
       setOpen(false);
-      loadUsers();
+      setRoleFilter("All");
+      await loadUsers();
     } catch (error) {
       console.error("Save user error:", error);
       alert(error.response?.data?.message || "Failed to save user");

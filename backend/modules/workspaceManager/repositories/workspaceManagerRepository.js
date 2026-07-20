@@ -442,8 +442,58 @@ const replaceAssignments = async (workspaceId, assignmentType, items) => {
       }
       await request.query(`INSERT dbo.${definition.table}(WorkspaceId,${definition.id}${definition.extra}) VALUES(@WorkspaceId,@ItemId${definition.values})`);
     }
+    if (assignmentType === "modules" || assignmentType === "profiles") {
+      await transaction.request().input("WorkspaceId",sql.Int,workspaceId).query(`
+        INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+        SELECT 
+          wr.RoleId,
+          p.PermissionId,
+          1,
+          GETDATE()
+        FROM dbo.WorkspaceRoles wr
+        CROSS JOIN dbo.WorkspaceModules wm
+        INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
+        WHERE wr.WorkspaceId = @WorkspaceId
+          AND wm.WorkspaceId = @WorkspaceId
+          AND wm.IsVisible = 1
+          AND wm.IsEnabled = 1
+          AND NOT EXISTS (
+            SELECT 1 FROM dbo.RolePermissions rp 
+            WHERE rp.RoleId = wr.RoleId AND rp.PermissionId = p.PermissionId
+          );
+      `);
+    }
     await transaction.commit(); return getWorkspaceConfiguration(workspaceId);
   } catch(error) { await transaction.rollback(); throw error; }
+};
+
+const syncWorkspaceRolePermissions = async (workspaceId) => {
+  const result = await executeQuery(`
+    INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+    SELECT 
+      wr.RoleId,
+      p.PermissionId,
+      1,
+      GETDATE()
+    FROM dbo.WorkspaceRoles wr
+    CROSS JOIN dbo.WorkspaceModules wm
+    INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
+    WHERE wr.WorkspaceId = @WorkspaceId
+      AND wm.WorkspaceId = @WorkspaceId
+      AND wm.IsVisible = 1
+      AND wm.IsEnabled = 1
+      AND NOT EXISTS (
+        SELECT 1 FROM dbo.RolePermissions rp 
+        WHERE rp.RoleId = wr.RoleId AND rp.PermissionId = p.PermissionId
+      );
+  `, [
+    {
+      name: "WorkspaceId",
+      type: sql.Int,
+      value: workspaceId,
+    },
+  ]);
+  return { affected: result.rowsAffected?.[0] || 0 };
 };
 
 const getPreviewUser = async (userId) => {
@@ -520,6 +570,7 @@ module.exports = {
   getWorkspaceLookups,
   getWorkspaceConfiguration,
   replaceAssignments,
+  syncWorkspaceRolePermissions,
   getPreviewUser,
   canPreviewWorkspace,
   searchPreviewUsers,
@@ -527,5 +578,4 @@ module.exports = {
   createLiveSession,
   closeLiveSession,
   touchLiveSession,
-  getActiveLiveSession,
 };

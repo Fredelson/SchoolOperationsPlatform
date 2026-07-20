@@ -242,6 +242,11 @@ const replaceAssignments = async (workspaceId, assignmentType, body) => {
   return workspaceManagerRepository.replaceAssignments(Number(workspaceId),assignmentType,items);
 };
 
+const syncWorkspaceRolePermissions = async (workspaceId) => {
+  await getWorkspaceById(workspaceId);
+  return workspaceManagerRepository.syncWorkspaceRolePermissions(Number(workspaceId));
+};
+
 const getUserPreview = async (userId, actor = null) => {
   const user=await workspaceManagerRepository.getPreviewUser(Number(userId));
   if (!user) throwError("Preview user not found or inactive.",404);
@@ -298,6 +303,7 @@ module.exports = {
   getWorkspaceLookups,
   getWorkspaceConfiguration,
   replaceAssignments,
+  syncWorkspaceRolePermissions,
   getUserPreview,
   searchPreviewUsers,
   setWorkspaceDashboard,

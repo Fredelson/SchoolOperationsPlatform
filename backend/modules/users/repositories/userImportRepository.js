@@ -553,6 +553,25 @@ async function findSubjectByName(subjectName) {
 }
 
 /**
+ * Find section by name.
+ */
+async function findSectionByName(sectionName) {
+  const result = await executeQuery(
+    `
+    SELECT TOP 1 SectionId, SectionName
+    FROM dbo.Sections
+    WHERE IsActive = 1
+      AND SectionName = @SectionName;
+    `,
+    [
+      { name: "SectionName", type: sql.NVarChar, value: sectionName },
+    ]
+  );
+
+  return firstOrNull(result);
+}
+
+/**
  * Update existing user from import data.
  */
 async function updateUserFromImport(data) {
@@ -595,6 +614,7 @@ async function createUserAssignment(data) {
       StartDate,
       EndDate,
       DepartmentId,
+      SectionId,
       SubjectId,
       YearLevelId,
       CreatedAt,
@@ -610,6 +630,7 @@ async function createUserAssignment(data) {
       GETDATE(),
       NULL,
       @DepartmentId,
+      @SectionId,
       @SubjectId,
       @YearLevelId,
       GETDATE(),
@@ -621,6 +642,7 @@ async function createUserAssignment(data) {
       { name: "AssignmentTypeId", type: sql.Int, value: data.assignmentTypeId },
       { name: "IsPrimary", type: sql.Bit, value: data.isPrimary ? 1 : 0 },
       { name: "DepartmentId", type: sql.Int, value: data.departmentId || null },
+      { name: "SectionId", type: sql.Int, value: data.sectionId || null },
       { name: "SubjectId", type: sql.Int, value: data.subjectId || null },
       { name: "YearLevelId", type: sql.Int, value: data.yearGroupId || null },
     ]
@@ -744,6 +766,7 @@ module.exports = {
   findDepartmentByName,
   findYearLevelByName,
   findSubjectByName,
+  findSectionByName,
   createUserAssignment,
   createUserAssignmentScope,
   findUserAssignments,

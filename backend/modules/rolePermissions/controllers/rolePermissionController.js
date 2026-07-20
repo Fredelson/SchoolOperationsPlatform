@@ -113,6 +113,18 @@ const deleteRolePermission = asyncHandler(async (req, res) => {
   );
 });
 
+const bulkGrantModulePermissions = asyncHandler(async (req, res) => {
+  const result = await rolePermissionService.bulkGrantModulePermissions(
+    req.body
+  );
+
+  return sendSuccess(
+    res,
+    "Permissions granted successfully.",
+    result
+  );
+});
+
 // ============================================================
 // Exports
 // ============================================================
@@ -124,4 +136,5 @@ module.exports = {
   createRolePermission,
   updateRolePermission,
   deleteRolePermission,
+  bulkGrantModulePermissions,
 };

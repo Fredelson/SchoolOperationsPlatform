@@ -14,14 +14,16 @@ const {
   listAssignmentTypes,getAssignmentType,createAssignmentType,updateAssignmentType,activateAssignmentType,deactivateAssignmentType,deleteAssignmentType,
 } = require("../controllers/assignmentController");
 
+const { protect } = require("../../../middleware/authMiddleware");
 const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
+router.get("/lookups", protect, getAssignmentLookups);
+
 router.use(...platformAdministrationAccess);
 
 router.get("/", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignments);
-router.get("/lookups", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignmentLookups);
 
 // Assignment Types
 router.get("/types/manage",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),listAssignmentTypes);

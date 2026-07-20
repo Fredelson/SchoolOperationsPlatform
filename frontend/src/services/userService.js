@@ -5,6 +5,7 @@
 // ============================================
 
 import api from "./api";
+import * as xlsx from "xlsx";
 
 // ============================================
 // Users CRUD
@@ -86,8 +87,8 @@ export const downloadCSVUserTemplate = () => {
     "Primary",
     "English",
     "HOD",
-    "Department",
-    "Primary",
+    "Section",
+    "A",
   ];
 
   const csv = `${headers.join(",")}\n${sample.join(",")}`;
@@ -109,19 +110,65 @@ export const downloadCSVUserTemplate = () => {
   window.URL.revokeObjectURL(url);
 };
 
+export const downloadXLSXUserTemplate = () => {
+  const headers = ["FullName", "EmployeeId", "SchoolEmail", "Role", "Department", "Subject", "AssignmentKey", "ScopeType", "ScopeName"];
+  const sample = [
+    "Ahmed Ali",
+    "T0001",
+    "ahmed.ali@arabunityschool.ae",
+    "Teacher",
+    "Primary",
+    "English",
+    "HOD",
+    "Section",
+    "A",
+  ];
+
+  const worksheet = xlsx.utils.aoa_to_sheet([headers, sample]);
+
+  worksheet["!cols"] = headers.map(() => ({ wch: 25 }));
+
+  const workbook = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(workbook, worksheet, "Users");
+
+  const wbout = xlsx.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([wbout], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+  });
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "UserImportTemplate.xlsx";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+};
+
 export const downloadExcelUserTemplate = async () => {
   try {
-    const response = await api.get("/admin/users/download-excel-template");
+    const response = await api.get("/admin/users/download-excel-template", {
+      responseType: "blob",
+    });
+
     const blob = new Blob([response.data], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
+
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.href = url;
-    link.setAttribute("download", "UserImportTemplate.xlsx");
+    link.download = "UserImportTemplate.xlsx";
+
     document.body.appendChild(link);
     link.click();
     link.remove();
+
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Download Excel template error:", error);

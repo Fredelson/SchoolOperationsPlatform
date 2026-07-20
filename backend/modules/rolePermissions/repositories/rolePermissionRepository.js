@@ -76,8 +76,7 @@ async function getRolePermissions({
       pg.GroupName,
 
       rp.IsAllowed,
-      rp.CreatedAt,
-      rp.UpdatedAt
+      rp.CreatedAt
 
     FROM dbo.RolePermissions rp
 
@@ -278,8 +277,7 @@ async function getRolePermissionById(rolePermissionId) {
       pg.GroupName,
 
       rp.IsAllowed,
-      rp.CreatedAt,
-      rp.UpdatedAt
+      rp.CreatedAt
 
     FROM dbo.RolePermissions rp
 
@@ -341,7 +339,6 @@ async function getRolePermissionLookups() {
       GroupName,
       SortOrder
     FROM dbo.PermissionGroups
-    WHERE IsActive = 1
     ORDER BY SortOrder, GroupName;
 
     SELECT
@@ -388,8 +385,7 @@ async function findRolePermissionById(rolePermissionId) {
       RoleId,
       PermissionId,
       IsAllowed,
-      CreatedAt,
-      UpdatedAt
+      CreatedAt
     FROM dbo.RolePermissions
     WHERE
       RolePermissionId = @RolePermissionId;
@@ -524,8 +520,7 @@ async function createRolePermission(data) {
       RoleId,
       PermissionId,
       IsAllowed,
-      CreatedAt,
-      UpdatedAt
+      CreatedAt
     )
     OUTPUT INSERTED.RolePermissionId
     VALUES
@@ -533,7 +528,6 @@ async function createRolePermission(data) {
       @RoleId,
       @PermissionId,
       @IsAllowed,
-      GETDATE(),
       GETDATE()
     );
     `,
@@ -570,8 +564,7 @@ async function updateRolePermission(rolePermissionId, data) {
     SET
       RoleId = @RoleId,
       PermissionId = @PermissionId,
-      IsAllowed = @IsAllowed,
-      UpdatedAt = GETDATE()
+      IsAllowed = @IsAllowed
     WHERE
       RolePermissionId = @RolePermissionId;
     `,
@@ -627,6 +620,30 @@ async function deleteRolePermission(rolePermissionId) {
   );
 }
 
+async function getActivePermissionsByModule(moduleId) {
+  const result = await executeQuery(
+    `
+    SELECT
+      p.PermissionId,
+      p.PermissionKey,
+      p.PermissionName
+    FROM dbo.Permissions p
+    WHERE
+      p.ModuleId = @ModuleId
+      AND p.IsActive = 1;
+    `,
+    [
+      {
+        name: "ModuleId",
+        type: sql.Int,
+        value: moduleId,
+      },
+    ]
+  );
+
+  return rows(result);
+}
+
 // ============================================================
 // Repository Exports
 // ============================================================
@@ -640,6 +657,7 @@ module.exports = {
   findRolePermissionPair,
   findActiveRoleById,
   findActivePermissionById,
+  getActivePermissionsByModule,
 
   createRolePermission,
   updateRolePermission,

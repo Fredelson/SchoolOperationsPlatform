@@ -100,6 +100,28 @@ function applyAssignmentPermissions(permissionMap, assignmentPermissions = []) {
   return permissionMap;
 }
 
+function applyWorkspaceModulePermissions(permissionMap, workspaceModulePermissions = []) {
+  workspaceModulePermissions.forEach((permission) => {
+    const current = permissionMap.get(permission.PermissionKey);
+
+    if (current?.isAllowed) {
+      return;
+    }
+
+    permissionMap.set(permission.PermissionKey, {
+      permissionId: permission.PermissionId,
+      permissionKey: permission.PermissionKey,
+      permissionName: permission.PermissionName,
+      moduleId: permission.ModuleId,
+      permissionGroupId: permission.PermissionGroupId,
+      isAllowed: true,
+      source: "workspaceModule",
+    });
+  });
+
+  return permissionMap;
+}
+
 // ============================================================
 // Resolve User Permissions
 // ============================================================
@@ -130,15 +152,18 @@ async function resolveUserPermissions(userId) {
     assignmentPermissions,
     userOverrides,
     assignmentScopes,
+    workspaceModulePermissions,
   ] = await Promise.all([
     repository.getRolePermissions(userProfile.RoleId),
     repository.getActiveAssignmentPermissions(numericUserId),
     repository.getUserPermissionOverrides(numericUserId),
     repository.getActiveAssignmentScopes(numericUserId),
+    repository.getWorkspaceModulePermissions(numericUserId),
   ]);
 
   const permissionMap = buildPermissionMap(rolePermissions);
   applyAssignmentPermissions(permissionMap, assignmentPermissions);
+  applyWorkspaceModulePermissions(permissionMap, workspaceModulePermissions);
   applyUserOverrides(permissionMap, userOverrides);
 
   const permissions = Array.from(permissionMap.values()).sort((a, b) =>

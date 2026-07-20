@@ -64,13 +64,26 @@ function getCurrentUserId(currentUser) {
  * Read uploaded Excel file.
  */
 function readExcelFile(filePath) {
-  const workbook = xlsx.readFile(filePath);
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
+  try {
+    const workbook = xlsx.readFile(filePath);
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
 
-  return xlsx.utils.sheet_to_json(worksheet, {
-    defval: "",
-  });
+    const rows = xlsx.utils.sheet_to_json(worksheet, {
+      defval: "",
+    });
+
+    console.log("[IMPORT] Excel file read successfully. Sheet:", firstSheetName, "Rows:", rows.length);
+    if (rows.length > 0) {
+      console.log("[IMPORT] First row keys:", Object.keys(rows[0]));
+      console.log("[IMPORT] First row sample:", JSON.stringify(rows[0]).substring(0, 200));
+    }
+
+    return rows;
+  } catch (error) {
+    console.error("[IMPORT] Excel read error:", error);
+    throw new Error(`Failed to read Excel file: ${error.message}`);
+  }
 }
 
 /**
@@ -271,6 +284,7 @@ async function previewUserImport(file, currentUser) {
       let resolvedDepartmentId = null;
       let resolvedSubjectId = null;
       let resolvedYearGroupId = null;
+      let resolvedSectionId = null;
       let resolvedScopeEntityId = null;
 
       if (assignmentKey) {
@@ -283,7 +297,7 @@ async function previewUserImport(file, currentUser) {
 
           if (isHod) {
             if (!departmentName) {
-              validationErrors.push("HOD assignment requires Department.");
+              validationErrors.push("HOD assignment requires Section.");
             }
             if (!subjectName) {
               validationErrors.push("HOD assignment requires Subject.");
@@ -309,11 +323,17 @@ async function previewUserImport(file, currentUser) {
           }
 
           if (scopeType && scopeName) {
-            const validScopeTypes = ["Department", "Subject", "YearGroup", "Class", "Room", "Location", "School"];
-            if (!validScopeTypes.includes(scopeType)) {
+            const validScopeTypes = ["Department", "Subject", "YearGroup", "Section", "Class", "Room", "Location", "School"];
+            
+            let effectiveScopeType = scopeType;
+            if (isHod && scopeType === "Department") {
+              effectiveScopeType = "Section";
+            }
+            
+            if (!validScopeTypes.includes(effectiveScopeType)) {
               validationErrors.push(`Invalid ScopeType: ${scopeType}`);
             } else {
-              if (scopeType === "Department") {
+              if (effectiveScopeType === "Department") {
                 const dept = await userImportRepository.findDepartmentByName(scopeName);
                 if (!dept) {
                   validationErrors.push(`Department not found: ${scopeName}`);
@@ -321,7 +341,15 @@ async function previewUserImport(file, currentUser) {
                   resolvedScopeEntityId = dept.DepartmentId;
                   if (!resolvedDepartmentId) resolvedDepartmentId = dept.DepartmentId;
                 }
-              } else if (scopeType === "Subject") {
+              } else if (effectiveScopeType === "Section") {
+                const sec = await userImportRepository.findSectionByName(scopeName);
+                if (!sec) {
+                  validationErrors.push(`Section not found: ${scopeName}`);
+                } else {
+                  resolvedScopeEntityId = sec.SectionId;
+                  resolvedSectionId = sec.SectionId;
+                }
+              } else if (effectiveScopeType === "Subject") {
                 const sub = await userImportRepository.findSubjectByName(scopeName);
                 if (!sub) {
                   validationErrors.push(`Subject not found: ${scopeName}`);
@@ -329,7 +357,7 @@ async function previewUserImport(file, currentUser) {
                   resolvedScopeEntityId = sub.SubjectId;
                   if (!resolvedSubjectId) resolvedSubjectId = sub.SubjectId;
                 }
-              } else if (scopeType === "YearGroup") {
+              } else if (effectiveScopeType === "YearGroup") {
                 const yg = await userImportRepository.findYearLevelByName(scopeName);
                 if (!yg) {
                   validationErrors.push(`YearGroup not found: ${scopeName}`);
@@ -369,7 +397,8 @@ async function previewUserImport(file, currentUser) {
           existingAssignmentKey !== importedAssignmentKey ||
           (existingAssignment?.DepartmentId || null) !== (resolvedDepartmentId || null) ||
           (existingAssignment?.SubjectId || null) !== (resolvedSubjectId || null) ||
-          (existingAssignment?.YearLevelId || null) !== (resolvedYearGroupId || null);
+          (existingAssignment?.YearLevelId || null) !== (resolvedYearGroupId || null) ||
+          (existingAssignment?.SectionId || null) !== (resolvedSectionId || null);
 
         console.log("[IMPORT PREVIEW] Assignment check:", {
           employeeId: normalized.employeeId,
@@ -381,6 +410,8 @@ async function previewUserImport(file, currentUser) {
           resolvedSubject: resolvedSubjectId,
           existingYear: existingAssignment?.YearLevelId,
           resolvedYear: resolvedYearGroupId,
+          existingSection: existingAssignment?.SectionId,
+          resolvedSection: resolvedSectionId,
           assignmentChanged,
         });
 
@@ -627,12 +658,22 @@ async function commitUserImport(batchId, currentUser) {
             console.log("[IMPORT UPDATE] >>> Deleted old assignments");
 
             let departmentId = null;
+            let sectionId = null;
             let subjectId = null;
             let yearGroupId = null;
             let scopeEntityId = null;
             let scopeType = null;
 
-            if (row.DepartmentName) {
+            const isHod = String(row.AssignmentKey).toLowerCase() === "hod";
+
+            if (isHod && row.DepartmentName) {
+              const section = await userImportRepository.findSectionByName(row.DepartmentName);
+              if (section) {
+                sectionId = section.SectionId;
+                scopeEntityId = section.SectionId;
+                scopeType = "Section";
+              }
+            } else if (row.DepartmentName) {
               const dept = await userImportRepository.findDepartmentByName(row.DepartmentName);
               if (dept) {
                 departmentId = dept.DepartmentId;
@@ -656,18 +697,32 @@ async function commitUserImport(batchId, currentUser) {
               const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
               if (yg) {
                 yearGroupId = yg.YearLevelId;
-                scopeEntityId = yg.YearLevelId;
-                scopeType = "YearGroup";
+                if (!scopeEntityId) {
+                  scopeEntityId = yg.YearLevelId;
+                  scopeType = "YearGroup";
+                }
               }
             }
 
-            console.log("[IMPORT UPDATE] >>> Creating assignment:", { userId: existingUser.UserId, assignmentTypeId: assignmentType.AssignmentTypeId, departmentId, subjectId, yearGroupId });
+            if (row.ScopeType === "Section" && row.ScopeName) {
+              const sec = await userImportRepository.findSectionByName(row.ScopeName);
+              if (sec) {
+                sectionId = sec.SectionId;
+                if (!scopeEntityId) {
+                  scopeEntityId = sec.SectionId;
+                  scopeType = "Section";
+                }
+              }
+            }
+
+            console.log("[IMPORT UPDATE] >>> Creating assignment:", { userId: existingUser.UserId, assignmentTypeId: assignmentType.AssignmentTypeId, departmentId, sectionId, subjectId, yearGroupId });
 
             const assignmentId = await userImportRepository.createUserAssignment({
               userId: existingUser.UserId,
               assignmentTypeId: assignmentType.AssignmentTypeId,
               isPrimary: true,
               departmentId,
+              sectionId,
               subjectId,
               yearGroupId,
             });
@@ -677,6 +732,7 @@ async function commitUserImport(batchId, currentUser) {
             if (scopeType && scopeEntityId) {
               const scopeValue =
                 scopeType === "Department" ? row.DepartmentName :
+                scopeType === "Section" ? row.DepartmentName :
                 scopeType === "Subject" ? row.SubjectName :
                 row.ScopeName;
 
@@ -770,12 +826,22 @@ async function commitUserImport(batchId, currentUser) {
 
         if (assignmentType) {
           let departmentId = null;
+          let sectionId = null;
           let subjectId = null;
           let yearGroupId = null;
           let scopeEntityId = null;
           let scopeType = null;
 
-          if (row.DepartmentName) {
+          const isHod = String(row.AssignmentKey).toLowerCase() === "hod";
+
+          if (isHod && row.DepartmentName) {
+            const section = await userImportRepository.findSectionByName(row.DepartmentName);
+            if (section) {
+              sectionId = section.SectionId;
+              scopeEntityId = section.SectionId;
+              scopeType = "Section";
+            }
+          } else if (row.DepartmentName) {
             const dept = await userImportRepository.findDepartmentByName(row.DepartmentName);
             if (dept) {
               departmentId = dept.DepartmentId;
@@ -799,8 +865,21 @@ async function commitUserImport(batchId, currentUser) {
             const yg = await userImportRepository.findYearLevelByName(row.ScopeName);
             if (yg) {
               yearGroupId = yg.YearLevelId;
-              scopeEntityId = yg.YearLevelId;
-              scopeType = "YearGroup";
+              if (!scopeEntityId) {
+                scopeEntityId = yg.YearLevelId;
+                scopeType = "YearGroup";
+              }
+            }
+          }
+
+          if (row.ScopeType === "Section" && row.ScopeName) {
+            const sec = await userImportRepository.findSectionByName(row.ScopeName);
+            if (sec) {
+              sectionId = sec.SectionId;
+              if (!scopeEntityId) {
+                scopeEntityId = sec.SectionId;
+                scopeType = "Section";
+              }
             }
           }
 
@@ -809,6 +888,7 @@ async function commitUserImport(batchId, currentUser) {
             assignmentTypeId: assignmentType.AssignmentTypeId,
             isPrimary: true,
             departmentId,
+            sectionId,
             subjectId,
             yearGroupId,
           });
@@ -816,6 +896,7 @@ async function commitUserImport(batchId, currentUser) {
           if (scopeType && scopeEntityId) {
             const scopeValue =
               scopeType === "Department" ? row.DepartmentName :
+              scopeType === "Section" ? row.DepartmentName :
               scopeType === "Subject" ? row.SubjectName :
               row.ScopeName;
 

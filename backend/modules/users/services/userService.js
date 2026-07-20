@@ -13,10 +13,10 @@
 
 const userRepository = require("../repositories/userRepository");
 const { hashPassword } = require("../../../shared/security/password");
-const { MAIN_ROLE_KEYS } = require("../../../shared/constants/mainRoles");
+const { isMainRole } = require("../../../shared/constants/mainRoles");
 
 function assertMainRole(role) {
-  if (!MAIN_ROLE_KEYS.includes(role.RoleKey)) {
+  if (!isMainRole(role.RoleKey)) {
     const error = new Error("Only a main role can be assigned in User Management. Configure specialized responsibilities in User Assignments.");
     error.statusCode = 400;
     throw error;

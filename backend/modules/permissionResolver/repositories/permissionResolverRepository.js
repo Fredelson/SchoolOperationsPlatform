@@ -225,6 +225,53 @@ async function getActiveAssignmentPermissions(userId) {
   return rows(result);
 }
 
+async function getWorkspaceModulePermissions(userId) {
+  const result = await executeQuery(
+    `
+      DECLARE @WorkspaceId int = COALESCE(
+        (SELECT TOP 1 atw.WorkspaceId FROM dbo.UserAssignments ua 
+         JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId AND at.IsActive=1 
+         JOIN dbo.AssignmentTypeWorkspaces atw ON atw.AssignmentTypeId=ua.AssignmentTypeId AND atw.IsActive=1 
+         JOIN dbo.Workspaces aw ON aw.WorkspaceId=atw.WorkspaceId AND aw.IsActive=1 
+         WHERE ua.UserId=@UserId AND ua.IsActive=1 AND ua.IsPrimary=1 
+         AND (ua.StartDate IS NULL OR ua.StartDate<=CAST(GETDATE() AS date)) 
+         AND (ua.EndDate IS NULL OR ua.EndDate>=CAST(GETDATE() AS date)) 
+         ORDER BY ua.UpdatedAt DESC,ua.CreatedAt DESC,ua.UserAssignmentId DESC),
+        (SELECT u.DefaultWorkspaceId FROM dbo.Users u 
+         JOIN dbo.Workspaces dw ON dw.WorkspaceId=u.DefaultWorkspaceId AND dw.IsActive=1 
+         WHERE u.UserId=@UserId),
+        (SELECT TOP 1 wr.WorkspaceId FROM dbo.Users u 
+         JOIN dbo.WorkspaceRoles wr ON wr.RoleId=u.RoleId
+         JOIN dbo.Workspaces w ON w.WorkspaceId=wr.WorkspaceId AND w.IsActive=1
+         WHERE u.UserId=@UserId ORDER BY wr.IsDefault DESC,w.SortOrder),
+        (SELECT TOP 1 WorkspaceId FROM dbo.Workspaces WHERE IsDefault=1 AND IsActive=1)
+      );
+
+      SELECT DISTINCT
+        p.PermissionId,
+        p.PermissionKey,
+        p.PermissionName,
+        p.ModuleId,
+        p.PermissionGroupId
+      FROM dbo.WorkspaceModules wm
+      INNER JOIN dbo.Modules m ON m.ModuleId = wm.ModuleId AND m.IsActive = 1
+      INNER JOIN dbo.Permissions p ON p.ModuleId = m.ModuleId AND p.IsActive = 1
+      WHERE wm.WorkspaceId = @WorkspaceId
+        AND wm.IsVisible = 1
+        AND wm.IsEnabled = 1;
+    `,
+    [
+      {
+        name: "UserId",
+        type: sql.Int,
+        value: userId,
+      },
+    ]
+  );
+
+  return rows(result);
+}
+
 async function getActiveAssignmentScopes(userId) {
   const result = await executeQuery(`SELECT ua.UserAssignmentId,ua.AssignmentTypeId,at.AssignmentKey,at.AssignmentName,ua.IsPrimary,s.ScopeType,s.ScopeEntityId FROM dbo.UserAssignments ua INNER JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId AND at.IsActive=1 INNER JOIN dbo.UserAssignmentScopes s ON s.UserAssignmentId=ua.UserAssignmentId AND s.IsActive=1 WHERE ua.UserId=@UserId AND ua.IsActive=1 AND (ua.StartDate IS NULL OR ua.StartDate<=CAST(GETDATE() AS date)) AND (ua.EndDate IS NULL OR ua.EndDate>=CAST(GETDATE() AS date)) ORDER BY ua.IsPrimary DESC,ua.UserAssignmentId,s.ScopeType,s.ScopeEntityId;`, [{name:"UserId",type:sql.Int,value:userId}]);
   return rows(result);
@@ -240,4 +287,5 @@ module.exports = {
   getUserPermissionOverrides,
   getActiveAssignmentPermissions,
   getActiveAssignmentScopes,
+  getWorkspaceModulePermissions,
 };

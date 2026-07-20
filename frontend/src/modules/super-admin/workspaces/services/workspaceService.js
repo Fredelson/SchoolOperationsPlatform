@@ -16,6 +16,11 @@ export async function saveWorkspaceAssignments(id, type, items) {
   return response.data?.data;
 }
 
+export async function syncWorkspaceRolePermissions(id) {
+  const response=await api.post(`/workspace-manager/${id}/sync-permissions`);
+  return response.data?.data;
+}
+
 export async function getUserWorkspacePreview(userId) {
   const response=await api.get(`/workspace-manager/preview/users/${userId}`);
   return response.data?.data;

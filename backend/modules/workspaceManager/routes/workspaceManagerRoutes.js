@@ -21,6 +21,7 @@ router.get("/preview/users", requirePermission("workspace.preview_user"), worksp
 router.post("/live-mode", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.startLiveMode);
 router.post("/live-mode/:sessionId/exit", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.exitLiveMode);
 router.put("/:id/assignments/:assignmentType", requirePermission("workspace.configure"), workspaceManagerController.replaceAssignments);
+router.post("/:id/sync-permissions", requirePermission("workspace.configure"), workspaceManagerController.syncRolePermissions);
 router.put("/:id/dashboard", requirePermission("workspace.configure"), workspaceManagerController.setWorkspaceDashboard);
 
 router.get("/", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaces);

@@ -436,7 +436,7 @@ exports.downloadUserImportCSVTemplate = async (req, res) => {
   try {
     const csvTemplate = [
       "FullName,EmployeeId,SchoolEmail,Role,Department,Subject,AssignmentKey,ScopeType,ScopeName",
-      "John Smith,T001,john.smith@arabunityschool.ae,Teacher,Primary,English,HOD,Department,Secondary",
+      "John Smith,T001,john.smith@arabunityschool.ae,Teacher,Primary,English,HOD,Section,A",
       "Mary Jane,HOD001,mary.jane@arabunityschool.ae,HOD,Secondary,English,HOS,Department,Secondary",
     ].join("\n");
 
@@ -505,8 +505,8 @@ exports.downloadUserImportTemplate = async (req, res) => {
         Department: "Primary",
         Subject: "English",
         AssignmentKey: "HOD",
-        ScopeType: "Department",
-        ScopeName: "Secondary",
+        ScopeType: "Section",
+        ScopeName: "A",
       },
       {
         FullName: "Mary Jane",

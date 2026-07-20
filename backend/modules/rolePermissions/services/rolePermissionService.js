@@ -202,6 +202,44 @@ const deleteRolePermission = async (rolePermissionId) => {
 // Exports
 // ============================================================
 
+
+const bulkGrantModulePermissions = async ({ roleId, moduleId }) => {
+  const parsedRoleId = Number(roleId);
+  const parsedModuleId = Number(moduleId);
+
+  if (!parsedRoleId || !parsedModuleId) {
+    throw new BadRequestError("Role and module are required.");
+  }
+
+  const role = await rolePermissionRepository.findActiveRoleById(parsedRoleId);
+  if (!role) throw new BadRequestError("Invalid Role.");
+
+  const permissions =
+    await rolePermissionRepository.getActivePermissionsByModule(parsedModuleId);
+  if (!permissions.length) {
+    throw new BadRequestError("No active permissions found for this module.");
+  }
+
+  let granted = 0;
+  for (const permission of permissions) {
+    try {
+      await rolePermissionRepository.createRolePermission({
+        roleId: parsedRoleId,
+        permissionId: permission.PermissionId,
+        isAllowed: true,
+      });
+      granted++;
+    } catch (err) {
+      if (err?.code !== "23505") throw err;
+    }
+  }
+
+  return {
+    granted,
+    total: permissions.length,
+  };
+};
+
 module.exports = {
   getRolePermissions,
   getRolePermissionLookups,
@@ -209,4 +247,5 @@ module.exports = {
   createRolePermission,
   updateRolePermission,
   deleteRolePermission,
+  bulkGrantModulePermissions,
 };
