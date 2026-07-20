@@ -76,6 +76,7 @@ export default function WorkspaceManagerPage() {
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
   const [previewUserId, setPreviewUserId] = useState("");
   const [previewUsers, setPreviewUsers] = useState([]);
@@ -86,6 +87,7 @@ export default function WorkspaceManagerPage() {
   const [settings, setSettings] = useState({});
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [expandedModules, setExpandedModules] = useState({});
 
   const handleSyncPermissions = async () => {
     if (!workspaceId) return;
@@ -100,6 +102,10 @@ export default function WorkspaceManagerPage() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const toggleModuleExpand = (moduleId) => {
+    setExpandedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
   };
 
   useEffect(() => {
@@ -695,6 +701,15 @@ export default function WorkspaceManagerPage() {
       }));
     };
 
+    const withTimeout = (promise, ms = 30000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timed out. Please try again.")), ms)
+        ),
+      ]);
+    };
+
     const saveCombined = async () => {
       setLoading(true);
       setError("");
@@ -726,11 +741,15 @@ export default function WorkspaceManagerPage() {
             parentMenuId: m.ParentMenuId,
           }));
 
-        await saveWorkspaceAssignments(workspaceId, "modules", moduleItems);
-        setConfig(await saveWorkspaceAssignments(workspaceId, "navigation", navItems));
+        await withTimeout(saveWorkspaceAssignments(workspaceId, "modules", moduleItems));
+        await withTimeout(saveWorkspaceAssignments(workspaceId, "navigation", navItems));
+        
+        const refreshed = await getWorkspaceConfiguration(workspaceId);
+        setConfig(refreshed);
         setSuccess("Modules and navigation saved successfully.");
       } catch (e) {
-        setError(e.response?.data?.message || e.message);
+        console.error("Save combined error:", e);
+        setError(e?.response?.data?.message || e?.message || "Failed to save modules and navigation.");
       } finally {
         setLoading(false);
       }
@@ -766,12 +785,21 @@ export default function WorkspaceManagerPage() {
               const menus = (navigationByModule[module.ModuleId] || [])
                 .slice()
                 .sort((a, b) => (a.SortOrder ?? 0) - (b.SortOrder ?? 0));
+              const isExpanded = expandedModules[module.ModuleId] !== false;
 
               return (
                 <Card key={module.ModuleId} variant="outlined">
                   <CardContent>
                     <Stack spacing={2}>
                       <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => toggleModuleExpand(module.ModuleId)}
+                          sx={{ minWidth: 32, padding: 0 }}
+                        >
+                          {isExpanded ? "▼" : "▶"}
+                        </Button>
                         <Checkbox
                           checked={Boolean(module.IsAssigned)}
                           onChange={() => toggleModuleAssignment(module.ModuleId)}
@@ -819,8 +847,8 @@ export default function WorkspaceManagerPage() {
                         )}
                       </Stack>
 
-                      {menus.length > 0 && (
-                        <Stack spacing={1} sx={{ ml: 4, mt: 1 }}>
+                      {isExpanded && menus.length > 0 && (
+                        <Stack spacing={1} sx={{ ml: 6, mt: 1, borderLeft: (theme) => `1px solid ${theme.palette.divider}`, pl: 2 }}>
                           {menus.map((menu) => (
                             <Card
                               key={menu.MenuId}
@@ -881,8 +909,8 @@ export default function WorkspaceManagerPage() {
                         </Stack>
                       )}
 
-                      {menus.length === 0 && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 4, mt: 1 }}>
+                      {isExpanded && menus.length === 0 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 6, mt: 1 }}>
                           No navigation menus for this module.
                         </Typography>
                       )}

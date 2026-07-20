@@ -1,0 +1,535 @@
+============================================================
+ARAB UNITY SCHOOL - OPERATIONS PLATFORM
+SIDEBAR NAVIGATION TREE
+============================================================
+
+Generated from: backend/OperationsPlatformDB_Fresh_Install.sql
+Menu Groups ordered by SortOrder
+
+------------------------------------------------------------
+GROUP 1: MAIN (SortOrder: 10)
+------------------------------------------------------------
+|-- Dashboard [DASHBOARD]
+    Route: /dashboard
+    Icon: dashboard
+    Status: Enabled
+
+------------------------------------------------------------
+GROUP 2: PLATFORM FOUNDATION (SortOrder: 20)
+------------------------------------------------------------
+|-- Platform Foundation [PLATFORM_FOUNDATION_ROOT]
+    Icon: admin_panel_settings
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Module Manager [MODULE_MANAGER]
+      |   Route: /super-admin/modules
+      |   Icon: apps
+      |-- Menu Manager [MENU_MANAGER]
+      |   Route: /super-admin/menus
+      |   Icon: menu
+      |-- Button Manager [BUTTON_MANAGER]
+      |   Route: /super-admin/buttons
+      |   Icon: touch_app
+      |-- Widget Manager [WIDGET_MANAGER]
+      |   Route: /super-admin/widgets
+      |   Icon: widgets
+      |-- Feature Flags [FEATURE_FLAGS]
+      |   Route: /super-admin/feature-flags
+      |   Icon: flag
+
+------------------------------------------------------------
+GROUP 3: USER & ACCESS (SortOrder: 30)
+------------------------------------------------------------
+|-- User & Access Management [USER_ACCESS_ROOT]
+    Icon: manage_accounts
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Users [USERS]
+      |   Route: /super-admin/users
+      |   Icon: people
+      |-- Roles [ROLES]
+      |   Route: /super-admin/roles
+      |   Icon: shield
+      |-- Permissions [PERMISSIONS]
+      |   Route: /super-admin/permissions
+      |   Icon: security
+      |-- Access Levels [ACCESS_LEVELS]
+      |   Route: /super-admin/access-levels
+      |   Icon: admin_panel_settings
+      |-- Assignment Types [ASSIGNMENT_TYPES]
+      |   Route: /super-admin/assignment-types
+      |   Icon: assignment
+      |-- User Assignments [USER_ASSIGNMENTS]
+      |   Route: /super-admin/user-assignments
+      |   Icon: hub
+      |-- User Permission Overrides [USER_PERMISSION_OVERRIDES]
+      |   Route: /super-admin/user-permission-overrides
+      |   Icon: manage_accounts
+
+------------------------------------------------------------
+GROUP 4: SCHOOL CONFIGURATION (SortOrder: 40)
+------------------------------------------------------------
+|-- School Configuration [SCHOOL_CONFIGURATION_ROOT]
+    Icon: school
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Organization Profile [ORGANIZATION_PROFILE]
+      |   Route: /super-admin/organization/profile
+      |   Icon: business
+      |-- Branding & Theme [BRANDING_THEME]
+      |   Route: /system/branding
+      |   Icon: palette
+      |-- Departments [DEPARTMENTS]
+      |   Route: /super-admin/settings/departments
+      |   Icon: business
+      |-- Sections [SECTIONS]
+      |   Route: /super-admin/settings/sections
+      |   Icon: account_tree
+      |-- Subjects [SUBJECTS]
+      |   Route: /super-admin/settings/subjects
+      |   Icon: menu_book
+      |-- Academic Years [ACADEMIC_YEARS]
+      |   Route: /super-admin/academic-years
+      |   Icon: calendar_month
+      |-- Classes [CLASSES]
+      |   Route: /super-admin/classes
+      |   Icon: class
+      |-- Terms [TERMS]
+      |   Route: /super-admin/terms
+      |   Icon: date_range
+      |-- Purposes [PURPOSES]
+      |   Route: /super-admin/settings/purposes
+      |   Icon: fact_check
+
+------------------------------------------------------------
+GROUP 5: OPERATIONS (SortOrder: 50)
+------------------------------------------------------------
+|-- Printing Management [PRINTING_MANAGEMENT_ROOT]
+    Icon: print
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [PRINTING_DASHBOARD]
+      |   Route: /printing/dashboard
+      |   Icon: dashboard
+      |-- Requests [PRINTING_REQUESTS]
+      |   Route: /printing/requests
+      |   Icon: description
+      |-- Approval Workflow [PRINTING_APPROVALS]
+      |   Route: /printing/approvals
+      |   Icon: approval
+      |-- Print Queue [PRINT_QUEUE]
+      |   Route: /printing/queue
+      |   Icon: queue
+      |-- Paper Inventory [PAPER_INVENTORY]
+      |   Route: /printing/inventory
+      |   Icon: inventory_2
+      |-- Paper Purchases [PAPER_PURCHASES]
+      |   Route: /printing/purchases
+      |   Icon: shopping_cart
+      |-- Limits & Allocation [PRINT_LIMITS]
+      |   Route: /printing/limits
+      |   Icon: speed
+      |-- Reports [PRINTING_REPORTS]
+      |   Route: /printing/reports
+      |   Icon: bar_chart
+      |-- Settings [PRINTING_SETTINGS]
+      |   Route: /printing/settings
+      |   Icon: settings
+
+|-- IT Operations [IT_OPERATIONS_ROOT]
+    Icon: devices
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [IT_DASHBOARD]
+      |   Route: /it-assets/dashboard
+      |   Icon: dashboard
+      |-- Asset Management [IT_ASSET_MANAGEMENT]
+      |   Route: /it-assets/assets
+      |   Icon: devices
+      |   Children:
+      |     |-- All Assets [IT_ASSETS_ALL]
+      |     |   Route: /super-admin/it-assets/assets/all
+      |     |-- Computers [IT_ASSETS_COMPUTERS]
+      |     |   Route: /super-admin/it-assets/assets/computers
+      |     |-- Printers & Copiers [IT_ASSETS_PRINTERS_COPIERS]
+      |     |   Route: /super-admin/it-assets/assets/printers-copiers
+      |     |-- Projectors [IT_ASSETS_PROJECTORS]
+      |     |   Route: /super-admin/it-assets/assets/projectors
+      |     |-- Network Devices [IT_ASSETS_NETWORK_DEVICES]
+      |     |   Route: /super-admin/it-assets/assets/network-devices
+      |     |-- CCTV Cameras [IT_ASSETS_CCTV_CAMERAS]
+      |     |   Route: /super-admin/it-assets/assets/cctv-cameras
+      |-- Assignments [IT_ASSIGNMENTS]
+      |   Route: /it-assets/assignments
+      |   Icon: assignment_ind
+      |   Children:
+      |     |-- Current Assignments [IT_ASSETS_CURRENT_ASSIGNMENTS]
+      |     |   Route: /super-admin/it-assets/assignments/current
+      |     |-- Transfer Requests [IT_ASSETS_TRANSFER_REQUESTS]
+      |     |   Route: /super-admin/it-assets/assignments/transfers
+      |     |-- Needed Laptops [IT_ASSETS_NEEDED_LAPTOPS]
+      |     |   Route: /super-admin/it-assets/assignments/needed-laptops
+      |     |-- Assignment History [IT_ASSETS_ASSIGNMENT_HISTORY]
+      |     |   Route: /super-admin/it-assets/assignments/history
+      |-- Borrow & Return [IT_BORROW_RETURN]
+      |   Route: /it-assets/borrow
+      |   Icon: laptop_chromebook
+      |-- Transfers [IT_TRANSFERS]
+      |   Route: /it-assets/transfers
+      |   Icon: swap_horiz
+      |-- Maintenance [IT_MAINTENANCE]
+      |   Route: /it-assets/maintenance
+      |   Icon: build
+      |   Children:
+      |     |-- Issues [IT_ISSUES]
+      |     |   Route: /it-assets/issues
+      |     |-- Maintenance Logs [IT_MAINTENANCE_LOGS]
+      |     |   Route: /super-admin/it-assets/maintenance/logs
+      |     |-- Maintenance Schedule [IT_MAINTENANCE_SCHEDULE]
+      |     |   Route: /super-admin/it-assets/maintenance/schedule
+      |     |-- Disposal [IT_DISPOSALS]
+      |     |   Route: /it-assets/disposals
+      |-- Master Data [IT_ASSETS_MASTER_DATA]
+      |   Route: /super-admin/it-assets/master-data
+      |   Icon: category
+      |   Children:
+      |     |-- Categories [IT_ASSETS_CATEGORIES]
+      |     |   Route: /super-admin/it-assets/master-data/categories
+      |     |-- Brands [IT_ASSETS_BRANDS]
+      |     |   Route: /super-admin/it-assets/master-data/brands
+      |     |-- Models [IT_ASSETS_MODELS]
+      |     |   Route: /super-admin/it-assets/master-data/models
+      |     |-- Statuses [IT_ASSETS_STATUSES]
+      |     |   Route: /super-admin/it-assets/master-data/statuses
+      |     |-- Conditions [IT_ASSETS_CONDITIONS]
+      |     |   Route: /super-admin/it-assets/master-data/conditions
+      |-- Reports [IT_REPORTS]
+      |   Route: /it-assets/reports
+      |   Icon: assessment
+      |   Children:
+      |     |-- Inventory [IT_ASSETS_REPORT_INVENTORY]
+      |     |   Route: /super-admin/it-assets/reports/inventory
+      |     |-- Assignment [IT_ASSETS_REPORT_ASSIGNMENT]
+      |     |   Route: /super-admin/it-assets/reports/assignment
+      |     |-- Maintenance [IT_ASSETS_REPORT_MAINTENANCE]
+      |     |   Route: /super-admin/it-assets/reports/maintenance
+      |     |-- Issues [IT_ASSETS_REPORT_ISSUES]
+      |     |   Route: /super-admin/it-assets/reports/issues
+      |     |-- Disposal [IT_ASSETS_REPORT_DISPOSAL]
+      |     |   Route: /super-admin/it-assets/reports/disposal
+      |-- Service Desk [IT_SERVICE_DESK]
+      |   Route: /it/service-desk
+      |   Icon: support_agent
+      |-- Settings [IT_SETTINGS]
+      |   Route: /it/settings
+      |   Icon: settings
+
+|-- Academic Operations [ACADEMIC_OPERATIONS_ROOT]
+    Icon: auto_stories
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [ACADEMIC_DASHBOARD]
+      |   Route: /academic/dashboard
+      |   Icon: dashboard
+      |-- Students [STUDENTS]
+      |   Route: /academic/students
+      |   Icon: groups
+      |-- Attendance [ATTENDANCE]
+      |   Route: /academic/attendance
+      |   Icon: how_to_reg
+      |-- Assessments [ASSESSMENTS]
+      |   Route: /academic/assessments
+      |   Icon: assignment
+      |-- Examinations [EXAMINATIONS]
+      |   Route: /academic/examinations
+      |   Icon: quiz
+      |-- Class Management [CLASS_MANAGEMENT]
+      |   Route: /academic/classes
+      |   Icon: class
+      |-- Reports [ACADEMIC_REPORTS]
+      |   Route: /academic/reports
+      |   Icon: assessment
+
+|-- Printing [PRINTING]
+    Icon: print
+    Status: Disabled
+    Route: /super-admin/printing
+
+|-- IT Help Desk [IT_HELP_DESK]
+    Icon: ticket
+    Status: Disabled
+    Route: /super-admin/helpdesk
+
+|-- Inventory [INVENTORY]
+    Icon: inventory
+    Status: Disabled
+    Route: /super-admin/inventory
+
+|-- HR Management [HR_MANAGEMENT_ROOT]
+    Icon: groups
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [HR_DASHBOARD]
+      |   Route: /hr/dashboard
+      |   Icon: dashboard
+      |-- Employees [EMPLOYEES]
+      |   Route: /hr/employees
+      |   Icon: people
+      |-- Leave [LEAVE]
+      |   Route: /hr/leave
+      |   Icon: event_busy
+      |-- Attendance [HR_ATTENDANCE]
+      |   Route: /hr/attendance
+      |   Icon: how_to_reg
+      |-- Performance [PERFORMANCE]
+      |   Route: /hr/performance
+      |   Icon: trending_up
+      |-- Reports [HR_REPORTS]
+      |   Route: /hr/reports
+      |   Icon: assessment
+
+|-- Communication Center [COMMUNICATION_CENTER_ROOT]
+    Icon: campaign
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [COMMUNICATION_DASHBOARD]
+      |   Route: /communication/dashboard
+      |   Icon: dashboard
+      |-- Announcements [ANNOUNCEMENTS]
+      |   Route: /communication/announcements
+      |   Icon: campaign
+      |-- Circulars [CIRCULARS]
+      |   Route: /communication/circulars
+      |   Icon: article
+      |-- Emails [EMAILS]
+      |   Route: /communication/emails
+      |   Icon: email
+      |-- SMS [SMS]
+      |   Route: /communication/sms
+      |   Icon: sms
+      |-- Notifications [NOTIFICATIONS]
+      |   Route: /communication/notifications
+      |   Icon: notifications
+      |-- Templates [COMMUNICATION_TEMPLATES]
+      |   Route: /communication/templates
+      |   Icon: text_snippet
+
+|-- Observations [OBSERVATIONS_ROOT]
+    Icon: visibility
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [OBSERVATIONS_DASHBOARD]
+      |   Route: /observations/dashboard
+      |   Icon: dashboard
+      |-- Teacher Observations [TEACHER_OBSERVATIONS]
+      |   Route: /observations/teacher
+      |   Icon: visibility
+      |-- Classroom Walkthroughs [CLASSROOM_WALKTHROUGHS]
+      |   Route: /observations/walkthroughs
+      |   Icon: checklist
+      |-- Reports [OBSERVATION_REPORTS]
+      |   Route: /observations/reports
+      |   Icon: assessment
+
+|-- Facilities Management [FACILITIES_MANAGEMENT_ROOT]
+    Icon: apartment
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Dashboard [FACILITIES_DASHBOARD]
+      |   Route: /facilities/dashboard
+      |   Icon: dashboard
+      |-- Buildings [BUILDINGS]
+      |   Route: /facilities/buildings
+      |   Icon: apartment
+      |-- Rooms [ROOMS]
+      |   Route: /facilities/rooms
+      |   Icon: meeting_room
+      |-- Reservations [FACILITY_RESERVATIONS]
+      |   Route: /facilities/reservations
+      |   Icon: event_available
+      |-- Maintenance Requests [FACILITY_MAINTENANCE]
+      |   Route: /facilities/maintenance
+      |   Icon: build
+
+------------------------------------------------------------
+GROUP 6: REPORTS & ANALYTICS (SortOrder: 60)
+------------------------------------------------------------
+|-- Reports & Analytics [REPORTS_ANALYTICS_ROOT]
+    Icon: analytics
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Executive Dashboard [EXECUTIVE_DASHBOARD]
+      |   Route: /reports/executive
+      |   Icon: dashboard
+      |-- Academic Reports [REPORT_ACADEMIC]
+      |   Route: /reports/academic
+      |   Icon: auto_stories
+      |-- Printing Reports [REPORT_PRINTING]
+      |   Route: /reports/printing
+      |   Icon: print
+      |-- IT Reports [REPORT_IT]
+      |   Route: /reports/it
+      |   Icon: devices
+      |-- ID Reports [REPORT_ID]
+      |   Route: /reports/id-management
+      |   Icon: badge
+      |-- HR Reports [REPORT_HR]
+      |   Route: /reports/hr
+      |   Icon: groups
+      |-- Communication Reports [REPORT_COMMUNICATION]
+      |   Route: /reports/communication
+      |   Icon: campaign
+      |-- Custom Reports [CUSTOM_REPORTS]
+      |   Route: /reports/custom
+      |   Icon: tune
+      |-- Export Center [EXPORT_CENTER]
+      |   Route: /reports/export
+      |   Icon: file_download
+
+------------------------------------------------------------
+GROUP 7: SYSTEM (SortOrder: 70)
+------------------------------------------------------------
+|-- Platform [PLATFORM_ROOT]
+    Icon: settings_applications
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Workflow Engine [WORKFLOW_ENGINE]
+      |   Route: /system/workflows
+      |   Icon: account_tree
+      |-- Form Builder [FORM_BUILDER]
+      |   Route: /system/forms
+      |   Icon: dynamic_form
+      |-- Document Management [DOCUMENT_MANAGEMENT]
+      |   Route: /system/documents
+      |   Icon: folder
+      |-- Global Search [GLOBAL_SEARCH]
+      |   Route: /system/global-search
+      |   Icon: search
+      |-- Archive Center [ARCHIVE_CENTER]
+      |   Route: /system/archive
+      |   Icon: archive
+      |-- Audit Logs [AUDIT_LOGS]
+      |   Route: /system/audit-logs
+      |   Icon: history
+      |-- System Health [SYSTEM_HEALTH]
+      |   Route: /system/health
+      |   Icon: health_and_safety
+      |-- Backups [BACKUPS]
+      |   Route: /system/backups
+      |   Icon: backup
+      |-- System Settings [SYSTEM_SETTINGS]
+      |   Route: /system/settings
+      |   Icon: settings
+
+------------------------------------------------------------
+GROUP 8: PLATFORM (SortOrder: 80)
+------------------------------------------------------------
+|-- School Structure [SCHOOL_STRUCTURE]
+    Icon: school
+    Status: Hidden (Collapsible)
+    Children:
+      |-- Departments [DEPARTMENTS]
+      |   Route: /super-admin/settings/departments
+      |   Icon: business
+      |-- Sections [SECTIONS]
+      |   Route: /super-admin/settings/sections
+      |   Icon: account_tree
+      |-- Subjects [SUBJECTS]
+      |   Route: /super-admin/settings/subjects
+      |   Icon: menu_book
+      |-- Academic Years [ACADEMIC_YEARS]
+      |   Route: /super-admin/academic-years
+      |   Icon: calendar_month
+      |-- Classes [CLASSES]
+      |   Route: /super-admin/classes
+      |   Icon: class
+      |-- Terms [TERMS]
+      |   Route: /super-admin/terms
+      |   Icon: date_range
+      |-- Purposes [PURPOSES]
+      |   Route: /super-admin/settings/purposes
+      |   Icon: fact_check
+
+------------------------------------------------------------
+ROOT MENUS NOT ASSIGNED TO ANY GROUP
+------------------------------------------------------------
+These menus exist in the database but are not assigned to any
+MenuGroup and therefore do NOT appear in the runtime sidebar:
+
+|-- Main Dashboard [MAIN_DASHBOARD]
+|   Route: /super-admin/dashboard
+|-- HR [HR]
+|   Route: /super-admin/hr
+|-- Communication [COMMUNICATION]
+|   Route: /super-admin/communication
+|-- Platform Reports [PLATFORM_REPORTS]
+|   Route: /super-admin/reports
+|-- ID Management [ID_MANAGEMENT]
+|-- IT Assets Dashboard [IT_ASSETS_DASHBOARD]
+|-- IT Asset Management [IT_ASSETS_ASSET_MANAGEMENT]
+|-- IT Asset Assignment [IT_ASSETS_ASSIGNMENT]
+|-- IT Asset Maintenance [IT_ASSETS_MAINTENANCE]
+|-- Import Assets [IT_ASSETS_IMPORT]
+|-- Asset Groups [IT_ASSETS_GROUPS]
+|-- Master Data [IT_ASSETS_MASTER_DATA]
+|-- Reports [IT_ASSETS_REPORTS]
+|-- All Assets [IT_ASSETS_ALL]
+|-- Computers [IT_ASSETS_COMPUTERS]
+|-- Printers & Copiers [IT_ASSETS_PRINTERS_COPIERS]
+|-- Projectors [IT_ASSETS_PROJECTORS]
+|-- Network Devices [IT_ASSETS_NETWORK_DEVICES]
+|-- CCTV Cameras [IT_ASSETS_CCTV_CAMERAS]
+|-- Current Assignments [IT_ASSETS_CURRENT_ASSIGNMENTS]
+|-- Transfer Requests [IT_ASSETS_TRANSFER_REQUESTS]
+|-- Needed Laptops [IT_ASSETS_NEEDED_LAPTOPS]
+|-- Assignment History [IT_ASSETS_ASSIGNMENT_HISTORY]
+|-- Issues [IT_ISSUES]
+|-- Maintenance Logs [IT_MAINTENANCE_LOGS]
+|-- Maintenance Schedule [IT_MAINTENANCE_SCHEDULE]
+|-- Disposal [IT_DISPOSALS]
+|-- Categories [IT_ASSETS_CATEGORIES]
+|-- Brands [IT_ASSETS_BRANDS]
+|-- Models [IT_ASSETS_MODELS]
+|-- Statuses [IT_ASSETS_STATUSES]
+|-- Conditions [IT_ASSETS_CONDITIONS]
+|-- Inventory [IT_ASSETS_REPORT_INVENTORY]
+|-- Assignment [IT_ASSETS_REPORT_ASSIGNMENT]
+|-- Maintenance [IT_ASSETS_REPORT_MAINTENANCE]
+|-- Issues [IT_ASSETS_REPORT_ISSUES]
+|-- Disposal [IT_ASSETS_REPORT_DISPOSAL]
+
+============================================================
+SIDEBAR VISIBILITY STATUS
+============================================================
+
+Visibility Status IDs:
+  1 = Enabled (visible and clickable)
+  2 = Hidden (rendered as disabled "Soon" items)
+
+Note: Items with VisibilityStatusId = 2 are currently rendered
+as disabled "Soon" badges in the sidebar. They are NOT hidden
+from the navigation query.
+
+============================================================
+COLLAPSIBLE ROOT MENUS
+============================================================
+
+Menus with IsCollapsible = 1 act as expandable sections:
+  - PLATFORM_FOUNDATION_ROOT
+  - USER_ACCESS_ROOT
+  - ACADEMIC_OPERATIONS_ROOT
+  - PRINTING_MANAGEMENT_ROOT
+  - COMMUNICATION_CENTER_ROOT
+  - HR_MANAGEMENT_ROOT
+  - ID_MANAGEMENT_ROOT
+  - IT_OPERATIONS_ROOT
+  - OBSERVATIONS_ROOT
+  - FACILITIES_MANAGEMENT_ROOT
+  - REPORTS_ANALYTICS_ROOT
+  - PLATFORM_ROOT
+  - SCHOOL_CONFIGURATION_ROOT
+
+When a parent has children, clicking it toggles the expand/collapse
+state. The parent route is NOT navigated when children exist.
+
+============================================================

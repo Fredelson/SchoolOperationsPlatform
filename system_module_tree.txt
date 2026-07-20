@@ -1,0 +1,360 @@
+============================================================
+ARAB UNITY SCHOOL - OPERATIONS PLATFORM
+SYSTEM MODULE ARCHITECTURE
+============================================================
+
+------------------------------------------------------------
+1. PLATFORM FOUNDATION
+------------------------------------------------------------
+Description: Core platform infrastructure and administration
+Base Route: /super-admin
+Status: ACTIVE
+Icon: admin_panel_settings
+
+Sub-Modules:
+  |-- Module Manager
+  |-- Menu Manager
+  |-- Navigation Manager
+  |-- Widget Manager
+  |-- Button Manager
+  |-- Feature Flag Manager
+  |-- Dashboard Manager
+  |-- Workspace Manager
+  |-- Asset Tag Branding
+  |-- Lookups
+
+------------------------------------------------------------
+2. USER & ACCESS
+------------------------------------------------------------
+Description: Users, roles, permissions, access levels, and assignments
+Base Route: /super-admin/user-access
+Status: ACTIVE
+Icon: manage_accounts
+
+Sub-Modules:
+  |-- User Management
+  |-- Role Management
+  |-- Permission Management
+  |-- Permission Groups
+  |-- Permission Resolver
+  |-- Access Levels
+  |-- User Permission Overrides
+  |-- User Assignments
+  |-- User Import
+
+------------------------------------------------------------
+3. SCHOOL STRUCTURE
+------------------------------------------------------------
+Description: Shared school structure and academic master data
+Base Route: /super-admin/school-structure
+Status: ACTIVE
+Icon: school
+
+Sub-Modules:
+  |-- Departments
+  |-- Sections
+  |-- Subjects
+  |-- Year Groups
+  |-- Classes
+  |-- Terms
+
+------------------------------------------------------------
+4. SCHOOL CONFIGURATION
+------------------------------------------------------------
+Description: School identity, branding, departments, sections, subjects, terms, and classes
+Base Route: /super-admin/school-configuration
+Status: ACTIVE
+Icon: school
+
+------------------------------------------------------------
+5. PRINTING MANAGEMENT
+------------------------------------------------------------
+Description: Printing requests, approvals, queue, paper inventory, purchases, limits, reports, and settings
+Base Route: /printing
+Status: ACTIVE
+Icon: print
+
+Sub-Modules:
+  |-- Photocopy Requests
+  |-- Request Approvals (HOD / HOS)
+  |-- Printing Queue
+  |-- Paper Inventory
+  |-- Paper Purchases
+  |-- Printing Limits
+  |-- Printing Reports
+  |-- Printing Settings
+
+------------------------------------------------------------
+6. ID MANAGEMENT
+------------------------------------------------------------
+Description: Student IDs, staff IDs, visitor IDs, templates, QR/barcode, card printing, and reports
+Base Route: /id-management
+Status: ACTIVE
+Icon: badge
+
+------------------------------------------------------------
+7. IT OPERATIONS
+------------------------------------------------------------
+Description: IT service desk, assets, inventory, maintenance, reports, and settings
+Base Route: /it-assets
+Status: ACTIVE
+Icon: devices
+
+Sub-Modules:
+  |-- IT Asset Registry
+  |-- Asset Assignment
+  |-- Asset Borrowing
+  |-- Asset Transfer
+  |-- Asset Maintenance
+  |-- Asset Disposal
+  |-- Asset Issues
+  |-- Asset Explorer
+  |-- Asset Dashboard
+  |-- Asset Tag Branding
+  |-- QR / Barcode Generation
+
+------------------------------------------------------------
+8. IT SERVICE DESK
+------------------------------------------------------------
+Description: IT tickets and support workflow
+Base Route: /it-service-desk
+Status: HIDDEN (Planned)
+Icon: support_agent
+
+------------------------------------------------------------
+9. LIBRARY MANAGEMENT
+------------------------------------------------------------
+Description: Library books, lending, returns, and reports
+Base Route: /library
+Status: ACTIVE (Backend only)
+Icon: library_books
+
+Sub-Modules:
+  |-- Book Registry
+  |-- Book Lending
+  |-- Book Returns
+  |-- Library Reports
+
+------------------------------------------------------------
+10. REPORTS & ANALYTICS
+------------------------------------------------------------
+Description: Executive dashboards, analytics, custom reports, and export center
+Base Route: /reports
+Status: ACTIVE
+Icon: analytics
+
+------------------------------------------------------------
+11. HR MANAGEMENT
+------------------------------------------------------------
+Description: Employees, leave, attendance, performance, and reports
+Base Route: /hr
+Status: ACTIVE
+Icon: groups
+
+------------------------------------------------------------
+12. OBSERVATIONS
+------------------------------------------------------------
+Description: Teacher observations, classroom walkthroughs, and observation reports
+Base Route: /observations
+Status: ACTIVE
+Icon: visibility
+
+------------------------------------------------------------
+13. FACILITIES MANAGEMENT
+------------------------------------------------------------
+Description: Rooms, buildings, reservations, maintenance requests, and facilities operations
+Base Route: /facilities
+Status: ACTIVE
+Icon: apartment
+
+------------------------------------------------------------
+14. WORKFLOW ENGINE
+------------------------------------------------------------
+Description: Reusable workflow approvals
+Base Route: /workflow-engine
+Status: HIDDEN (Planned)
+Icon: account_tree
+
+------------------------------------------------------------
+15. COMMUNICATION CENTER
+------------------------------------------------------------
+Description: Announcements, circulars, emails, SMS, notifications, and templates
+Base Route: /communication
+Status: ACTIVE
+Icon: campaign
+
+------------------------------------------------------------
+16. SYSTEM CONTROL CENTER
+------------------------------------------------------------
+Description: Settings, backup, security and audit
+Base Route: /system-control
+Status: ACTIVE
+Icon: settings
+
+------------------------------------------------------------
+17. SYSTEM & TOOLS
+------------------------------------------------------------
+Description: Branding, workflow, documents, audit logs, backups, and settings
+Base Route: /system
+Status: ACTIVE
+Icon: settings_applications
+
+Sub-Modules:
+  |-- Audit Logs
+  |-- Activity Timeline
+  |-- AI Prompts & Usage
+  |-- System Settings
+  |-- Backup & Restore
+
+------------------------------------------------------------
+18. PLATFORM
+------------------------------------------------------------
+Description: Workflow, forms, documents, global search, archive, audit logs, system health, backups, and settings
+Base Route: /system
+Status: ACTIVE
+Icon: settings_applications
+
+------------------------------------------------------------
+19. INVENTORY MANAGEMENT
+------------------------------------------------------------
+Description: Paper inventory and transactions
+Base Route: /inventory
+Status: HIDDEN (Merged into Printing)
+Icon: inventory_2
+
+------------------------------------------------------------
+20. ACADEMIC OPERATIONS
+------------------------------------------------------------
+Description: Students, attendance, assessments, examinations, class management, and academic reports
+Base Route: /academic
+Status: ACTIVE
+Icon: auto_stories
+
+------------------------------------------------------------
+============================================================
+FRONTEND ROLE-BASED MODULES
+============================================================
+
+|-- auth/               Authentication & Login
+|-- admin/              Admin Dashboard
+|-- teacher/            Teacher Workspace
+|-- hod/                Head of Department Workspace
+|-- hos/                Head of School Workspace
+|-- it-assets/          IT Operations Module
+|-- library/            Library Management Module
+|-- platform-admin/     Platform Admin Workspace
+|-- printing-admin/     Printing Admin Workspace
+|-- super-admin/        Super Admin Workspace
+|-- system/             System Control Center
+|-- shared/             Shared Components & Utilities
+
+============================================================
+BACKEND FEATURE MODULES
+============================================================
+
+|-- accessLevels/       Access Level Management
+|-- assetTagBranding/   IT Asset Tag Branding
+|-- assignments/        User Assignment Types
+|-- audit/              Audit Logging & Activity Timeline
+|-- auth/               Authentication & Authorization
+|-- buttons/            Button Management
+|-- dashboardManager/   Dashboard Configuration
+|-- example/            Example/Demo Module
+|-- featureFlags/       Feature Flag Management
+|-- itAssets/           IT Assets Full Feature Set
+|-- library/            Library Management Backend
+|-- lookups/            Lookup Data Management
+|-- menus/              Menu Manager
+|-- modules/            Module Manager
+|-- navigation/         Runtime Navigation Service
+|-- navigationManager/  Navigation Configuration
+|-- permissionGroups/   Permission Group Management
+|-- permissionResolver/ Permission Resolution Engine
+|-- permissions/        Permission Management
+|-- printing/           Printing Management Backend
+|-- rolePermissions/    Role-Permission Mapping
+|-- roles/              Role Management
+|-- system/             System Configuration
+|-- userPermissionOverrides/ User Permission Overrides
+|-- users/              User Management
+|-- widgets/            Widget Management
+|-- workspaceManager/   Workspace Management
+
+============================================================
+SYSTEM ROLES
+============================================================
+
+|-- Super Admin         Full platform access
+|-- Platform Admin      Platform configuration & monitoring
+|-- Head of School (HOS) School-wide oversight
+|-- Head of Department (HOD) Department-level management
+|-- Teacher             Classroom-level operations
+|-- Admin               Administrative support
+|-- Librarian           Library operations
+|-- Printing Admin      Printing operations management
+
+============================================================
+DATABASE SCHEMA HIGHLIGHTS
+============================================================
+
+Core Tables:
+  |-- Users
+  |-- Roles
+  |-- Permissions
+  |-- Modules
+  |-- Menus
+  |-- MenuGroups
+  |-- MenuGroupItems
+  |-- Workspaces
+  |-- FeatureFlags
+  |-- Buttons
+  |-- Widgets
+  |-- Dashboards
+  |-- ActivityTimeline
+  |-- UserMenuPreferences
+  |-- UserPermissionOverrides
+
+IT Assets Tables:
+  |-- ITAssets
+  |-- AssetAssignments
+  |-- AssetBorrowing
+  |-- AssetTransfers
+  |-- AssetMaintenance
+  |-- AssetDisposals
+  |-- AssetIssues
+
+Printing Tables:
+  |-- PhotocopyRequests
+  |-- PaperInventory
+  |-- PaperPurchases
+  |-- PrintingLimits
+
+Library Tables:
+  |-- LibraryBooks
+  |-- LibraryLending
+  |-- LibraryReturns
+
+School Structure Tables:
+  |-- Departments
+  |-- Sections
+  |-- Subjects
+  |-- YearGroups
+  |-- Classes
+  |-- Terms
+  |-- AcademicYears
+
+============================================================
+SYSTEM INTEGRATIONS
+============================================================
+
+|-- SQL Server Database (OperationsPlatformDB)
+|-- JWT Authentication
+|-- Email Notifications
+|-- QR/Barcode Generation
+|-- Excel/CSV Import/Export
+|-- PDF Report Generation
+|-- Image/Logo Upload
+|-- Activity Logging
+|-- AI Integration (Prompts & Usage)
+
+============================================================

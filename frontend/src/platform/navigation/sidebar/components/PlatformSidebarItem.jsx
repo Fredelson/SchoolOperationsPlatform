@@ -55,16 +55,17 @@ export default function PlatformSidebarItem({
   const isActive = isSidebarItemActive(item, location.pathname);
 
   const isRoot = level === 0;
-  const rowInset = level * 2.2;
-  const rowHeight = isRoot ? 52 : hasChildren ? 44 : 40;
+  const isTopLevelGroup = isRoot && hasChildren;
+  const rowInset = level * 2;
+  const rowHeight = isTopLevelGroup ? 56 : isRoot ? 46 : hasChildren ? 43 : 39;
   const rowRadius = isRoot ? 2 : 1.5;
   const icon = item.icon || getSidebarIcon(item.iconKey, level);
   const branchLineColor = isActive
-    ? alpha(accent, 0.72)
-    : alpha(sidebarText, 0.18);
-  const branchOffset = theme.spacing(-1.1);
-  const branchWidth = theme.spacing(1.1);
-  const branchStemLeft = theme.spacing(rowInset - 1.1);
+    ? alpha(accent, 0.66)
+    : alpha(sidebarText, 0.16);
+  const branchOffset = theme.spacing(-0.85);
+  const branchWidth = theme.spacing(0.85);
+  const branchStemLeft = theme.spacing(rowInset - 0.85);
   const hierarchyBranchSx = showHierarchy && level > 0
     ? {
         position: "relative",
@@ -110,44 +111,77 @@ export default function PlatformSidebarItem({
       : "100%",
     minHeight: rowHeight,
     ml: rowInset,
-    mb: isRoot ? 0.65 : 0.35,
-    px: isRoot ? 1.15 : 1.25,
+    mb: isRoot ? 0.75 : 0.3,
+    px: isRoot ? 1.35 : 1.15,
     borderRadius: rowRadius,
     border: "1px solid transparent",
   };
   const iconSx = {
     color: "inherit",
-    minWidth: isRoot ? 42 : 30,
+    minWidth: isRoot ? 43 : 29,
     "& svg": {
-      fontSize: isRoot ? 21 : hasChildren ? 17 : 14,
+      fontSize: isRoot ? 21 : hasChildren ? 17 : 15,
     },
   };
   const rootIconSurfaceSx = isRoot
     ? {
-        width: 32,
-        height: 32,
+        width: isTopLevelGroup ? 34 : 30,
+        height: isTopLevelGroup ? 34 : 30,
         display: "grid",
         placeItems: "center",
         borderRadius: 1.5,
-        bgcolor: isActive ? alpha(accent, 0.22) : alpha(sidebarText, 0.07),
+        color: isActive
+          ? sidebarText
+          : isTopLevelGroup
+            ? accent
+            : alpha(sidebarText, 0.8),
+        bgcolor: isActive
+          ? alpha(accent, 0.28)
+          : isTopLevelGroup
+            ? alpha(accent, 0.12)
+            : alpha(sidebarText, 0.06),
         border: `1px solid ${
-          isActive ? alpha(accent, 0.3) : alpha(sidebarText, 0.08)
+          isActive
+            ? alpha(accent, 0.46)
+            : isTopLevelGroup
+              ? alpha(accent, 0.22)
+              : alpha(sidebarText, 0.1)
         }`,
       }
     : {
-        width: 18,
-        height: 18,
+        width: 19,
+        height: 19,
         display: "grid",
         placeItems: "center",
+        color: hasChildren ? alpha(sidebarText, 0.8) : alpha(sidebarText, 0.64),
       };
   const textSx = {
-    fontSize: isRoot ? 15.25 : hasChildren ? 13.75 : 13.25,
+    fontSize: isTopLevelGroup
+      ? 15.5
+      : isRoot
+        ? 14.25
+        : hasChildren
+          ? 13.75
+          : 13.1,
     lineHeight: 1.25,
-    fontWeight: isRoot ? 800 : hasChildren ? 750 : 600,
+    fontWeight: isTopLevelGroup
+      ? 800
+      : isRoot
+        ? 700
+        : hasChildren
+          ? 750
+          : 550,
     letterSpacing: 0,
-    whiteSpace: "nowrap",
+    whiteSpace: isTopLevelGroup ? "normal" : "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    ...(isTopLevelGroup
+      ? {
+          display: "-webkit-box",
+          WebkitBoxOrient: "vertical",
+          WebkitLineClamp: 2,
+        }
+      : {}),
   };
   const chevron = (
     <Box
@@ -184,28 +218,30 @@ export default function PlatformSidebarItem({
           sx={{
             ...rowLayoutSx,
             cursor: toggleMenu ? "pointer" : "default",
-            color: isActive ? sidebarText : alpha(sidebarText, isRoot ? 0.9 : 0.76),
+            color: isActive ? sidebarText : alpha(sidebarText, isRoot ? 0.96 : 0.82),
             bgcolor: isActive
-              ? alpha(accent, isRoot ? 0.16 : 0.1)
-              : isRoot
-                ? alpha(sidebarText, 0.035)
+              ? alpha(accent, isRoot ? 0.2 : 0.1)
+              : isTopLevelGroup
+                ? alpha(sidebarText, 0.075)
                 : "transparent",
             borderColor: isActive
-              ? alpha(accent, isRoot ? 0.32 : 0.2)
-              : isRoot
-                ? alpha(sidebarText, 0.06)
+              ? alpha(accent, isRoot ? 0.42 : 0.24)
+              : isTopLevelGroup
+                ? alpha(sidebarText, 0.1)
                 : "transparent",
             boxShadow: isActive
-              ? `inset ${isRoot ? 3 : 2}px 0 0 ${accent}`
-              : "none",
+              ? `inset ${isRoot ? 4 : 3}px 0 0 ${accent}`
+              : isTopLevelGroup
+                ? `inset 2px 0 0 ${alpha(accent, 0.68)}`
+                : "none",
             transition: theme.transitions.create(
               ["background-color", "border-color", "color", "box-shadow"],
               { duration: theme.transitions.duration.short }
             ),
             "&:hover": {
               bgcolor: isActive
-                ? alpha(accent, isRoot ? 0.2 : 0.14)
-                : alpha(sidebarText, isRoot ? 0.075 : 0.06),
+                ? alpha(accent, isRoot ? 0.25 : 0.14)
+                : alpha(sidebarText, isTopLevelGroup ? 0.11 : 0.07),
               color: sidebarText,
             },
             ...hierarchyBranchSx,
@@ -220,6 +256,7 @@ export default function PlatformSidebarItem({
           )}
 
           <ListItemText
+            sx={{ minWidth: 0 }}
             primary={item.label}
             slotProps={{
               primary: {
@@ -263,10 +300,14 @@ export default function PlatformSidebarItem({
         ...rowLayoutSx,
         color: alpha(
           sidebarText,
-          isComingSoon ? 0.4 : isRoot ? 0.88 : 0.72
+          isComingSoon ? 0.4 : isRoot ? 0.9 : 0.7
         ),
-        bgcolor: isRoot ? alpha(sidebarText, 0.025) : "transparent",
-        borderColor: isRoot ? alpha(sidebarText, 0.05) : "transparent",
+        bgcolor: isRoot
+          ? alpha(sidebarText, isTopLevelGroup ? 0.06 : 0.04)
+          : "transparent",
+        borderColor: isRoot
+          ? alpha(sidebarText, isTopLevelGroup ? 0.085 : 0.06)
+          : "transparent",
         transition: theme.transitions.create(
           ["background-color", "border-color", "color", "box-shadow"],
           { duration: theme.transitions.duration.short }
@@ -274,25 +315,25 @@ export default function PlatformSidebarItem({
         "&:hover": {
           bgcolor: isComingSoon
             ? isRoot
-              ? alpha(sidebarText, 0.025)
+              ? alpha(sidebarText, isTopLevelGroup ? 0.06 : 0.04)
               : "transparent"
-            : alpha(sidebarText, isRoot ? 0.075 : 0.06),
+            : alpha(sidebarText, isTopLevelGroup ? 0.11 : 0.07),
           color: isComingSoon ? alpha(sidebarText, 0.42) : sidebarText,
         },
         "&.active": {
-          bgcolor: isRoot ? accent : alpha(sidebarText, 0.13),
+          bgcolor: isRoot ? accent : alpha(accent, 0.16),
           color: sidebarText,
           borderColor: isRoot
-            ? alpha(sidebarText, 0.12)
-            : alpha(accent, 0.32),
+            ? alpha(sidebarText, 0.16)
+            : alpha(accent, 0.35),
           boxShadow: isRoot
-            ? `0 8px 20px ${alpha(accent, 0.22)}`
+            ? `0 8px 22px ${alpha(accent, 0.24)}`
             : `inset 3px 0 0 ${accent}`,
           "& .MuiListItemIcon-root": {
             color: sidebarText,
           },
           "&:hover": {
-            bgcolor: isRoot ? accent : alpha(sidebarText, 0.16),
+            bgcolor: isRoot ? accent : alpha(accent, 0.2),
           },
         },
         "&.Mui-disabled": {
@@ -311,8 +352,9 @@ export default function PlatformSidebarItem({
         </ListItemIcon>
       )}
 
-      <ListItemText
-        primary={item.label}
+          <ListItemText
+            sx={{ minWidth: 0 }}
+            primary={item.label}
         slotProps={{
           primary: {
             sx: textSx,

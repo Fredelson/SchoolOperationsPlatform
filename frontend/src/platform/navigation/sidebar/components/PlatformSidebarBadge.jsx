@@ -22,15 +22,15 @@ export default function PlatformSidebarBadge({ label = "Soon" }) {
       label={label}
       size="small"
       sx={{
-        height: 18,
+        height: 20,
         ml: 0.75,
         flex: "0 0 auto",
         fontSize: 9.5,
         fontWeight: 800,
         letterSpacing: 0,
         color: sidebarText,
-        bgcolor: alpha(sidebarText, 0.12),
-        border: `1px solid ${alpha(sidebarText, 0.12)}`,
+        bgcolor: alpha(sidebarText, 0.1),
+        border: `1px solid ${alpha(sidebarText, 0.16)}`,
         "& .MuiChip-label": {
           px: 0.75,
         },

@@ -1,0 +1,191 @@
+============================================================
+OPERATIONS PLATFORM - SIDEBAR NAVIGATION
+============================================================
+
+┌─ MAIN ──────────────────────────────────────────────┐
+│  📊  Dashboard                                     │
+│       /dashboard                                    │
+└─────────────────────────────────────────────────────┘
+
+┌─ PLATFORM FOUNDATION ───────────────────────────────┐
+│  ⚙️  Platform Foundation                           │
+│       ┌─ Module Manager        /super-admin/modules │
+│       ├─ Menu Manager          /super-admin/menus   │
+│       ├─ Button Manager        /super-admin/buttons │
+│       ├─ Widget Manager        /super-admin/widgets │
+│       └─ Feature Flags         /super-admin/feature-flags │
+└─────────────────────────────────────────────────────┘
+
+┌─ USER & ACCESS ─────────────────────────────────────┐
+│  👥  User & Access Management                       │
+│       ┌─ Users                 /super-admin/users   │
+│       ├─ Roles                 /super-admin/roles   │
+│       ├─ Permissions           /super-admin/permissions │
+│       ├─ Access Levels         /super-admin/access-levels │
+│       ├─ Assignment Types      /super-admin/assignment-types │
+│       ├─ User Assignments      /super-admin/user-assignments │
+│       └─ Permission Overrides  /super-admin/user-permission-overrides │
+└─────────────────────────────────────────────────────┘
+
+┌─ SCHOOL CONFIGURATION ──────────────────────────────┐
+│  🏫  School Configuration                           │
+│       ┌─ Organization Profile  /super-admin/organization/profile │
+│       ├─ Branding & Theme      /system/branding     │
+│       ├─ Departments           /super-admin/settings/departments │
+│       ├─ Sections              /super-admin/settings/sections │
+│       ├─ Subjects              /super-admin/settings/subjects │
+│       ├─ Academic Years        /super-admin/academic-years │
+│       ├─ Classes               /super-admin/classes  │
+│       ├─ Terms                 /super-admin/terms    │
+│       └─ Purposes              /super-admin/settings/purposes │
+└─────────────────────────────────────────────────────┘
+
+┌─ OPERATIONS ────────────────────────────────────────┐
+│                                                      │
+│  🖨️  Printing Management                           │
+│       ┌─ Dashboard             /printing/dashboard  │
+│       ├─ Requests              /printing/requests   │
+│       ├─ Approval Workflow     /printing/approvals  │
+│       ├─ Print Queue           /printing/queue      │
+│       ├─ Paper Inventory       /printing/inventory  │
+│       ├─ Paper Purchases       /printing/purchases  │
+│       ├─ Limits & Allocation   /printing/limits     │
+│       ├─ Reports               /printing/reports    │
+│       └─ Settings              /printing/settings   │
+│                                                      │
+│  💻  IT Operations                                   │
+│       ┌─ Dashboard             /it-assets/dashboard │
+│       ├─ Asset Management      /it-assets/assets    │
+│       │   ├─ All Assets                              │
+│       │   ├─ Computers                               │
+│       │   ├─ Printers & Copiers                      │
+│       │   ├─ Projectors                              │
+│       │   ├─ Network Devices                         │
+│       │   └─ CCTV Cameras                            │
+│       ├─ Assignments           /it-assets/assignments │
+│       │   ├─ Current Assignments                     │
+│       │   ├─ Transfer Requests                       │
+│       │   ├─ Needed Laptops                          │
+│       │   └─ Assignment History                      │
+│       ├─ Borrow & Return       /it-assets/borrow    │
+│       ├─ Transfers             /it-assets/transfers │
+│       ├─ Maintenance           /it-assets/maintenance │
+│       │   ├─ Issues                                  │
+│       │   ├─ Maintenance Logs                        │
+│       │   ├─ Maintenance Schedule                    │
+│       │   └─ Disposal                                │
+│       ├─ Master Data           /it-assets/master-data │
+│       │   ├─ Categories                             │
+│       │   ├─ Brands                                 │
+│       │   ├─ Models                                 │
+│       │   ├─ Statuses                               │
+│       │   └─ Conditions                             │
+│       ├─ Reports               /it-assets/reports   │
+│       │   ├─ Inventory                              │
+│       │   ├─ Assignment                             │
+│       │   ├─ Maintenance                            │
+│       │   ├─ Issues                                 │
+│       │   └─ Disposal                               │
+│       ├─ Service Desk          /it/service-desk     │
+│       └─ Settings              /it/settings         │
+│                                                      │
+│  📚  Academic Operations                             │
+│       ┌─ Dashboard             /academic/dashboard  │
+│       ├─ Students              /academic/students   │
+│       ├─ Attendance            /academic/attendance │
+│       ├─ Assessments           /academic/assessments │
+│       ├─ Examinations          /academic/examinations │
+│       ├─ Class Management      /academic/classes    │
+│       └─ Reports               /academic/reports    │
+│                                                      │
+│  👔  HR Management                                   │
+│       ┌─ Dashboard             /hr/dashboard        │
+│       ├─ Employees             /hr/employees        │
+│       ├─ Leave                 /hr/leave            │
+│       ├─ Attendance            /hr/attendance       │
+│       ├─ Performance           /hr/performance      │
+│       └─ Reports               /hr/reports          │
+│                                                      │
+│  📢  Communication Center                            │
+│       ┌─ Dashboard             /communication/dashboard │
+│       ├─ Announcements         /communication/announcements │
+│       ├─ Circulars             /communication/circulars │
+│       ├─ Emails                /communication/emails │
+│       ├─ SMS                   /communication/sms   │
+│       ├─ Notifications         /communication/notifications │
+│       └─ Templates             /communication/templates │
+│                                                      │
+│  👁️  Observations                                    │
+│       ┌─ Dashboard             /observations/dashboard │
+│       ├─ Teacher Observations  /observations/teacher │
+│       ├─ Classroom Walkthroughs /observations/walkthroughs │
+│       └─ Reports               /observations/reports │
+│                                                      │
+│  🏢  Facilities Management                           │
+│       ┌─ Dashboard             /facilities/dashboard │
+│       ├─ Buildings             /facilities/buildings │
+│       ├─ Rooms                 /facilities/rooms    │
+│       ├─ Reservations          /facilities/reservations │
+│       └─ Maintenance Requests  /facilities/maintenance │
+└─────────────────────────────────────────────────────┘
+
+┌─ REPORTS & ANALYTICS ───────────────────────────────┐
+│  📈  Reports & Analytics                             │
+│       ┌─ Executive Dashboard   /reports/executive    │
+│       ├─ Academic Reports      /reports/academic     │
+│       ├─ Printing Reports      /reports/printing     │
+│       ├─ IT Reports            /reports/it           │
+│       ├─ ID Reports            /reports/id-management │
+│       ├─ HR Reports            /reports/hr           │
+│       ├─ Communication Reports /reports/communication │
+│       ├─ Custom Reports        /reports/custom       │
+│       └─ Export Center         /reports/export       │
+└─────────────────────────────────────────────────────┘
+
+┌─ SYSTEM ────────────────────────────────────────────┐
+│  🔧  Platform                                        │
+│       ┌─ Workflow Engine       /system/workflows     │
+│       ├─ Form Builder          /system/forms         │
+│       ├─ Document Management   /system/documents     │
+│       ├─ Global Search         /system/global-search │
+│       ├─ Archive Center        /system/archive       │
+│       ├─ Audit Logs            /system/audit-logs    │
+│       ├─ System Health         /system/health        │
+│       ├─ Backups               /system/backups       │
+│       └─ System Settings       /system/settings      │
+└─────────────────────────────────────────────────────┘
+
+┌─ SCHOOL STRUCTURE ──────────────────────────────────┐
+│  🏫  School Structure                                │
+│       ┌─ Departments           /super-admin/settings/departments │
+│       ├─ Sections              /super-admin/settings/sections │
+│       ├─ Subjects              /super-admin/settings/subjects │
+│       ├─ Academic Years        /super-admin/academic-years │
+│       ├─ Classes               /super-admin/classes  │
+│       ├─ Terms                 /super-admin/terms    │
+│       └─ Purposes              /super-admin/settings/purposes │
+└─────────────────────────────────────────────────────┘
+
+============================================================
+ID MANAGEMENT (Standalone - No Group Assigned)
+============================================================
+
+  🪪  ID Management
+       ┌─ Dashboard             /id-management/dashboard
+       ├─ Student IDs           /id-management/student-ids
+       ├─ Staff IDs             /id-management/staff-ids
+       ├─ Visitor IDs           /id-management/visitor-ids
+       ├─ Templates             /id-management/templates
+       ├─ QR / Barcode          /id-management/qr-barcode
+       ├─ Card Printing         /id-management/card-printing
+       └─ Reports               /id-management/reports
+
+============================================================
+NOTES
+============================================================
+
+• Groups are ordered by SortOrder (10 → 80)
+• Items with VisibilityStatusId = 2 show as disabled "Soon"
+• Collapsible parents toggle expand/collapse on click
+• Some menus exist in database but are NOT assigned to any
+  MenuGroup, so they do not appear in the sidebar

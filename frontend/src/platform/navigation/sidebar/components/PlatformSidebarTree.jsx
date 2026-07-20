@@ -14,11 +14,9 @@ import { useLocation } from "react-router-dom";
 import { Box, List } from "@mui/material";
 
 import PlatformSidebarItem from "./PlatformSidebarItem";
+import PlatformSidebarSection from "./PlatformSidebarSection";
 import { useSidebarState } from "../hooks/useSidebarState";
-import {
-  buildExpandedOpenMenus,
-  getSidebarItemKey,
-} from "../utils/sidebarHelpers";
+import { getSidebarItemKey } from "../utils/sidebarHelpers";
 
 export default function PlatformSidebarTree({
   sections = [],
@@ -33,23 +31,37 @@ export default function PlatformSidebarTree({
     { defaultOpenAll }
   );
 
-  const allItems = sections.flatMap((section) => section.items || []);
-
   return (
     <Box sx={{ px: 1.5, pt: 1.5, pb: 3 }}>
-      <List disablePadding sx={{ pt: 0.5 }}>
-        {allItems.map((item, index) => (
-          <PlatformSidebarItem
-            key={getSidebarItemKey(item)}
-            item={item}
-            isLastChild={index === allItems.length - 1}
-            openMenus={openMenus}
-            toggleMenu={toggleMenu}
-            onNavigate={onNavigate}
-            showHierarchy={showHierarchy}
-          />
-        ))}
-      </List>
+      {sections.map((section, sectionIndex) => {
+        const items = section.items || [];
+
+        if (!items.length) return null;
+
+        return (
+          <Box
+            key={section.title || `sidebar-section-${sectionIndex}`}
+            sx={{
+              mb: sectionIndex === sections.length - 1 ? 0 : 2.25,
+            }}
+          >
+            <PlatformSidebarSection title={section.title || "Main"} />
+            <List disablePadding sx={{ pt: 0.6 }}>
+              {items.map((item, index) => (
+                <PlatformSidebarItem
+                  key={getSidebarItemKey(item)}
+                  item={item}
+                  isLastChild={index === items.length - 1}
+                  openMenus={openMenus}
+                  toggleMenu={toggleMenu}
+                  onNavigate={onNavigate}
+                  showHierarchy={showHierarchy}
+                />
+              ))}
+            </List>
+          </Box>
+        );
+      })}
     </Box>
   );
 }

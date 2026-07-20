@@ -1,0 +1,361 @@
+============================================================
+OPERATIONS PLATFORM - SIDEBAR NAVIGATION AUDIT
+============================================================
+Date: 2026-07-20
+Issue: Platform Foundation section rendering too many items
+
+============================================================
+ROOT CAUSE
+============================================================
+
+The sidebar is displaying orphaned root menus that have:
+  1. ParentMenuId = NULL (no parent)
+  2. No entry in dbo.MenuGroupItems (not assigned to any sidebar group)
+
+Because these menus belong to ModuleId = 1 (platform_foundation),
+the navigation service buckets them ALL into the
+"Platform Foundation" sidebar section.
+
+============================================================
+AFFECTED MENUS (ParentMenuId IS NULL)
+============================================================
+
+These root menus exist in dbo.Menus but are NOT linked to any
+MenuGroup via dbo.MenuGroupItems:
+
+------------------------------------------------------------
+ModuleId = 1 (platform_foundation) - 28 ORPHANED MENUS
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+51      PRINTING                          /super-admin/printing
+53      IT_HELP_DESK                     /super-admin/helpdesk
+54      INVENTORY                         /super-admin/inventory
+55      HR                                /super-admin/hr
+57      COMMUNICATION                     /super-admin/communication
+63      PLATFORM_REPORTS                  /super-admin/reports
+66      IT_ASSETS_DASHBOARD               /super-admin/it-assets/dashboard
+67      IT_ASSETS_ASSET_MANAGEMENT        /super-admin/it-assets/assets
+68      IT_ASSETS_ASSIGNMENT              /super-admin/it-assets/assignments
+69      IT_ASSETS_MAINTENANCE             /super-admin/it-assets/maintenance
+70      IT_ASSETS_IMPORT                  /super-admin/it-assets/import
+71      IT_ASSETS_GROUPS                  /super-admin/it-assets/groups
+72      IT_ASSETS_MASTER_DATA             /super-admin/it-assets/master-data
+73      IT_ASSETS_REPORTS                 /super-admin/it-assets/reports
+74      IT_ASSETS_ALL                     /super-admin/it-assets/assets/all
+75      IT_ASSETS_COMPUTERS               /super-admin/it-assets/assets/computers
+76      IT_ASSETS_PRINTERS_COPIERS        /super-admin/it-assets/assets/printers-copiers
+77      IT_ASSETS_PROJECTORS              /super-admin/it-assets/assets/projectors
+78      IT_ASSETS_NETWORK_DEVICES         /super-admin/it-assets/assets/network-devices
+79      IT_ASSETS_CCTV_CAMERAS            /super-admin/it-assets/assets/cctv-cameras
+80      IT_ASSETS_CURRENT_ASSIGNMENTS     /super-admin/it-assets/assignments/current
+81      IT_ASSETS_TRANSFER_REQUESTS       /super-admin/it-assets/assignments/transfers
+82      IT_ASSETS_NEEDED_LAPTOPS          /super-admin/it-assets/assignments/needed-laptops
+83      IT_ASSETS_ASSIGNMENT_HISTORY      /super-admin/it-assets/assignments/history
+84      IT_ISSUES                         /super-admin/it-assets/maintenance/issues
+85      IT_MAINTENANCE_LOGS               /super-admin/it-assets/maintenance/logs
+86      IT_MAINTENANCE_SCHEDULE           /super-admin/it-assets/maintenance/schedule
+87      IT_DISPOSAL                       /super-admin/it-assets/maintenance/disposal
+88      IT_ASSETS_CATEGORIES              /super-admin/it-assets/master-data/categories
+89      IT_ASSETS_BRANDS                  /super-admin/it-assets/master-data/brands
+90      IT_ASSETS_MODELS                  /super-admin/it-assets/master-data/models
+91      IT_ASSETS_STATUSES                /super-admin/it-assets/master-data/statuses
+92      IT_ASSETS_CONDITIONS              /super-admin/it-assets/master-data/conditions
+93      IT_ASSETS_REPORT_INVENTORY        /super-admin/it-assets/reports/inventory
+94      IT_ASSETS_REPORT_ASSIGNMENT       /super-admin/it-assets/reports/assignment
+95      IT_ASSETS_REPORT_MAINTENANCE      /super-admin/it-assets/reports/maintenance
+96      IT_ASSETS_REPORT_ISSUES           /super-admin/it-assets/reports/issues
+97      IT_ASSETS_REPORT_DISPOSAL         /super-admin/it-assets/reports/disposal
+
+------------------------------------------------------------
+ModuleId = 3 (academic_operations) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+56      ACADEMIC_OPERATIONS               NULL
+
+------------------------------------------------------------
+ModuleId = 4 (printing_management) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+61      PURPOSES                          /printing/purposes
+
+------------------------------------------------------------
+ModuleId = 6 (it_operations) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+82      IT_ASSETS_NEEDED_LAPTOPS          /super-admin/it-assets/assignments/needed-laptops
+
+------------------------------------------------------------
+ModuleId = 17 (communication_center) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+112     COMMUNICATION_CENTER              NULL
+
+------------------------------------------------------------
+ModuleId = 18 (hr_management) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+125     HR_MANAGEMENT                     NULL
+
+------------------------------------------------------------
+ModuleId = 16 (id_management) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+128     ID_MANAGEMENT                     NULL
+
+------------------------------------------------------------
+ModuleId = 19 (observations) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+145     OBSERVATIONS                      NULL
+
+------------------------------------------------------------
+ModuleId = 20 (system_tools) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+166     SYSTEM_TOOLS                      NULL
+
+------------------------------------------------------------
+ModuleId = 8 (reports_analytics) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+159     REPORTS_ANALYTICS                 NULL
+
+------------------------------------------------------------
+ModuleId = 15 (school_structure) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+160     SCHOOL_STRUCTURE                  NULL
+
+------------------------------------------------------------
+ModuleId = 2 (user_access) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+169     USER_ACCESS                       NULL
+
+------------------------------------------------------------
+ModuleId = 22 (facilities_management) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+181     FACILITIES_MANAGEMENT_ROOT        NULL
+
+------------------------------------------------------------
+ModuleId = 23 (platform) - 1 ORPHANED MENU
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+192     PLATFORM_ROOT                     NULL
+
+------------------------------------------------------------
+ModuleId = 25 (library) - 11 ROLE DASHBOARD MENUS
+------------------------------------------------------------
+MenuId  MenuKey                          Route
+------  -------------------------------  -------------------------------
+1221    teacher_dashboard                 /teacher/dashboard
+1222    teacher_create_request            /teacher/create-request
+1223    teacher_my_requests               /teacher/my-requests
+1224    teacher_reports                   /teacher/reports
+1225    teacher_profile                   /teacher/profile
+1226    hod_dashboard                     /hod/dashboard
+1227    hod_pending                       /hod/pending-requests
+1228    hod_approved                      /hod/approved-requests
+1229    hod_create                        /hod/create-request
+1230    hod_profile                       /hod/profile
+1231    hos_dashboard                     /hos/dashboard
+1232    hos_allocations                   /hos/subject-allocation
+1233    hos_profile                       /hos/profile
+1234    library_dashboard                 /library/dashboard
+1235    library_books                     /library/books
+1236    library_categories                /library/categories
+1237    library_members                   /library/members
+1238    library_borrowing                 /library/borrowing
+1239    library_returns                   /library/returns
+1240    library_reservations              /library/reservations
+1241    library_overdue                   /library/overdue
+1242    library_inventory                 /library/inventory
+1243    library_reports                   /library/reports
+1244    library_settings                  /library/settings
+1245    PLATFORM_ADMIN_DASHBOARD          /platform-admin/dashboard
+1246    admin_dashboard                   /admin/dashboard
+1247    clinic_dashboard                  /clinic/dashboard
+1248    deputy_head_dashboard             /deputy-head/dashboard
+1249    homeroom_dashboard                /homeroom/dashboard
+1250    operations_dashboard              /head-of-operations/dashboard
+1251    year_leader_dashboard             /year-leader/dashboard
+
+============================================================
+CORRECTLY ASSIGNED ROOT MENUS (Have MenuGroupItem entries)
+============================================================
+
+MenuId  MenuKey                    ModuleId  MenuGroupId
+------  -------------------------  --------  -----------
+43      DASHBOARD                  1         9  (MAIN)
+44      ORGANIZATION_PROFILE       21        10 (SCHOOL_CONFIGURATION)
+45      BRANDING_THEME             21        10 (SCHOOL_CONFIGURATION)
+46      USERS                      2         11 (USER_ACCESS)
+47      ROLES                      2         11 (USER_ACCESS)
+48      ACCESS_LEVELS              2         11 (USER_ACCESS)
+49      ASSIGNMENT_TYPES           1         NULL (orphaned)
+50      USER_ASSIGNMENTS           2         11 (USER_ACCESS)
+52      IT_ASSET_MANAGEMENT        6         12 (OPERATIONS)
+58      DEPARTMENTS                21        10 (SCHOOL_CONFIGURATION)
+59      SECTIONS                   21        10 (SCHOOL_CONFIGURATION)
+60      SUBJECTS                   21        10 (SCHOOL_CONFIGURATION)
+62      AUDIT_LOGS                 23        14 (SYSTEM)
+64      MODULE_MANAGER             1         16 (PLATFORM_FOUNDATION)
+65      SYSTEM_HEALTH              23        14 (SYSTEM)
+101      ACADEMIC_REPORTS           3         15 (REPORTS_ANALYTICS)
+102      ACADEMIC_YEARS             21        10 (SCHOOL_CONFIGURATION)
+103      ANNOUNCEMENTS              17        12 (OPERATIONS)
+104      ARCHIVE_CENTER             23        14 (SYSTEM)
+105      ASSESSMENTS                3         15 (REPORTS_ANALYTICS)
+106      ATTENDANCE                 3         15 (REPORTS_ANALYTICS)
+107      BACKUPS                    23        14 (SYSTEM)
+108      BUTTON_MANAGER             1         16 (PLATFORM_FOUNDATION)
+109      CIRCULARS                  17        12 (OPERATIONS)
+110      CLASSES                    21        10 (SCHOOL_CONFIGURATION)
+111      CLASSROOM_WALKTHROUGHS     19        12 (OPERATIONS)
+113      COMMUNICATION_TEMPLATES    17        12 (OPERATIONS)
+114      CUSTOM_REPORTS             8         15 (REPORTS_ANALYTICS)
+115      DOCUMENT_MANAGEMENT        23        14 (SYSTEM)
+116      EMAILS                     17        12 (OPERATIONS)
+117      EMPLOYEES                  18        12 (OPERATIONS)
+118      EXAMINATIONS               3         15 (REPORTS_ANALYTICS)
+119      EXECUTIVE_DASHBOARD        8         15 (REPORTS_ANALYTICS)
+120      EXPORT_CENTER              8         15 (REPORTS_ANALYTICS)
+121      FEATURE_FLAGS              1         16 (PLATFORM_FOUNDATION)
+122      FORM_BUILDER               23        14 (SYSTEM)
+123      GLOBAL_SEARCH              23        14 (SYSTEM)
+124      HR_ATTENDANCE              18        12 (OPERATIONS)
+126      ID_CARD_PRINTING           16        12 (OPERATIONS)
+127      ID_DASHBOARD               16        12 (OPERATIONS)
+129      ID_QR_BARCODE              16        12 (OPERATIONS)
+130      ID_REPORTS                 16        12 (OPERATIONS)
+131      ID_SETTINGS                16        12 (OPERATIONS)
+132      ID_TEMPLATES               16        12 (OPERATIONS)
+133      IT_DASHBOARD               6         12 (OPERATIONS)
+134      IT_INVENTORY               6         12 (OPERATIONS)
+135      IT_MAINTENANCE             6         12 (OPERATIONS)
+137      IT_REPORTS                 6         12 (OPERATIONS)
+138      IT_SERVICE_DESK            6         12 (OPERATIONS)
+139      IT_SETTINGS                6         12 (OPERATIONS)
+140      LEAVE                      18        12 (OPERATIONS)
+142      MENU_MANAGER               1         16 (PLATFORM_FOUNDATION)
+143      NOTIFICATIONS              17        12 (OPERATIONS)
+144      OBSERVATION_REPORTS        19        12 (OPERATIONS)
+146      PAPER_INVENTORY            4         12 (OPERATIONS)
+147      PAPER_PURCHASES            4         12 (OPERATIONS)
+148      PERFORMANCE                18        12 (OPERATIONS)
+149      PERMISSIONS                2         11 (USER_ACCESS)
+151      PRINT_LIMITS               4         12 (OPERATIONS)
+152      PRINT_QUEUE                4         12 (OPERATIONS)
+153      PRINTING_APPROVALS         4         12 (OPERATIONS)
+154      PRINTING_DASHBOARD         4         12 (OPERATIONS)
+156      PRINTING_REPORTS           4         12 (OPERATIONS)
+157      PRINTING_REQUESTS          4         12 (OPERATIONS)
+158      PRINTING_SETTINGS          4         12 (OPERATIONS)
+161      SMS                        17        12 (OPERATIONS)
+162      STAFF_IDS                  16        12 (OPERATIONS)
+163      STUDENT_IDS                16        12 (OPERATIONS)
+164      STUDENTS                   3         12 (OPERATIONS)
+165      SYSTEM_SETTINGS            23        14 (SYSTEM)
+167      TEACHER_OBSERVATIONS       19        12 (OPERATIONS)
+168      TERMS                      21        10 (SCHOOL_CONFIGURATION)
+170      USER_PERMISSION_OVERRIDES  2         11 (USER_ACCESS)
+171      VISITOR_IDS                16        12 (OPERATIONS)
+172      WIDGET_MANAGER             1         16 (PLATFORM_FOUNDATION)
+173      WORKFLOW_ENGINE            23        14 (SYSTEM)
+174      ACADEMIC_DASHBOARD         3         12 (OPERATIONS)
+176      BUILDINGS                  22        12 (OPERATIONS)
+177      CLASS_MANAGEMENT           3         12 (OPERATIONS)
+179      COMMUNICATION_DASHBOARD    17        12 (OPERATIONS)
+180      FACILITIES_DASHBOARD       22        12 (OPERATIONS)
+182      FACILITY_MAINTENANCE       22        12 (OPERATIONS)
+183      FACILITY_RESERVATIONS      22        12 (OPERATIONS)
+184      HR_DASHBOARD               18        12 (OPERATIONS)
+186      HR_REPORTS                 18        12 (OPERATIONS)
+189      OBSERVATIONS_DASHBOARD     19        12 (OPERATIONS)
+193      PRINTING_APPROVAL_WORKFLOW 4         12 (OPERATIONS)
+195      PRINTING_REQUEST_MANAGEMENT 4        12 (OPERATIONS)
+196      REPORT_ACADEMIC            8         15 (REPORTS_ANALYTICS)
+197      REPORT_COMMUNICATION       8         15 (REPORTS_ANALYTICS)
+198      REPORT_HR                  8         15 (REPORTS_ANALYTICS)
+199      REPORT_ID                  8         15 (REPORTS_ANALYTICS)
+200      REPORT_IT                  8         15 (REPORTS_ANALYTICS)
+201      REPORT_PRINTING            8         15 (REPORTS_ANALYTICS)
+203      ROOMS                      22        12 (OPERATIONS)
+1206     IT_ASSIGNMENTS             6         12 (OPERATIONS)
+1207     IT_BORROW_RETURN           6         12 (OPERATIONS)
+1208     IT_TRANSFERS               6         12 (OPERATIONS)
+1209     IT_ISSUES                  6         12 (OPERATIONS)
+1210     IT_DISPOSALS               6         12 (OPERATIONS)
+
+============================================================
+MENU GROUPS SUMMARY
+============================================================
+
+MenuGroupId  GroupKey              GroupName               SortOrder
+-----------  --------------------  ----------------------  ---------
+9            MAIN                  Main                    10
+10           SCHOOL_CONFIGURATION  School Configuration    40
+11           USER_ACCESS           User & Access           30
+12           OPERATIONS            Operations              50
+13           PLATFORM              Platform                80
+14           SYSTEM                System                  70
+15           REPORTS_ANALYTICS     Reports & Analytics     60
+16           PLATFORM_FOUNDATION   Platform Foundation     20
+
+============================================================
+THE FIX
+============================================================
+
+Option A: Delete orphaned menus that duplicate *_ROOT containers
+  - Menus like PRINTING, HR, COMMUNICATION, IT_OPERATIONS, etc.
+    are duplicates of the *_ROOT container menus
+  - Keep only the *_ROOT versions (PRINTING_MANAGEMENT_ROOT, etc.)
+
+Option B: Link orphaned menus to their correct MenuGroups
+  - Link IT_ASSETS_* menus to OPERATIONS group (12)
+  - Link *_ROOT containers to their respective module groups
+  - Link role dashboards to appropriate groups
+
+Option C: Disable orphaned menus
+  - Set VisibilityStatusId = 2 (Hidden) for all orphaned menus
+  - They will still appear as "Soon" but not clutter active nav
+
+Option D: Clean up ModuleId assignments
+  - Move menus to their correct ModuleId
+  - E.g., IT_ASSETS_* should be ModuleId = 6, not 1
+
+============================================================
+RECOMMENDED ACTION
+============================================================
+
+1. Run diagnostic query to confirm orphaned menus:
+   SELECT m.MenuId, m.MenuKey, m.ModuleId, m.ParentMenuId,
+          mgi.MenuGroupItemId AS 'HasGroup'
+   FROM dbo.Menus m
+   LEFT JOIN dbo.MenuGroupItems mgi ON m.MenuId = mgi.MenuId
+   WHERE m.ParentMenuId IS NULL
+     AND m.MenuKey NOT IN ('DASHBOARD')
+   ORDER BY m.ModuleId, m.SortOrder
+
+2. Decide which orphaned menus to keep/delete/reassign
+
+3. Either:
+   - Delete duplicates (keep only *_ROOT containers)
+   - OR assign them to correct MenuGroups via INSERT INTO MenuGroupItems
+
+============================================================

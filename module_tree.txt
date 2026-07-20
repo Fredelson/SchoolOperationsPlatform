@@ -1,0 +1,80 @@
+OperationsPlatform/
+├── .kilo/
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── database/
+│   ├── legacy/
+│   ├── middleware/
+│   ├── modules/
+│   │   ├── accessLevels/
+│   │   ├── assetTagBranding/
+│   │   ├── assignments/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── buttons/
+│   │   ├── dashboardManager/
+│   │   ├── example/
+│   │   ├── featureFlags/
+│   │   ├── itAssets/
+│   │   ├── library/
+│   │   ├── lookups/
+│   │   ├── menus/
+│   │   ├── modules/
+│   │   ├── navigation/
+│   │   ├── navigationManager/
+│   │   ├── permissionGroups/
+│   │   ├── permissionResolver/
+│   │   ├── permissions/
+│   │   ├── printing/
+│   │   ├── rolePermissions/
+│   │   ├── roles/
+│   │   ├── system/
+│   │   ├── userPermissionOverrides/
+│   │   ├── users/
+│   │   ├── widgets/
+│   │   └── workspaceManager/
+│   ├── routes/
+│   ├── scripts/
+│   ├── shared/
+│   ├── uploads/
+│   └── utils/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── charts/
+│   │   │   ├── common/
+│   │   │   ├── dashboard/
+│   │   │   ├── dialogs/
+│   │   │   ├── itAssets/
+│   │   │   ├── layout/
+│   │   │   ├── permissions/
+│   │   │   ├── tables/
+│   │   │   └── widgets/
+│   │   ├── config/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   ├── modules/
+│   │   │   ├── admin/
+│   │   │   ├── auth/
+│   │   │   ├── hod/
+│   │   │   ├── hos/
+│   │   │   ├── it-assets/
+│   │   │   ├── library/
+│   │   │   ├── platform-admin/
+│   │   │   ├── printing-admin/
+│   │   │   ├── shared/
+│   │   │   ├── super-admin/
+│   │   │   ├── system/
+│   │   │   └── teacher/
+│   │   ├── platform/
+│   │   ├── providers/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── theme/
+│   │   └── utils/
+│   ├── public/
+│   └── dist/
+├── scripts/
+├── SQLBackup/
+└── [root files]
