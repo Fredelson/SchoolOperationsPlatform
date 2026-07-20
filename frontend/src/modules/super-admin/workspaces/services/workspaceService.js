@@ -45,3 +45,28 @@ export async function saveWorkspaceDashboard(id,dashboardId,defaultRoute) {
   const response=await api.put(`/workspace-manager/${id}/dashboard`,{dashboardId:dashboardId||null,defaultRoute});
   return response.data?.data;
 }
+
+export async function getRolePermissions(params={}) {
+  const response = await api.get("/role-permissions", { params: { limit: 1000, ...params } });
+  return response.data?.data || [];
+}
+
+export async function updateRolePermission(id, payload) {
+  const response = await api.put(`/role-permissions/${id}`, payload);
+  return response.data?.data;
+}
+
+export async function createRolePermission(payload) {
+  const response = await api.post("/role-permissions", payload);
+  return response.data?.data;
+}
+
+export async function deleteRolePermission(id) {
+  const response = await api.delete(`/role-permissions/${id}`);
+  return response.data?.data;
+}
+
+export async function getRolePermissionLookups() {
+  const response = await api.get("/role-permissions/lookups");
+  return response.data?.data || {};
+}

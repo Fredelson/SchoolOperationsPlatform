@@ -19,6 +19,8 @@ import {
   Select,
   Stack,
   Tab,
+  ToggleButton,
+  ToggleButtonGroup,
   Tabs,
   TextField,
   Typography,
@@ -35,6 +37,9 @@ import {
   startLiveMode,
   syncWorkspaceRolePermissions,
   updateWorkspace,
+  getRolePermissions,
+  updateRolePermission,
+  createRolePermission,
 } from "../services/workspaceService";
 
 const tabs = [
@@ -76,7 +81,6 @@ export default function WorkspaceManagerPage() {
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
   const [previewUserId, setPreviewUserId] = useState("");
   const [previewUsers, setPreviewUsers] = useState([]);
@@ -88,6 +92,8 @@ export default function WorkspaceManagerPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [expandedModules, setExpandedModules] = useState({});
+  const [inlineRolePermissions, setInlineRolePermissions] = useState([]);
+  const [inlineRpLoading, setInlineRpLoading] = useState(false);
 
   const handleSyncPermissions = async () => {
     if (!workspaceId) return;
@@ -158,6 +164,19 @@ export default function WorkspaceManagerPage() {
     }, 250);
     return () => clearTimeout(timer);
   }, [previewSearch, tab]);
+
+  useEffect(() => {
+    if (tab !== 2 || !workspaceId) return;
+    setInlineRpLoading(true);
+    Promise.all([
+      getRolePermissions({ limit: 1000 }),
+    ])
+      .then(([perms]) => {
+        setInlineRolePermissions(perms.data || perms || []);
+      })
+      .catch((e) => console.error("Failed to load inline role permissions:", e))
+      .finally(() => setInlineRpLoading(false));
+  }, [tab, workspaceId, config?.profiles]);
 
   const rows =
     tab === 1
@@ -412,7 +431,7 @@ export default function WorkspaceManagerPage() {
       return roots;
     };
 
-    const renderNavigationItem = (item, depth = 0) => {
+    const renderNavigationItem = (item) => {
       const hasParent = Boolean(item.ParentMenuId);
       const inheritedGroup = hasParent ? item.GroupName || "Main" : null;
       const displayGroup = item.GroupName || inheritedGroup || "Main";
@@ -485,7 +504,7 @@ export default function WorkspaceManagerPage() {
                       Number(e.target.value)
                     )
                   }
-                  disabled={!canConfigure || hasParent}
+                  disabled={!canConfigure}
                   sx={{ width: 80 }}
                   inputProps={{ sx: { px: 1, py: 0.5 } }}
                 />
@@ -701,6 +720,104 @@ export default function WorkspaceManagerPage() {
       }));
     };
 
+    const rolePermissionMap = new Map();
+    inlineRolePermissions.forEach((rp) => {
+      const key = `${rp.RoleId}-${rp.PermissionId}`;
+      rolePermissionMap.set(key, rp);
+    });
+
+    const getMenuAccessMode = (menu) => {
+      if (!menu.IsAssigned) return "disabled";
+      if (!menu.IsEnabled) return "view";
+      return "active";
+    };
+
+    const setMenuAccessMode = async (menu, mode) => {
+      if (!canConfigure) return;
+      setInlineRpLoading(true);
+      try {
+        const assignedRoleIds = (config?.profiles || [])
+          .filter((p) => p.IsAssigned)
+          .map((p) => p.RoleId);
+
+        const isAssigned = mode !== "disabled";
+        const isEnabled = mode === "active" || mode === "view";
+        const isAllowed = mode === "active";
+
+        updateMenuField(menu.MenuId, "IsAssigned", isAssigned);
+        updateMenuField(menu.MenuId, "IsEnabled", isEnabled);
+
+        if (assignedRoleIds.length === 0 || !menu.PermissionId) {
+          setSyncMessage(`Access mode updated to "${mode}" for "${menu.MenuName}".`);
+          return;
+        }
+
+        const promises = assignedRoleIds.map((roleId) => {
+          const key = `${roleId}-${menu.PermissionId}`;
+          const existing = rolePermissionMap.get(key);
+          if (existing) {
+            if (existing.IsAllowed === isAllowed) return Promise.resolve();
+            return updateRolePermission(existing.RolePermissionId, { isAllowed });
+          }
+          if (!isAllowed) return Promise.resolve();
+          return createRolePermission({ roleId, permissionId: menu.PermissionId, isAllowed });
+        });
+
+        await Promise.all(promises);
+
+        const [perms] = await Promise.all([
+          getRolePermissions({ limit: 1000 }),
+        ]);
+        setInlineRolePermissions(perms.data || perms || []);
+
+        perms.data.forEach((rp) => {
+          const key = `${rp.RoleId}-${rp.PermissionId}`;
+          rolePermissionMap.set(key, rp);
+        });
+
+        await saveCombinedSilent();
+        setSyncMessage(`Access mode updated to "${mode}" for "${menu.MenuName}".`);
+      } catch (e) {
+        setSyncMessage(e.response?.data?.message || e.message || "Failed to update access mode.");
+      } finally {
+        setInlineRpLoading(false);
+      }
+    };
+
+    const saveCombinedSilent = async () => {
+      const assignedModuleIds = new Set(
+        config.modules.filter((m) => m.IsAssigned).map((m) => m.ModuleId)
+      );
+
+      const moduleItems = config.modules
+        .filter((m) => m.IsAssigned)
+        .map((m) => ({
+          id: m.ModuleId,
+          isVisible: true,
+          isEnabled: m.IsEnabled !== false,
+          sortOrder: m.SortOrder,
+        }));
+
+      const navItems = config.navigation
+        .filter((m) => m.IsAssigned && assignedModuleIds.has(m.ModuleId))
+        .map((m) => ({
+          id: m.MenuId,
+          isVisible: true,
+          isEnabled: m.IsEnabled !== false,
+          sortOrder: m.SortOrder,
+          groupKey: m.GroupKey,
+          groupName: m.GroupName,
+          groupSortOrder: m.GroupSortOrder,
+          parentMenuId: m.ParentMenuId,
+        }));
+
+      await withTimeout(saveWorkspaceAssignments(workspaceId, "modules", moduleItems));
+      await withTimeout(saveWorkspaceAssignments(workspaceId, "navigation", navItems));
+
+      const refreshed = await getWorkspaceConfiguration(workspaceId);
+      setConfig(refreshed);
+    };
+
     const withTimeout = (promise, ms = 30000) => {
       return Promise.race([
         promise,
@@ -713,7 +830,7 @@ export default function WorkspaceManagerPage() {
     const saveCombined = async () => {
       setLoading(true);
       setError("");
-      setSuccess("");
+      setSyncMessage("");
       try {
         const assignedModuleIds = new Set(
           config.modules.filter((m) => m.IsAssigned).map((m) => m.ModuleId)
@@ -746,7 +863,7 @@ export default function WorkspaceManagerPage() {
         
         const refreshed = await getWorkspaceConfiguration(workspaceId);
         setConfig(refreshed);
-        setSuccess("Modules and navigation saved successfully.");
+        setSyncMessage("Modules and navigation saved successfully.");
       } catch (e) {
         console.error("Save combined error:", e);
         setError(e?.response?.data?.message || e?.message || "Failed to save modules and navigation.");
@@ -902,9 +1019,35 @@ export default function WorkspaceManagerPage() {
                                     }
                                     label="Enabled"
                                   />
-                                </Stack>
-                              </CardContent>
-                            </Card>
+                                 </Stack>
+                               </CardContent>
+                               <CardContent sx={{ pt: 0, "&:last-child": { pb: 2 } }}>
+                                 <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                                   <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                                     Access:
+                                   </Typography>
+                                   <ToggleButtonGroup
+                                     size="small"
+                                     value={getMenuAccessMode(menu)}
+                                     exclusive
+                                     onChange={(_, value) => {
+                                       if (value) setMenuAccessMode(menu, value);
+                                     }}
+                                     disabled={!canConfigure || !module.IsAssigned || inlineRpLoading}
+                                   >
+                                     <ToggleButton value="active" color="success">
+                                       <Typography variant="caption">Active</Typography>
+                                     </ToggleButton>
+                                     <ToggleButton value="view" color="warning">
+                                       <Typography variant="caption">View</Typography>
+                                     </ToggleButton>
+                                     <ToggleButton value="disabled" color="error">
+                                       <Typography variant="caption">Disabled</Typography>
+                                     </ToggleButton>
+                                   </ToggleButtonGroup>
+                                 </Stack>
+                               </CardContent>
+                             </Card>
                           ))}
                         </Stack>
                       )}

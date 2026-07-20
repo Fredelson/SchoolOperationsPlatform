@@ -126,6 +126,9 @@ async function getSidebarMenusForUser(userId) {
           WHERE wmodule.WorkspaceId=@NavigationWorkspaceId
             AND wmodule.ModuleId=m.ModuleId
         )
+        AND wm.WorkspaceMenuId IS NOT NULL
+        AND wm.IsVisible=1
+        AND wm.IsEnabled=1
       )
       OR (
         wm.WorkspaceMenuId IS NOT NULL

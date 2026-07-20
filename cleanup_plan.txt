@@ -1,0 +1,243 @@
+============================================================
+OPERATIONS PLATFORM - MENU CLEANUP PLAN
+============================================================
+Date: 2026-07-20
+Status: PROPOSED - awaiting approval before execution
+
+============================================================
+CATEGORIES OF CLEANUP
+============================================================
+
+1. DELETE - Duplicate menus that have newer *_ROOT replacements
+2. UNROOT - Reparent orphaned menus to their correct containers
+3. MODULES WITHOUT CHILDREN - Modules with no active menu assignments
+
+============================================================
+SECTION 1: DELETE (Duplicate Menus)
+============================================================
+
+These old root menus duplicate newer *_ROOT container menus.
+The *_ROOT versions are already correctly assigned to MenuGroups.
+These old versions should be deleted.
+
+------------------------------------------------------------
+OLD ROOT MENUS TO DELETE (duplicate of *_ROOT containers)
+------------------------------------------------------------
+
+MenuId  MenuKey                    ModuleId  Has Replacement?
+------  -------------------------  --------  ----------------
+51      PRINTING                   1         YES - PRINTING_MANAGEMENT_ROOT (194)
+53      IT_HELP_DESK               1         YES - IT_OPERATIONS_ROOT (188)
+54      INVENTORY                  1         YES - (no direct replacement, disabled module)
+55      HR                         1         YES - HR_MANAGEMENT_ROOT (185)
+57      COMMUNICATION              1         YES - COMMUNICATION_CENTER_ROOT (178)
+63      PLATFORM_REPORTS           1         YES - (no direct replacement)
+112     COMMUNICATION_CENTER       17        YES - COMMUNICATION_CENTER_ROOT (178)
+125     HR_MANAGEMENT              18        YES - HR_MANAGEMENT_ROOT (185)
+128     ID_MANAGEMENT              16        YES - ID_MANAGEMENT_ROOT (187)
+136     IT_OPERATIONS              6         YES - IT_OPERATIONS_ROOT (188)
+145     OBSERVATIONS               19        YES - OBSERVATIONS_ROOT (190)
+150     PLATFORM_FOUNDATION        1         YES - PLATFORM_FOUNDATION_ROOT (191)
+155     PRINTING_MANAGEMENT        4         YES - PRINTING_MANAGEMENT_ROOT (194)
+159     REPORTS_ANALYTICS          8         YES - REPORTS_ANALYTICS_ROOT (202)
+160     SCHOOL_STRUCTURE           15        YES - SCHOOL_STRUCTURE (160) - same ID, has no parent set
+166     SYSTEM_TOOLS               20        YES - PLATFORM_ROOT (192) covers this
+169     USER_ACCESS                2         YES - USER_ACCESS_ROOT (205)
+175     ACADEMIC_OPERATIONS_ROOT   3         KEEP - already a *_ROOT container
+178     COMMUNICATION_CENTER_ROOT  17        KEEP - already a *_ROOT container
+181     FACILITIES_MANAGEMENT_ROOT 22        KEEP - already a *_ROOT container
+185     HR_MANAGEMENT_ROOT         18        KEEP - already a *_ROOT container
+187     ID_MANAGEMENT_ROOT         16        KEEP - already a *_ROOT container
+188     IT_OPERATIONS_ROOT         6         KEEP - already a *_ROOT container
+190     OBSERVATIONS_ROOT          19        KEEP - already a *_ROOT container
+191     PLATFORM_FOUNDATION_ROOT   1         KEEP - already a *_ROOT container
+192     PLATFORM_ROOT              23        KEEP - already a *_ROOT container
+194     PRINTING_MANAGEMENT_ROOT   4         KEEP - already a *_ROOT container
+202     REPORTS_ANALYTICS_ROOT     8         KEEP - already a *_ROOT container
+204     SCHOOL_CONFIGURATION_ROOT  21        KEEP - already a *_ROOT container
+205     USER_ACCESS_ROOT           2         KEEP - already a *_ROOT container
+
+------------------------------------------------------------
+ORPHANED SUB-MENUS TO DELETE (no parent, no group, duplicates)
+------------------------------------------------------------
+
+These are leaf menus that have no parent and no group assignment.
+They are duplicates of menus that are already children of *_ROOT containers.
+
+MenuId  MenuKey                          ModuleId  Parent Should Be
+------  -------------------------------  --------  ----------------
+66      IT_ASSETS_DASHBOARD              1         IT_OPERATIONS_ROOT (188)
+67      IT_ASSETS_ASSET_MANAGEMENT       1         IT_OPERATIONS_ROOT (188)
+68      IT_ASSETS_ASSIGNMENT             1         IT_OPERATIONS_ROOT (188)
+69      IT_ASSETS_MAINTENANCE            1         IT_OPERATIONS_ROOT (188)
+70      IT_ASSETS_IMPORT                 1         IT_OPERATIONS_ROOT (188)
+71      IT_ASSETS_GROUPS                 1         IT_OPERATIONS_ROOT (188)
+72      IT_ASSETS_MASTER_DATA            1         IT_OPERATIONS_ROOT (188)
+73      IT_ASSETS_REPORTS                1         IT_OPERATIONS_ROOT (188)
+74      IT_ASSETS_ALL                    1         IT_OPERATIONS_ROOT (188)
+75      IT_ASSETS_COMPUTERS              1         IT_OPERATIONS_ROOT (188)
+76      IT_ASSETS_PRINTERS_COPIERS       1         IT_OPERATIONS_ROOT (188)
+77      IT_ASSETS_PROJECTORS             1         IT_OPERATIONS_ROOT (188)
+78      IT_ASSETS_NETWORK_DEVICES        1         IT_OPERATIONS_ROOT (188)
+79      IT_ASSETS_CCTV_CAMERAS           1         IT_OPERATIONS_ROOT (188)
+80      IT_ASSETS_CURRENT_ASSIGNMENTS    1         IT_OPERATIONS_ROOT (188)
+81      IT_ASSETS_TRANSFER_REQUESTS      1         IT_OPERATIONS_ROOT (188)
+82      IT_ASSETS_NEEDED_LAPTOPS         6         IT_OPERATIONS_ROOT (188)
+83      IT_ASSETS_ASSIGNMENT_HISTORY     1         IT_OPERATIONS_ROOT (188)
+84      IT_ISSUES                        1         IT_OPERATIONS_ROOT (188)
+85      IT_MAINTENANCE_LOGS              1         IT_OPERATIONS_ROOT (188)
+86      IT_MAINTENANCE_SCHEDULE          1         IT_OPERATIONS_ROOT (188)
+87      IT_DISPOSAL                      1         IT_OPERATIONS_ROOT (188)
+88      IT_ASSETS_CATEGORIES             1         IT_OPERATIONS_ROOT (188)
+89      IT_ASSETS_BRANDS                 1         IT_OPERATIONS_ROOT (188)
+90      IT_ASSETS_MODELS                 1         IT_OPERATIONS_ROOT (188)
+91      IT_ASSETS_STATUSES               1         IT_OPERATIONS_ROOT (188)
+92      IT_ASSETS_CONDITIONS             1         IT_OPERATIONS_ROOT (188)
+93      IT_ASSETS_REPORT_INVENTORY       1         IT_OPERATIONS_ROOT (188)
+94      IT_ASSETS_REPORT_ASSIGNMENT      1         IT_OPERATIONS_ROOT (188)
+95      IT_ASSETS_REPORT_MAINTENANCE     1         IT_OPERATIONS_ROOT (188)
+96      IT_ASSETS_REPORT_ISSUES          1         IT_OPERATIONS_ROOT (188)
+97      IT_ASSETS_REPORT_DISPOSAL        1         IT_OPERATIONS_ROOT (188)
+
+------------------------------------------------------------
+ROLE DASHBOARD MENUS TO DELETE
+------------------------------------------------------------
+
+MenuId  MenuKey                    ModuleId  Route
+------  -------------------------  --------  -------------------------------
+1221    teacher_dashboard          3         /teacher/dashboard
+1222    teacher_create_request     3         /teacher/create-request
+1223    teacher_my_requests        3         /teacher/my-requests
+1224    teacher_reports            3         /teacher/reports
+1225    teacher_profile            3         /teacher/profile
+1226    hod_dashboard              3         /hod/dashboard
+1227    hod_pending                3         /hod/pending-requests
+1228    hod_approved               3         /hod/approved-requests
+1229    hod_create                 3         /hod/create-request
+1230    hod_profile                3         /hod/profile
+1231    hos_dashboard              3         /hos/dashboard
+1232    hos_allocations            3         /hos/subject-allocation
+1233    hos_profile                3         /hos/profile
+1234    library_dashboard          25        /library/dashboard
+1235    library_books              25        /library/books
+1236    library_categories         25        /library/categories
+1237    library_members            25        /library/members
+1238    library_borrowing          25        /library/borrowing
+1239    library_returns            25        /library/returns
+1240    library_reservations       25        /library/reservations
+1241    library_overdue            25        /library/overdue
+1242    library_inventory          25        /library/inventory
+1243    library_reports            25        /library/reports
+1244    library_settings           25        /library/settings
+1245    PLATFORM_ADMIN_DASHBOARD   1         /platform-admin/dashboard
+1246    admin_dashboard            1         /admin/dashboard
+1247    clinic_dashboard           1         /clinic/dashboard
+1248    deputy_head_dashboard      1         /deputy-head/dashboard
+1249    homeroom_dashboard         1         /homeroom/dashboard
+1250    operations_dashboard       1         /head-of-operations/dashboard
+1251    year_leader_dashboard      1         /year-leader/dashboard
+
+------------------------------------------------------------
+SUMMARY: DELETE
+------------------------------------------------------------
+Total menus to DELETE: 74
+  - Old duplicate root menus: 17
+  - Orphaned IT Assets sub-menus: 32
+  - Role dashboard menus: 31
+
+============================================================
+SECTION 2: UNROOT (Reparent Orphaned Menus)
+------------------------------------------------------------
+
+These menus have no parent but should be children of *_ROOT containers.
+Instead of deleting, we reparent them to their correct container.
+
+NONE IDENTIFIED - All orphaned menus are either duplicates (delete)
+or already have proper *_ROOT container versions.
+
+============================================================
+SECTION 3: MODULES WITHOUT CHILDREN
+============================================================
+
+Modules that have no menus assigned, or whose menus are all
+orphaned/unassigned:
+
+------------------------------------------------------------
+ModuleId  ModuleKey              ModuleName           Menu Count  Active Menus
+--------  ---------------------  -------------------  ----------  -----------
+5         inventory              Inventory Management 0          0
+7         it_service_desk        IT Service Desk      0          0
+9         workflow_engine        Workflow Engine      0          0
+10        communication          Communication Center 0          0
+11        system_control         System Control Center 0         0
+
+------------------------------------------------------------
+ModuleId  ModuleKey              ModuleName           Menu Count  Active Menus
+--------  ---------------------  -------------------  ----------  -----------
+5         inventory              Inventory Management 0          0
+7         it_service_desk        IT Service Desk      0          0
+9         workflow_engine        Workflow Engine      0          0
+10        communication          Communication Center 0          0
+11        system_control         System Control Center 0          0
+
+Modules with menus but none assigned to any MenuGroup:
+------------------------------------------------------------
+ModuleId  ModuleKey              ModuleName           Total Menus  In MenuGroup
+--------  ---------------------  -------------------  ------------  -----------
+1         platform_foundation    Platform Foundation  42          10
+17        communication_center   Communication Center 2           1
+18        hr_management          HR Management        2           1
+16        id_management          ID Management        2           1
+19        observations           Observations         2           1
+20        system_tools           System & Tools       2           1
+8         reports_analytics      Reports & Analytics  2           1
+15        school_structure       School Structure     2           1
+2         user_access            User & Access        2           1
+22        facilities_management  Facilities Management 2          1
+23        platform               Platform             2           1
+3         academic_operations    Academic Operations  3           2
+6         it_operations          IT Operations        2           1
+4         printing_management    Printing Management  3           2
+21        school_configuration   School Configuration 9           8
+25        library                Library              11          0
+
+============================================================
+EXECUTION PLAN (If Approved)
+============================================================
+
+Step 1: DELETE orphaned menus
+  - Delete 74 menus listed in Section 1
+  - This removes duplicates and ungrouped role dashboards
+
+Step 2: DELETE orphaned MenuGroupItems
+  - Delete MenuGroupItem entries that reference deleted menus
+
+Step 3: VERIFY module assignments
+  - Check if any remaining menus have wrong ModuleId
+  - Fix IT_ASSETS_* menus that have ModuleId=1 instead of 6
+
+Step 4: CLEANUP modules without children
+  - Option A: Disable modules (set IsActive=0)
+  - Option B: Delete modules and their menus
+  - Option C: Leave as-is (hidden/future modules)
+
+Step 5: REBUILD sidebar
+  - Clear any sidebar caches
+  - Verify sidebar renders only grouped menus
+
+============================================================
+SAFETY MEASURES
+============================================================
+
+1. BACKUP database before any deletions
+2. Run in transaction to allow rollback
+3. Log all deleted MenuIds for reference
+4. Verify no foreign key constraints break
+5. Test sidebar rendering after cleanup
+
+============================================================
+PENDING APPROVAL
+============================================================
+
+This plan has NOT been executed.
+Awaiting your approval to proceed with cleanup.

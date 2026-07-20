@@ -21,7 +21,7 @@ import { getSidebarItemKey } from "../utils/sidebarHelpers";
 export default function PlatformSidebarTree({
   sections = [],
   onNavigate,
-  defaultOpenAll = true,
+  defaultOpenAll = false,
   showHierarchy = true,
 }) {
   const location = useLocation();

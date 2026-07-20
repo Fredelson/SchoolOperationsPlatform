@@ -410,7 +410,7 @@ const getWorkspaceConfiguration = async (workspaceId) => {
       ISNULL(wm.IsEnabled,0) IsEnabled,ISNULL(wm.SortOrder,m.SortOrder) SortOrder
     FROM dbo.Modules m LEFT JOIN dbo.WorkspaceModules wm ON wm.ModuleId=m.ModuleId AND wm.WorkspaceId=@WorkspaceId
     ORDER BY ISNULL(wm.SortOrder,m.SortOrder),m.ModuleName;
-    SELECT m.MenuId,m.MenuKey,m.MenuName,m.Route,m.Icon,m.PermissionId,m.ModuleId,COALESCE(wm.ParentMenuId,m.ParentMenuId) ParentMenuId,wm.GroupKey,wm.GroupName,wm.GroupSortOrder,wm.SortOrder,wm.IsEnabled,CONVERT(bit,CASE WHEN wm.WorkspaceMenuId IS NULL THEN 0 ELSE wm.IsVisible END) IsAssigned FROM dbo.Menus m LEFT JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@WorkspaceId ORDER BY ISNULL(wm.GroupSortOrder,999),ISNULL(wm.SortOrder,m.SortOrder),m.MenuName;
+    SELECT m.MenuId,m.MenuKey,m.MenuName,m.Route,m.Icon,m.PermissionId,m.ModuleId,module.ModuleKey,COALESCE(wm.ParentMenuId,m.ParentMenuId) ParentMenuId,CASE WHEN wm.GroupKey IS NULL OR wm.GroupKey = 'MAIN' THEN module.ModuleKey ELSE wm.GroupKey END GroupKey,wm.GroupName,wm.GroupSortOrder,wm.SortOrder,wm.IsEnabled,CONVERT(bit,CASE WHEN wm.WorkspaceMenuId IS NULL THEN 0 ELSE wm.IsVisible END) IsAssigned FROM dbo.Menus m INNER JOIN dbo.Modules module ON module.ModuleId=m.ModuleId LEFT JOIN dbo.WorkspaceMenus wm ON wm.MenuId=m.MenuId AND wm.WorkspaceId=@WorkspaceId ORDER BY ISNULL(wm.GroupSortOrder,999),ISNULL(wm.SortOrder,m.SortOrder),m.MenuName;
     SELECT b.*,ISNULL(wb.IsVisible,0) IsAssigned,ISNULL(wb.IsEnabled,0) IsEnabled FROM dbo.Buttons b LEFT JOIN dbo.WorkspaceButtons wb ON wb.ButtonId=b.ButtonId AND wb.WorkspaceId=@WorkspaceId ORDER BY b.ButtonName;
     SELECT w.*,ISNULL(ww.IsVisible,0) IsAssigned,ISNULL(ww.IsEnabled,0) IsEnabled FROM dbo.Widgets w LEFT JOIN dbo.WorkspaceWidgets ww ON ww.WidgetId=w.WidgetId AND ww.WorkspaceId=@WorkspaceId ORDER BY w.SortOrder,w.WidgetName;
     SELECT * FROM dbo.Dashboards WHERE WorkspaceId=@WorkspaceId;
@@ -438,7 +438,7 @@ const replaceAssignments = async (workspaceId, assignmentType, items) => {
       if (assignmentType === "profiles") request.input("IsDefault",sql.Bit,item.isDefault!==false);
       else {
         request.input("IsVisible",sql.Bit,item.isVisible!==false).input("IsEnabled",sql.Bit,item.isEnabled!==false).input("SortOrder",sql.Int,Number(item.sortOrder||0));
-        if(assignmentType === "navigation") request.input("GroupKey",sql.NVarChar(100),String(item.groupKey||"MAIN")).input("GroupName",sql.NVarChar(150),String(item.groupName||"Main")).input("GroupSortOrder",sql.Int,Number(item.groupSortOrder||0)).input("ParentMenuId",sql.Int,item.parentMenuId?Number(item.parentMenuId):null);
+        if(assignmentType === "navigation") request.input("GroupKey",sql.NVarChar(100),item.groupKey && item.groupKey !== 'MAIN' ? String(item.groupKey) : null).input("GroupName",sql.NVarChar(150),String(item.groupName||"Main")).input("GroupSortOrder",sql.Int,Number(item.groupSortOrder||0)).input("ParentMenuId",sql.Int,item.parentMenuId?Number(item.parentMenuId):null);
       }
       await request.query(`INSERT dbo.${definition.table}(WorkspaceId,${definition.id}${definition.extra}) VALUES(@WorkspaceId,@ItemId${definition.values})`);
     }
