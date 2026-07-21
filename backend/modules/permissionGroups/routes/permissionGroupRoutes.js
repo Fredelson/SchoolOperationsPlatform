@@ -2,14 +2,16 @@ const express = require("express");
 const router = express.Router();
 
 const permissionGroupController = require("../controllers/permissionGroupController");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../permissionResolver/middleware/requirePermission");
+const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-router.get("/", permissionGroupController.getPermissionGroups);
-router.get("/:id", permissionGroupController.getPermissionGroupById);
-router.post("/", permissionGroupController.createPermissionGroup);
-router.put("/:id", permissionGroupController.updatePermissionGroup);
-router.delete("/:id", permissionGroupController.deletePermissionGroup);
+router.get("/", requirePermission(PERMISSIONS.PERMISSION_GROUPS.VIEW), permissionGroupController.getPermissionGroups);
+router.get("/:id", requirePermission(PERMISSIONS.PERMISSION_GROUPS.VIEW), permissionGroupController.getPermissionGroupById);
+router.post("/", requirePermission(PERMISSIONS.PERMISSION_GROUPS.CREATE), permissionGroupController.createPermissionGroup);
+router.put("/:id", requirePermission(PERMISSIONS.PERMISSION_GROUPS.UPDATE), permissionGroupController.updatePermissionGroup);
+router.delete("/:id", requirePermission(PERMISSIONS.PERMISSION_GROUPS.DELETE), permissionGroupController.deletePermissionGroup);
 
 module.exports = router;

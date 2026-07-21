@@ -8,36 +8,24 @@ const express = require("express");
 const router = express.Router();
 
 const navigationManagerController = require("../controllers/navigationManagerController");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../../modules/permissionResolver/middleware/requirePermission");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-const {
-  validateNavigationMenuPayload,
-} = require("../validators/navigationManagerValidator");
-
-/* =========================================================
-   Routes
-========================================================= */
-
-router.get("/lookups", navigationManagerController.getNavigationLookups);
-
-router.get("/", navigationManagerController.getNavigationMenus);
-
-router.get("/:id", navigationManagerController.getNavigationMenuById);
-
+router.get("/lookups", requirePermission("Navigation.View"), navigationManagerController.getNavigationLookups);
+router.get("/", requirePermission("Navigation.View"), navigationManagerController.getNavigationMenus);
+router.get("/:id", requirePermission("Navigation.View"), navigationManagerController.getNavigationMenuById);
 router.post(
   "/",
-  validateNavigationMenuPayload,
+  requirePermission("Navigation.View"),
   navigationManagerController.createNavigationMenu
 );
-
 router.put(
   "/:id",
-  validateNavigationMenuPayload,
+  requirePermission("Navigation.View"),
   navigationManagerController.updateNavigationMenu
 );
-
-router.delete("/:id", navigationManagerController.deleteNavigationMenu);
+router.delete("/:id", requirePermission("Navigation.View"), navigationManagerController.deleteNavigationMenu);
 
 module.exports = router;

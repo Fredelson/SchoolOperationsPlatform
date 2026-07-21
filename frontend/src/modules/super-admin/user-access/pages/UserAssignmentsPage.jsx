@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Checkbox, FormControlLabel, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Checkbox, Chip, FormControlLabel, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { AppButton, AppChip, AppDataTable, AppDialog, AppPageHeader, AppToolbar } from "@ui";
 import { assignmentApi, unwrap } from "../api/userAccessApi";
 
@@ -7,8 +7,6 @@ const blank = {
   userId: "",
   assignmentTypeId: "",
   academicYearId: "",
-  startDate: "",
-  endDate: "",
   isPrimary: false,
   scopes: [],
 };
@@ -82,8 +80,6 @@ export default function UserAssignmentsPage() {
             userId: row.UserId,
             assignmentTypeId: row.AssignmentTypeId,
             academicYearId: row.AcademicYearId || "",
-            startDate: row.StartDate?.slice(0, 10) || "",
-            endDate: row.EndDate?.slice(0, 10) || "",
             isPrimary: Boolean(row.IsPrimary),
             scopes: (row.Scopes || []).map((s) => ({
               scopeType: s.ScopeType,
@@ -95,14 +91,16 @@ export default function UserAssignmentsPage() {
     setOpen(true);
   };
 
-  const setScope = (scopeType, ids) =>
+  const setScope = (scopeType, ids) => {
+    const values = Array.isArray(ids) ? ids : [ids];
     setForm((p) => ({
       ...p,
       scopes: [
         ...p.scopes.filter((s) => s.scopeType !== scopeType),
-        ...ids.map((id) => ({ scopeType, scopeEntityId: Number(id) })),
+        ...values.map((id) => ({ scopeType, scopeEntityId: Number(id) })),
       ],
     }));
+  };
 
   const save = async () => {
     try {
@@ -147,9 +145,9 @@ export default function UserAssignmentsPage() {
       headerName: "User",
       render: (r) => (
         <Box>
-          <Typography fontWeight={600}>{r.FullName}</Typography>
+          <Typography fontWeight={600}>{r?.FullName}</Typography>
           <Typography variant="caption" color="text.secondary">
-            {r.EmployeeId}
+            {r?.EmployeeId}
           </Typography>
         </Box>
       ),
@@ -159,7 +157,7 @@ export default function UserAssignmentsPage() {
       headerName: "Assignment",
       render: (r) => (
         <Chip
-          label={r.AssignmentName}
+          label={r?.AssignmentName}
           size="small"
           color="primary"
           variant="outlined"
@@ -171,7 +169,7 @@ export default function UserAssignmentsPage() {
       headerName: "Organizational Scopes",
       render: (r) => (
         <Typography>
-          {(r.Scopes || []).map((s) => s.ScopeName).join(", ") || "No scope"}
+          {(r?.Scopes || []).map((s) => s.ScopeName).join(", ") || "No scope"}
         </Typography>
       ),
     },
@@ -180,8 +178,8 @@ export default function UserAssignmentsPage() {
       headerName: "Primary",
       render: (r) => (
         <Chip
-          label={r.IsPrimary ? "Primary" : "Secondary"}
-          color={r.IsPrimary ? "success" : "default"}
+          label={r?.IsPrimary ? "Primary" : "Secondary"}
+          color={r?.IsPrimary ? "success" : "default"}
           size="small"
         />
       ),
@@ -191,8 +189,8 @@ export default function UserAssignmentsPage() {
       headerName: "Status",
       render: (r) => (
         <AppChip
-          label={r.IsActive ? "Active" : "Inactive"}
-          status={r.IsActive ? "success" : "inactive"}
+          label={r?.IsActive ? "Active" : "Inactive"}
+          status={r?.IsActive ? "success" : "inactive"}
         />
       ),
     },
@@ -209,7 +207,7 @@ export default function UserAssignmentsPage() {
           >
             Edit
           </AppButton>
-          {r.IsActive && !r.IsPrimary && (
+          {r?.IsActive && !r?.IsPrimary && (
             <AppButton
               buttonKey="USER_ASSIGNMENT_UPDATE"
               size="small"
@@ -223,10 +221,10 @@ export default function UserAssignmentsPage() {
             buttonKey="USER_ASSIGNMENT_DELETE"
             size="small"
             variant="outlined"
-            color={r.IsActive ? "error" : "success"}
+            color={r?.IsActive ? "error" : "success"}
             onClick={() => action(r, "toggle")}
           >
-            {r.IsActive ? "Deactivate" : "Activate"}
+            {r?.IsActive ? "Deactivate" : "Activate"}
           </AppButton>
         </Stack>
       ),
@@ -324,50 +322,64 @@ export default function UserAssignmentsPage() {
             "AcademicYearId",
             "AcademicYearName"
           )}
-          <TextField
-            type="date"
-            label="Start Date"
-            size="small"
-            fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
-            value={form.startDate}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, startDate: e.target.value }))
-            }
-          />
-          <TextField
-            type="date"
-            label="End Date"
-            size="small"
-            fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
-            value={form.endDate}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, endDate: e.target.value }))
-            }
-          />
           {rules.map((rule) => {
-            const map = optionMap[rule.ScopeType];
+            const scopeType = rule.ScopeType;
+            const map = optionMap[scopeType];
             const items = lookups[map?.[0]] || [];
             const isSingleSelect =
               (String(form.assignmentTypeId) === "1" ||
                 String(form.assignmentTypeId) === "3") &&
-              (rule.ScopeType === "Section" || rule.ScopeType === "Class");
+              (scopeType === "Section" || scopeType === "Class");
             const value = isSingleSelect
-              ? form.scopes.find((s) => s.scopeType === rule.ScopeType)
+              ? form.scopes.find((s) => s.scopeType === scopeType)
                 ?.scopeEntityId || ""
               : form.scopes
-                  .filter((s) => s.scopeType === rule.ScopeType)
+                  .filter((s) => s.scopeType === scopeType)
                   .map((s) => s.scopeEntityId);
 
             return (
               <TextField
-                key={rule.ScopeType}
+                key={scopeType}
                 select
-                label={`${rule.ScopeType}${rule.IsRequired ? " *" : ""}`}
+                label={`${scopeType}${rule.IsRequired ? " *" : ""}`}
                 value={value}
                 onChange={(e) =>
-                  setScope(rule.ScopeType, e.target.value)
+                  setScope(scopeType, e.target.value)
+                }
+                size="small"
+                fullWidth
+                disabled={items.length === 0}
+                slotProps={{
+                  select: { multiple: !isSingleSelect },
+                }}
+              >
+                {items.map((x) => (
+                  <MenuItem key={x[map[1]]} value={x[map[1]]}>
+                    {x[map[2]]}
+                  </MenuItem>
+                ))}
+              </TextField>
+            );
+          })}
+          {["YearGroup", "Section", "Subject", "Class"].map((scopeType) => {
+            const map = optionMap[scopeType];
+            const items = lookups[map?.[0]] || [];
+            const isSingleSelect = ["Section", "Class", "YearGroup"].includes(scopeType);
+            const value = isSingleSelect
+              ? form.scopes.find((s) => s.scopeType === scopeType)
+                ?.scopeEntityId || ""
+              : form.scopes
+                  .filter((s) => s.scopeType === scopeType)
+                  .map((s) => s.scopeEntityId);
+
+            return (
+              <TextField
+                key={scopeType}
+                select
+                label={scopeType}
+                value={value}
+                onChange={(e) =>
+                  setScope(scopeType, e.target.value)
                 }
                 size="small"
                 fullWidth

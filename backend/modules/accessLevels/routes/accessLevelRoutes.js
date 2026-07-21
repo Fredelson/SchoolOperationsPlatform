@@ -1,9 +1,9 @@
 const router=require("express").Router();
 const controller=require("../controllers/accessLevelController");
-const {platformAdministrationAccess}=require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
 const requirePermission=require("../../permissionResolver/middleware/requirePermission");
 const P=require("../../../shared/permissions/permissionKeys").ACCESS_LEVELS;
-router.use(...platformAdministrationAccess);
+router.use(protect);
 router.get("/",requirePermission(P.VIEW),controller.list);
 router.get("/:id",requirePermission(P.VIEW),controller.get);
 router.post("/",requirePermission(P.CREATE),controller.create);

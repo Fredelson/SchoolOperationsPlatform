@@ -8,15 +8,16 @@ const express = require("express");
 const router = express.Router();
 
 const featureFlagController = require("../controllers/featureFlagController");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../../modules/permissionResolver/middleware/requirePermission");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-router.get("/lookups", featureFlagController.getFeatureFlagLookups);
-router.get("/", featureFlagController.getFeatureFlags);
-router.get("/:id", featureFlagController.getFeatureFlagById);
-router.post("/", featureFlagController.createFeatureFlag);
-router.put("/:id", featureFlagController.updateFeatureFlag);
-router.delete("/:id", featureFlagController.deleteFeatureFlag);
+router.get("/lookups", requirePermission("FeatureFlag.View"), featureFlagController.getFeatureFlagLookups);
+router.get("/", requirePermission("FeatureFlag.View"), featureFlagController.getFeatureFlags);
+router.get("/:id", requirePermission("FeatureFlag.View"), featureFlagController.getFeatureFlagById);
+router.post("/", requirePermission("FeatureFlag.View"), featureFlagController.createFeatureFlag);
+router.put("/:id", requirePermission("FeatureFlag.View"), featureFlagController.updateFeatureFlag);
+router.delete("/:id", requirePermission("FeatureFlag.View"), featureFlagController.deleteFeatureFlag);
 
 module.exports = router;

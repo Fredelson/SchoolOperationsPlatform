@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // User Management Routes
-// ============================================
+// ============================================================
 
 const express = require("express");
 const {
@@ -13,13 +13,14 @@ const {
   activateUser,
 } = require("../../controllers/users/userController")
 
-const { protect, authorizeRoles } = require("../../middleware/authMiddleware")
+const { protect } = require("../../middleware/authMiddleware")
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission")
 
 const router = express.Router();
 
 // Only admin-level users can manage users
 router.use(protect);
-router.use(authorizeRoles("SuperAdmin", "Admin", "PrintingAdmin"));
+router.use(requirePermission("users.view"));
 
 // GET /api/users
 router.get("/", getUsers);

@@ -8,9 +8,9 @@ const express = require("express");
 const router = express.Router();
 
 const permissionController = require("../controllers/permissionController");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
 /* =========================================================
    Permission Manager API Routes

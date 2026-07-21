@@ -19,53 +19,46 @@ const {
 } = require("../validators/moduleValidator");
 
 const router = express.Router();
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../../modules/permissionResolver/middleware/requirePermission");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-// ============================================
-// Module Query Routes
-// ============================================
-
-router.get("/", moduleController.getModules);
-
+router.get("/", requirePermission("Module.View"), moduleController.getModules);
 router.get(
   "/:id",
+  requirePermission("Module.View"),
   validateModuleId,
   moduleController.getModuleById
 );
-
-// ============================================
-// Module Mutation Routes
-// ============================================
-
 router.post(
   "/",
+  requirePermission("Module.View"),
   validateCreateModule,
   moduleController.createModule
 );
-
 router.put(
   "/:id",
+  requirePermission("Module.View"),
   validateModuleId,
   validateUpdateModule,
   moduleController.updateModule
 );
-
 router.patch(
   "/:id/activate",
+  requirePermission("Module.View"),
   validateModuleId,
   moduleController.activateModule
 );
-
 router.patch(
   "/:id/deactivate",
+  requirePermission("Module.View"),
   validateModuleId,
   moduleController.deactivateModule
 );
-
 router.delete(
   "/:id",
+  requirePermission("Module.View"),
   validateModuleId,
   moduleController.deleteModule
 );

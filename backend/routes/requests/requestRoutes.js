@@ -19,9 +19,9 @@
 const express = require("express");
 const router = express.Router();
 
-// ============================================
+// ============================================================
 // Controller Imports
-// ============================================
+// ============================================================
 
 const {
   getHosDashboard,
@@ -32,99 +32,89 @@ const {
   rejectHosRequest,
 } = require("../../controllers/requests/hosController");
 
-// ============================================
+// ============================================================
 // Authentication / Authorization Middleware
-// ============================================
+// ============================================================
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
-// ============================================
-// Shared Role Access
-// ============================================
-
-const HOS_ACCESS = [
-  "HOS",
-  "Secretary",
-  "SuperAdmin",
-];
-
-// ============================================
+// ============================================================
 // Dashboard
 // GET /api/hos/dashboard
-// ============================================
+// ============================================================
 
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosDashboard
 );
 
-// ============================================
+// ============================================================
 // Approval History
 // GET /api/hos/approval-history
-// ============================================
+// ============================================================
 
 router.get(
   "/approval-history",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosApprovalHistory
 );
 
-// ============================================
+// ============================================================
 // Request Queue
 // GET /api/hos/requests
-// ============================================
+// ============================================================
 
 router.get(
   "/requests",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosRequests
 );
 
-// ============================================
+// ============================================================
 // Request Details
 // GET /api/hos/requests/:id
-// ============================================
+// ============================================================
 
 router.get(
   "/requests/:id",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosRequestById
 );
 
-// ============================================
+// ============================================================
 // Approve Request
 // PUT /api/hos/requests/:id/approve
-// ============================================
+// ============================================================
 
 router.put(
   "/requests/:id/approve",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.approve"),
   approveHosRequest
 );
 
-// ============================================
+// ============================================================
 // Reject Request
 // PUT /api/hos/requests/:id/reject
-// ============================================
+// ============================================================
 
 router.put(
   "/requests/:id/reject",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.reject"),
   rejectHosRequest
 );
 
-// ============================================
+// ============================================================
 // Export Router
-// ============================================
+// ============================================================
 
 module.exports = router;

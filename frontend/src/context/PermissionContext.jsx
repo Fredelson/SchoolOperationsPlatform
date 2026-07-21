@@ -67,15 +67,73 @@ export function PermissionProvider({ children }) {
       Disposal: "it_assets.disposal.manage", Reports: "it_assets.reports.view",
       Import: "it_assets.import.manage",
     };
+
+    const modulePermissionMap = new Map();
+    (profile.permissions || []).forEach((permission) => {
+      const rawKey = permission.permissionKey || "";
+      const moduleKey = rawKey.split(".")[0];
+      if (!moduleKey) return;
+      if (!modulePermissionMap.has(moduleKey)) {
+        modulePermissionMap.set(moduleKey, new Set());
+      }
+      modulePermissionMap.get(moduleKey).add(rawKey);
+    });
+
+    const sidebarModuleKeys = new Set();
+    const collectSidebarModules = (items) => {
+      (items || []).forEach((item) => {
+        const key = item.moduleKey || item.module || item.ModuleKey || item.Module;
+        if (key) sidebarModuleKeys.add(String(key).toLowerCase().replace(/[\s-]/g, "_").replace(/[^a-z0-9_]/g, ""));
+        collectSidebarModules(item.children);
+      });
+    };
+    (profile.sidebar || []).forEach((section) => collectSidebarModules(section.items));
+
+    const normalizeModuleName = (moduleName = "") =>
+      String(moduleName)
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+
+    const moduleAliases = new Set([
+      normalizeModuleName("ITAssets"),
+      normalizeModuleName("IT Operations"),
+      normalizeModuleName("it_assets"),
+      "itassets",
+      "itoperations",
+    ]);
+
+    const canAccessModule = (moduleName = "") => {
+      if (isSuperAdmin) return true;
+      const normalized = normalizeModuleName(moduleName);
+      const candidates = new Set([normalized, normalized.replace(/_/g, "")]);
+      moduleAliases.forEach((alias) => candidates.add(alias));
+      if (normalized === "printing" || normalized === "printing_management") {
+        candidates.add("printing");
+      }
+      for (const [moduleKey, permissions] of modulePermissionMap.entries()) {
+        if (permissions.size === 0) continue;
+        if (candidates.has(moduleKey) || candidates.has(moduleKey.replace(/_/g, ""))) {
+          return true;
+        }
+      }
+      for (const candidate of candidates) {
+        if (sidebarModuleKeys.has(candidate)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     return {
       loading,
       permissions: profile.permissions || [], modules: [], actions: profile.allowedPermissionKeys || [],
       buttons: profile.runtimeControls?.buttons||[], widgets: profile.runtimeControls?.widgets||[], featureFlags: {},
       hasRole: (role) => [user?.Role, user?.role, profile.user?.roleKey].includes(role),
       hasPermission: (key) => isSuperAdmin || allowed.has(key),
-      hasModuleAccess: (moduleName) => moduleName === "ITAssets"
-        ? allowed.has("it_assets.dashboard.view") || allowed.has("it_assets.assets.view")
-        : true,
+      canAccessModule,
+      hasModuleAccess: canAccessModule,
       hasActionAccess: (moduleName, actionName) => moduleName === "ITAssets"
         ? allowed.has(actionKeys[actionName])
         : allowed.has(`${moduleName}.${actionName}`),

@@ -10,21 +10,14 @@ const {
   getTeacherReports,
 } = require("../../controllers/teacher/teacherReportController");
 
-const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
+const { protect } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/teacher/reports
 router.get(
   "/",
   protect,
-  authorizeRoles(
-  "Teacher",
-  "TeacherLevel",
-  "TeachingAssistant",
-  "TeachingAssistantLevel",
-  "TA",
-  "SuperAdmin",
-  "SuperAdminLevel"
-),
+  requirePermission("reports.view"),
   getTeacherReports
 );
 

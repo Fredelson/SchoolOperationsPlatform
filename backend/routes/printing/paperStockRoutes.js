@@ -12,8 +12,8 @@ const {
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ const router = express.Router();
 router.get(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
+  requirePermission("printing.inventory.view"),
   getPaperStock
 );
 
@@ -29,7 +29,7 @@ router.get(
 router.put(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
+  requirePermission("printing.inventory.update"),
   updatePaperStock
 );
 

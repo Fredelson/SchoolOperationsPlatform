@@ -554,6 +554,37 @@ const getActiveLiveSession = async (sessionId,actorUserId,targetUserId) => {
   return result.recordset[0];
 };
 
+const getWorkspaceButtons = async (workspaceId) => {
+  const pool=await poolPromise;
+  const result=await pool.request().input("WorkspaceId",sql.Int,workspaceId).query(`
+    SELECT b.ButtonId,b.ButtonKey,b.ButtonName,b.ModuleId,b.PermissionId,ISNULL(wb.IsVisible,0) IsVisible,ISNULL(wb.IsEnabled,0) IsEnabled
+    FROM dbo.Buttons b
+    LEFT JOIN dbo.WorkspaceButtons wb ON wb.ButtonId=b.ButtonId AND wb.WorkspaceId=@WorkspaceId
+    ORDER BY b.ButtonName;
+  `);
+  return result.recordsets[0]||[];
+};
+
+const updateWorkspaceButton = async (workspaceId, buttonId, payload) => {
+  const pool=await poolPromise;
+  const result=await pool.request()
+    .input("WorkspaceId",sql.Int,workspaceId)
+    .input("ButtonId",sql.Int,buttonId)
+    .input("IsEnabled",sql.Bit,payload.isEnabled?1:0)
+    .query(`
+      MERGE dbo.WorkspaceButtons AS target
+      USING (SELECT @WorkspaceId AS WorkspaceId, @ButtonId AS ButtonId) AS source
+      ON target.WorkspaceId = source.WorkspaceId AND target.ButtonId = source.ButtonId
+      WHEN MATCHED THEN
+        UPDATE SET IsEnabled = @IsEnabled
+      WHEN NOT MATCHED THEN
+        INSERT (WorkspaceId, ButtonId, IsVisible, IsEnabled, SortOrder)
+        VALUES (@WorkspaceId, @ButtonId, 1, @IsEnabled, 0)
+      OUTPUT INSERTED.*;
+    `);
+  return result.recordset[0];
+};
+
 /* =========================================================
    EXPORT REPOSITORY
 ========================================================= */
@@ -578,4 +609,6 @@ module.exports = {
   createLiveSession,
   closeLiveSession,
   touchLiveSession,
+  getWorkspaceButtons,
+  updateWorkspaceButton,
 };

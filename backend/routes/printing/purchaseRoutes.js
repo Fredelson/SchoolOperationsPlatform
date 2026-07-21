@@ -11,33 +11,33 @@
 const express = require("express");
 const router = express.Router();
 
-// ============================================
+// ============================================================
 // Controller Imports
-// ============================================
+// ============================================================
 
 const {
   getPurchases,
   addPurchase,
 } = require("../../controllers/printing/purchaseController");
 
-// ============================================
+// ============================================================
 // Middleware Imports
-// ============================================
+// ============================================================
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
-// ============================================
+// ============================================================
 // Routes
-// ============================================
+// ============================================================
 
 // GET /api/purchases
 router.get(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
+  requirePermission("printing.purchases.view"),
   getPurchases
 );
 
@@ -45,12 +45,12 @@ router.get(
 router.post(
   "/",
   protect,
-  authorizeRoles("PrintingAdmin", "PlatformAdmin", "SuperAdmin"),
+  requirePermission("printing.purchases.create"),
   addPurchase
 );
 
-// ============================================
+// ============================================================
 // Exports
-// ============================================
+// ============================================================
 
 module.exports = router;

@@ -57,6 +57,13 @@ const PERMISSIONS = {
     DELETE: "role-permissions.delete",
   },
 
+  PERMISSION_GROUPS: {
+    VIEW: "permission-groups.view",
+    CREATE: "permission-groups.create",
+    UPDATE: "permission-groups.update",
+    DELETE: "permission-groups.delete",
+  },
+
   USER_PERMISSION_OVERRIDES: {
     VIEW: "user-permission-overrides.view",
     CREATE: "user-permission-overrides.create",

@@ -8,17 +8,18 @@ const express = require("express");
 const buttonsController = require("../controllers/buttonsController");
 
 const router = express.Router();
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../../modules/permissionResolver/middleware/requirePermission");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-router.get("/", buttonsController.getButtons);
-router.get("/statistics", buttonsController.getButtonStatistics);
-router.get("/lookups", buttonsController.getButtonLookups);
-router.get("/:buttonId", buttonsController.getButtonById);
+router.get("/", requirePermission("Button.View"), buttonsController.getButtons);
+router.get("/statistics", requirePermission("Button.View"), buttonsController.getButtonStatistics);
+router.get("/lookups", requirePermission("Button.View"), buttonsController.getButtonLookups);
+router.get("/:buttonId", requirePermission("Button.View"), buttonsController.getButtonById);
 
-router.post("/", buttonsController.createButton);
-router.put("/:buttonId", buttonsController.updateButton);
-router.delete("/:buttonId", buttonsController.deleteButton);
+router.post("/", requirePermission("Button.View"), buttonsController.createButton);
+router.put("/:buttonId", requirePermission("Button.View"), buttonsController.updateButton);
+router.delete("/:buttonId", requirePermission("Button.View"), buttonsController.deleteButton);
 
 module.exports = router;

@@ -28,7 +28,6 @@ const express = require("express");
 
 const rolePermissionController = require("../controllers/rolePermissionController");
 const { protect } = require("../../../middleware/authMiddleware");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
@@ -52,7 +51,7 @@ router.get(
 // Apply JWT Protection + Platform Admin Role Check
 // ============================================================
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
 // ============================================================
 // Role Permission CRUD Routes

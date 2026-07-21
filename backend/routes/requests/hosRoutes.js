@@ -28,50 +28,50 @@ const {
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 const HOS_ACCESS = ["HOS", "Secretary", "SuperAdmin"];
 
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosDashboard
 );
 
 router.get(
   "/approval-history",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosApprovalHistory
 );
 
 router.get(
   "/requests",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosRequests
 );
 
 router.get(
   "/requests/:id",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.view"),
   getHosRequestById
 );
 
 router.put(
   "/requests/:id/approve",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.approve"),
   approveHosRequest
 );
 
 router.put(
   "/requests/:id/reject",
   protect,
-  authorizeRoles(...HOS_ACCESS),
+  requirePermission("requests.reject"),
   rejectHosRequest
 );
 

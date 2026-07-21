@@ -290,9 +290,23 @@ const exitLiveMode = async (actor,sessionId) => {
   if(!data) throwError("Active Live Mode session not found.",404); return data;
 };
 
+const getWorkspaceButtons = async (workspaceId, actor) => {
+  await getWorkspaceById(workspaceId, actor);
+  return workspaceManagerRepository.getWorkspaceButtons(Number(workspaceId));
+};
+
+const updateWorkspaceButton = async (workspaceId, buttonId, body, actor) => {
+  await getWorkspaceById(workspaceId, actor);
+  const payload = {
+    isEnabled: normalizeBoolean(body?.isEnabled, true),
+  };
+  const data = await workspaceManagerRepository.updateWorkspaceButton(Number(workspaceId), Number(buttonId), payload);
+  return data;
+};
+
 /* =========================================================
    EXPORT SERVICE
-========================================================= */
+======================================================== */
 
 module.exports = {
   getWorkspaces,
@@ -309,4 +323,6 @@ module.exports = {
   setWorkspaceDashboard,
   startLiveMode,
   exitLiveMode,
+  getWorkspaceButtons,
+  updateWorkspaceButton,
 };

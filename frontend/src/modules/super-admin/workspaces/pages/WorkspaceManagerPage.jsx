@@ -40,6 +40,8 @@ import {
   getRolePermissions,
   updateRolePermission,
   createRolePermission,
+  getWorkspaceButtons,
+  updateWorkspaceButton,
 } from "../services/workspaceService";
 
 const tabs = [
@@ -94,6 +96,8 @@ export default function WorkspaceManagerPage() {
   const [expandedModules, setExpandedModules] = useState({});
   const [inlineRolePermissions, setInlineRolePermissions] = useState([]);
   const [inlineRpLoading, setInlineRpLoading] = useState(false);
+  const [workspaceButtons, setWorkspaceButtons] = useState([]);
+  const [buttonsLoading, setButtonsLoading] = useState(false);
 
   const handleSyncPermissions = async () => {
     if (!workspaceId) return;
@@ -166,16 +170,22 @@ export default function WorkspaceManagerPage() {
   }, [previewSearch, tab]);
 
   useEffect(() => {
-    if (tab !== 2 || !workspaceId) return;
+    if ((tab !== 2 && tab !== 3) || !workspaceId) return;
     setInlineRpLoading(true);
+    setButtonsLoading(true);
     Promise.all([
       getRolePermissions({ limit: 1000 }),
+      getWorkspaceButtons(workspaceId),
     ])
-      .then(([perms]) => {
+      .then(([perms, buttons]) => {
         setInlineRolePermissions(perms.data || perms || []);
+        setWorkspaceButtons(buttons.data || buttons || []);
       })
-      .catch((e) => console.error("Failed to load inline role permissions:", e))
-      .finally(() => setInlineRpLoading(false));
+      .catch((e) => console.error("Failed to load inline tab data:", e))
+      .finally(() => {
+        setInlineRpLoading(false);
+        setButtonsLoading(false);
+      });
   }, [tab, workspaceId, config?.profiles]);
 
   const rows =
@@ -1020,31 +1030,31 @@ export default function WorkspaceManagerPage() {
                                     label="Enabled"
                                   />
                                  </Stack>
-                               </CardContent>
-                               <CardContent sx={{ pt: 0, "&:last-child": { pb: 2 } }}>
-                                 <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                                   <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-                                     Access:
-                                   </Typography>
-                                   <ToggleButtonGroup
-                                     size="small"
-                                     value={getMenuAccessMode(menu)}
-                                     exclusive
-                                     onChange={(_, value) => {
-                                       if (value) setMenuAccessMode(menu, value);
-                                     }}
-                                     disabled={!canConfigure || !module.IsAssigned || inlineRpLoading}
-                                   >
-                                     <ToggleButton value="active" color="success">
-                                       <Typography variant="caption">Active</Typography>
-                                     </ToggleButton>
-                                     <ToggleButton value="view" color="warning">
-                                       <Typography variant="caption">View</Typography>
-                                     </ToggleButton>
-                                     <ToggleButton value="disabled" color="error">
-                                       <Typography variant="caption">Disabled</Typography>
-                                     </ToggleButton>
-                                   </ToggleButtonGroup>
+                                </CardContent>
+                                <CardContent sx={{ pt: 0, "&:last-child": { pb: 2 } }}>
+                                  <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                                    <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                                      Access:
+                                    </Typography>
+                                    <ToggleButtonGroup
+                                      size="small"
+                                      value={getMenuAccessMode(menu)}
+                                      exclusive
+                                      onChange={(_, value) => {
+                                        if (value) setMenuAccessMode(menu, value);
+                                      }}
+                                      disabled={!canConfigure || !module.IsAssigned || inlineRpLoading}
+                                    >
+                                      <ToggleButton value="active" color="success">
+                                        <Typography variant="caption">Active</Typography>
+                                      </ToggleButton>
+                                      <ToggleButton value="view" color="warning">
+                                        <Typography variant="caption">View</Typography>
+                                      </ToggleButton>
+                                      <ToggleButton value="disabled" color="error">
+                                        <Typography variant="caption">Disabled</Typography>
+                                      </ToggleButton>
+                                    </ToggleButtonGroup>
                                  </Stack>
                                </CardContent>
                              </Card>
@@ -1064,6 +1074,128 @@ export default function WorkspaceManagerPage() {
             })
           )}
         </Stack>
+      </Stack>
+    );
+  };
+
+  const renderButtonsTab = () => {
+    const allMenus = config?.navigation || [];
+    const moduleMap = new Map();
+    allMenus.forEach((item) => {
+      if (!item.ParentMenuId) {
+        moduleMap.set(item.ModuleId, { ...item, children: [] });
+      }
+    });
+    allMenus.forEach((item) => {
+      if (item.ParentMenuId) {
+        const parent = moduleMap.get(item.ModuleId);
+        if (parent) {
+          parent.children.push(item);
+        }
+      }
+    });
+    const moduleEntries = Array.from(moduleMap.values()).sort((a, b) => (a.SortOrder ?? 0) - (b.SortOrder ?? 0) || String(a.MenuName || a.ModuleName || a.ModuleKey).localeCompare(String(b.MenuName || b.ModuleName || b.ModuleKey)));
+
+    const toggleButton = async (buttonId, currentIsEnabled) => {
+      if (!canConfigure || buttonsLoading) return;
+      try {
+        const updated = await updateWorkspaceButton(workspaceId, buttonId, { isEnabled: !currentIsEnabled });
+        setWorkspaceButtons((prev) =>
+          prev.map((b) => (b.ButtonId === buttonId ? { ...b, IsEnabled: updated.IsEnabled ?? !currentIsEnabled } : b))
+        );
+      } catch (e) {
+        console.error("Failed to update button:", e);
+      }
+    };
+
+    return (
+      <Stack spacing={3}>
+        <Box>
+          <Typography variant="h6" fontWeight={700}>
+            Buttons
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage action buttons for each module and its child menus. Buttons are module-scoped.
+          </Typography>
+        </Box>
+
+        {!workspaceButtons || workspaceButtons.length === 0 ? (
+          <Alert severity="info">No buttons configured for this workspace.</Alert>
+        ) : (
+          <Stack spacing={2}>
+            {moduleEntries.map((module) => {
+              const moduleButtons = workspaceButtons
+                .filter((btn) => btn.ModuleId === module.ModuleId)
+                .sort((a, b) => (a.SortOrder ?? 0) - (b.SortOrder ?? 0) || a.ButtonName.localeCompare(b.ButtonName));
+              if (moduleButtons.length === 0) return null;
+
+              return (
+                <Card key={module.MenuId || module.ModuleId} variant="outlined">
+                  <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                    <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                      <Typography fontWeight={700} sx={{ flex: 1 }}>
+                        {module.ModuleName || module.MenuName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {module.ModuleKey}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mr: 1, flexShrink: 0 }}>
+                        Buttons:
+                      </Typography>
+                      {moduleButtons.map((btn) => (
+                        <Chip
+                          key={btn.ButtonId}
+                          label={btn.ButtonName}
+                          size="small"
+                          color={btn.IsEnabled ? "primary" : "default"}
+                          variant={btn.IsEnabled ? "filled" : "outlined"}
+                          onClick={() => toggleButton(btn.ButtonId, btn.IsEnabled)}
+                          sx={{ cursor: canConfigure ? "pointer" : "default", m: 0.25 }}
+                        />
+                      ))}
+                    </Stack>
+                  </CardContent>
+                  {module.children && module.children.length > 0 && (
+                    <Stack spacing={1} sx={{ ml: 4, borderLeft: (theme) => `1px solid ${theme.palette.divider}`, pl: 2 }}>
+                      {module.children.map((child) => {
+                        const childButtons = workspaceButtons
+                          .filter((btn) => btn.ModuleId === child.ModuleId)
+                          .sort((a, b) => (a.SortOrder ?? 0) - (b.SortOrder ?? 0) || a.ButtonName.localeCompare(b.ButtonName));
+                        if (childButtons.length === 0) return null;
+                        return (
+                          <Card key={child.MenuId} variant="outlined" sx={{ bgcolor: "action.hover" }}>
+                            <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                                <Typography variant="body2" sx={{ flex: 1 }}>
+                                  {child.MenuName}
+                                </Typography>
+                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                  {childButtons.map((btn) => (
+                                    <Chip
+                                      key={btn.ButtonId}
+                                      label={btn.ButtonName}
+                                      size="small"
+                                      color={btn.IsEnabled ? "primary" : "default"}
+                                      variant={btn.IsEnabled ? "filled" : "outlined"}
+                                      onClick={() => toggleButton(btn.ButtonId, btn.IsEnabled)}
+                                      sx={{ cursor: canConfigure ? "pointer" : "default", m: 0.25 }}
+                                    />
+                                  ))}
+                                </Stack>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                </Card>
+              );
+            })}
+          </Stack>
+        )}
       </Stack>
     );
   };
@@ -1365,7 +1497,8 @@ export default function WorkspaceManagerPage() {
           )}
           {tab === 8 && renderPreviewTab()}
           {tab === 2 && renderCombinedModuleNavigationTab()}
-          {[1, 3, 4, 7].includes(tab) &&
+          {tab === 3 && renderButtonsTab()}
+          {[1, 4, 7].includes(tab) &&
             renderAssignmentTab(
               tabs[tab],
               tabDescriptions[tabs[tab]],

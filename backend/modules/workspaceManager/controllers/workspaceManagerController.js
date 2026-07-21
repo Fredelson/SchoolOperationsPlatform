@@ -187,6 +187,25 @@ const getUserPreview = async (req,res) => {
 const searchPreviewUsers=async(req,res)=>{try{return res.status(200).json({success:true,message:"Preview users loaded.",data:await workspaceManagerService.searchPreviewUsers(req.user,req.query)});}catch(error){return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to search preview users."});}};
 const setWorkspaceDashboard=async(req,res)=>{try{const data=await workspaceManagerService.setWorkspaceDashboard(req.params.id,req.body);await activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:"UPDATE",entityType:"WorkspaceDashboard",entityId:req.params.id,title:"Workspace dashboard updated",newValue:req.body,user:req.user,ipAddress:req.ip});return res.status(200).json({success:true,message:"Workspace dashboard saved successfully.",data});}catch(error){return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to save workspace dashboard."});}};
 
+const getWorkspaceButtons = async (req, res) => {
+  try {
+    const data = await workspaceManagerService.getWorkspaceButtons(req.params.id, req.user);
+    return res.status(200).json({ success: true, message: "Workspace buttons loaded successfully.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Failed to load workspace buttons." });
+  }
+};
+
+const updateWorkspaceButton = async (req, res) => {
+  try {
+    const data = await workspaceManagerService.updateWorkspaceButton(req.params.id, req.params.buttonId, req.body, req.user);
+    await activityLogger.log({ moduleKey: "PLATFORM_FOUNDATION", actionType: "UPDATE", entityType: "WorkspaceButton", entityId: req.params.buttonId, title: "Workspace button updated", newValue: req.body, user: req.user, ipAddress: req.ip });
+    return res.status(200).json({ success: true, message: "Workspace button updated successfully.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Failed to update workspace button." });
+  }
+};
+
 const startLiveMode = async (req,res) => {
   try { const data=await workspaceManagerService.startLiveMode(req.user,req.body); await activityLogger.log({moduleKey:"PLATFORM_FOUNDATION",actionType:"LIVE_MODE_ENTER",entityType:"WorkspaceLiveSession",entityId:data.session.LiveSessionId,title:"Super Admin entered Live Mode",description:req.body.reason,newValue:{targetUserId:data.target.UserId},user:req.user,ipAddress:req.ip}); return res.status(201).json({success:true,message:"Live Mode started.",data}); }
   catch(error){return res.status(error.statusCode||500).json({success:false,message:error.message||"Failed to start Live Mode."});}
@@ -215,4 +234,6 @@ module.exports = {
   setWorkspaceDashboard,
   startLiveMode,
   exitLiveMode,
+  getWorkspaceButtons,
+  updateWorkspaceButton,
 };

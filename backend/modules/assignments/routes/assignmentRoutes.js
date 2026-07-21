@@ -15,13 +15,12 @@ const {
 } = require("../controllers/assignmentController");
 
 const { protect } = require("../../../middleware/authMiddleware");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
 router.get("/lookups", protect, getAssignmentLookups);
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
 router.get("/", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignments);
 

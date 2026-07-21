@@ -6,7 +6,7 @@ const express = require("express");
 const router = express.Router();
 
 const workspaceManagerController = require("../controllers/workspaceManagerController");
-const { protect, authorizeRoles } = require("../../../middleware/authMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 
 const {
@@ -14,34 +14,36 @@ const {
 } = require("../validators/workspaceManagerValidator");
 
 router.use(protect);
-router.get("/lookups", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaceLookups);
-router.get("/:id/configuration", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaceConfiguration);
+router.get("/lookups", requirePermission("workspace.view"), workspaceManagerController.getWorkspaceLookups);
+router.get("/:id/configuration", requirePermission("workspace.view"), workspaceManagerController.getWorkspaceConfiguration);
 router.get("/preview/users/:userId", requirePermission("workspace.preview_user"), workspaceManagerController.getUserPreview);
 router.get("/preview/users", requirePermission("workspace.preview_user"), workspaceManagerController.searchPreviewUsers);
-router.post("/live-mode", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.startLiveMode);
-router.post("/live-mode/:sessionId/exit", authorizeRoles("SuperAdmin"), requirePermission("workspace.live_mode"), workspaceManagerController.exitLiveMode);
+router.post("/live-mode", requirePermission("workspace.live_mode"), workspaceManagerController.startLiveMode);
+router.post("/live-mode/:sessionId/exit", requirePermission("workspace.live_mode"), workspaceManagerController.exitLiveMode);
 router.put("/:id/assignments/:assignmentType", requirePermission("workspace.configure"), workspaceManagerController.replaceAssignments);
 router.post("/:id/sync-permissions", requirePermission("workspace.configure"), workspaceManagerController.syncRolePermissions);
 router.put("/:id/dashboard", requirePermission("workspace.configure"), workspaceManagerController.setWorkspaceDashboard);
+router.get("/:id/buttons", requirePermission("workspace.configure"), workspaceManagerController.getWorkspaceButtons);
+router.put("/:id/buttons/:buttonId", requirePermission("workspace.configure"), workspaceManagerController.updateWorkspaceButton);
 
-router.get("/", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaces);
+router.get("/", requirePermission("workspace.view"), workspaceManagerController.getWorkspaces);
 
-router.get("/:id", authorizeRoles("SuperAdmin", "PlatformAdmin"), workspaceManagerController.getWorkspaceById);
+router.get("/:id", requirePermission("workspace.view"), workspaceManagerController.getWorkspaceById);
 
 router.post(
   "/",
-  authorizeRoles("SuperAdmin"),
+  requirePermission("workspace.create"),
   validateWorkspacePayload,
   workspaceManagerController.createWorkspace
 );
 
 router.put(
   "/:id",
-  authorizeRoles("SuperAdmin"),
+  requirePermission("workspace.update"),
   validateWorkspacePayload,
   workspaceManagerController.updateWorkspace
 );
 
-router.delete("/:id", authorizeRoles("SuperAdmin"), workspaceManagerController.deleteWorkspace);
+router.delete("/:id", requirePermission("workspace.delete"), workspaceManagerController.deleteWorkspace);
 
 module.exports = router;

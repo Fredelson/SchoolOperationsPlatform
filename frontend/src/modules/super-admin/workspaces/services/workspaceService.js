@@ -70,3 +70,18 @@ export async function getRolePermissionLookups() {
   const response = await api.get("/role-permissions/lookups");
   return response.data?.data || {};
 }
+
+export async function getWorkspaceButtons(workspaceId) {
+  const response = await api.get(`/workspace-manager/${workspaceId}/buttons`);
+  return response.data?.data || [];
+}
+
+export async function updateWorkspaceButton(workspaceId, buttonId, payload) {
+  const response = await api.put(`/workspace-manager/${workspaceId}/buttons/${buttonId}`, payload);
+  return response.data?.data;
+}
+
+export async function reorderWorkspaceButtons(workspaceId, items) {
+  const response = await api.put(`/workspace-manager/${workspaceId}/buttons/reorder`, { items });
+  return response.data?.data;
+}

@@ -23,50 +23,50 @@ const {
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 const HOD_ACCESS = ["HOD", "SuperAdmin"];
 
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.view"),
   getHodDashboard
 );
 
 router.get(
   "/approval-history",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.view"),
   getHodApprovalHistory
 );
 
 router.get(
   "/requests",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.view"),
   getHodRequests
 );
 
 router.get(
   "/requests/:id",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.view"),
   getHodRequestById
 );
 
 router.put(
   "/requests/:id/approve",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.approve"),
   approveHodRequest
 );
 
 router.put(
   "/requests/:id/reject",
   protect,
-  authorizeRoles(...HOD_ACCESS),
+  requirePermission("requests.reject"),
   rejectHodRequest
 );
 

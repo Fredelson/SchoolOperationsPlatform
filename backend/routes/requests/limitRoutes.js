@@ -20,34 +20,34 @@ const {
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 router.get(
   "/departments",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin", "HOS"),
+  requirePermission("printing.limits.view"),
   getDepartmentLimits
 );
 
 router.put(
   "/departments/:departmentId",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.limits.update"),
   upsertDepartmentLimit
 );
 
 router.get(
   "/subjects",
   protect,
-  authorizeRoles("HOS", "PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.limits.view"),
   getSubjectLimits
 );
 
 router.put(
   "/subjects/:subjectId",
   protect,
-  authorizeRoles("HOS", "SuperAdmin"),
+  requirePermission("printing.limits.update"),
   upsertSubjectLimit
 );
 

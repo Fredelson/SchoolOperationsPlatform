@@ -20,16 +20,16 @@ const {
 } = require("../../controllers/requests/distributionController");
 
 // Middleware imports
-const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
-const DISTRIBUTION_ROLES = ["PrintingAdmin", "PlatformAdmin", "SuperAdmin"];
+const { protect } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 // GET /api/distributions
-router.get("/", protect, authorizeRoles(...DISTRIBUTION_ROLES), getDistributions);
+router.get("/", protect, requirePermission("printing.distribution.view"), getDistributions);
 
 // GET /api/distributions/users/search?query=
-router.get("/users/search", protect, authorizeRoles(...DISTRIBUTION_ROLES), searchDistributionUsers);
+router.get("/users/search", protect, requirePermission("printing.distribution.view"), searchDistributionUsers);
 
 // POST /api/distributions
-router.post("/", protect, authorizeRoles(...DISTRIBUTION_ROLES), addDistribution);
+router.post("/", protect, requirePermission("printing.distribution.create"), addDistribution);
 
 module.exports = router;

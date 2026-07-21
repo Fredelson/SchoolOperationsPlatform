@@ -17,86 +17,86 @@ const {
 
 const {
   protect,
-  authorizeRoles,
 } = require("../../middleware/authMiddleware");
+const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
 
 const router = express.Router();
 
-// ============================================
+// ============================================================
 // Printing Dashboard
 // GET /api/printing/dashboard
-// ============================================
+// ============================================================
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.dashboard.view"),
   getPrintingDashboard
 );
 
-// ============================================
+// ============================================================
 // Printing History
 // IMPORTANT: keep this before /requests/:id
 // GET /api/printing/history
-// ============================================
+// ============================================================
 router.get(
   "/history",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.history.view"),
   getPrintingHistory
 );
 
-// ============================================
+// ============================================================
 // Inventory Transaction Logs
 // GET /api/printing/inventory-transactions
-// ============================================
+// ============================================================
 router.get(
   "/inventory-transactions",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.inventory.view"),
   getInventoryTransactions
 );
 
-// ============================================
+// ============================================================
 // Print Queue Requests
 // GET /api/printing/requests
-// ============================================
+// ============================================================
 router.get(
   "/requests",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.queue.view"),
   getPrintingRequests
 );
 
-// ============================================
+// ============================================================
 // Single Printing Request
 // GET /api/printing/requests/:id
-// ============================================
+// ============================================================
 router.get(
   "/requests/:id",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.request.view"),
   getPrintingRequestById
 );
 
-// ============================================
+// ============================================================
 // Start Printing
 // PUT /api/printing/requests/:id/start
-// ============================================
+// ============================================================
 router.put(
   "/requests/:id/start",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.request.start"),
   startPrinting
 );
 
-// ============================================
+// ============================================================
 // Complete Printing
 // PUT /api/printing/requests/:id/complete
-// ============================================
+// ============================================================
 router.put(
   "/requests/:id/complete",
   protect,
-  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  requirePermission("printing.request.complete"),
   completePrinting
 );
 

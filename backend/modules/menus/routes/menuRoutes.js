@@ -16,60 +16,36 @@ const express = require("express");
 const router = express.Router();
 
 const menuController = require("../controllers/menuController");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
+const { protect } = require("../../../middleware/authMiddleware");
+const requirePermission = require("../../../modules/permissionResolver/middleware/requirePermission");
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
-
-const {
-  validateCreateMenu,
-  validateUpdateMenu,
-  validateMenuId,
-} = require("../validators/menuValidator");
-
-// ============================================
-// Menu Routes
-// ============================================
-
-// GET /api/super-admin/menus
-router.get("/", menuController.getMenus);
-
-// GET /api/super-admin/menus/:id
-router.get("/:id", validateMenuId, menuController.getMenuById);
-
-// POST /api/super-admin/menus
+router.get("/", requirePermission("Menu.View"), menuController.getMenus);
+router.get("/:id", requirePermission("Menu.View"), menuController.getMenuById);
 router.post(
   "/",
-  validateCreateMenu,
+  requirePermission("Menu.View"),
   menuController.createMenu
 );
-
-// PUT /api/super-admin/menus/:id
 router.put(
   "/:id",
-  validateMenuId,
-  validateUpdateMenu,
+  requirePermission("Menu.View"),
   menuController.updateMenu
 );
-
-// PUT /api/super-admin/menus/:id/show
 router.put(
   "/:id/show",
-  validateMenuId,
+  requirePermission("Menu.View"),
   menuController.showMenu
 );
-
-// PUT /api/super-admin/menus/:id/hide
 router.put(
   "/:id/hide",
-  validateMenuId,
+  requirePermission("Menu.View"),
   menuController.hideMenu
 );
-
-// DELETE /api/super-admin/menus/:id
 router.delete(
   "/:id",
-  validateMenuId,
+  requirePermission("Menu.View"),
   menuController.deleteMenu
 );
 

@@ -6,7 +6,6 @@
 const express = require("express");
 const controller = require("../controllers/userPermissionOverrideController");
 const { protect } = require("../../../middleware/authMiddleware");
-const { platformAdministrationAccess } = require("../../../middleware/platformAdministrationMiddleware");
 const requirePermission = require("../../permissionResolver/middleware/requirePermission");
 const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
 
@@ -18,7 +17,7 @@ router.get(
   controller.getLookups
 );
 
-router.use(...platformAdministrationAccess);
+router.use(protect);
 
 router.get(
   "/",
