@@ -102,6 +102,11 @@ export const requestItAssetDisposalApi = async (payload) => {
   return response.data;
 };
 
+export const requestItAssetMaintenanceDisposalApi = async (assetId, reason = "") => {
+  const response = await api.post(`/it-assets/maintenance/${assetId}/request-disposal`, { reason });
+  return response.data;
+};
+
 export const getActiveItAssetAssignmentsApi = async (params = {}) => {
   const response = await api.get("/it-assets/assignments/active", { params });
   return response.data;
@@ -129,6 +134,11 @@ export const getItAssetMaintenanceLogsApi = async (params = {}) => {
 
 export const getItAssetMaintenanceDueApi = async () => {
   const response = await api.get("/it-assets/maintenance/due");
+  return response.data;
+};
+
+export const getItAssetOperationsHistoryApi = async (params = {}) => {
+  const response = await api.get("/it-assets/dashboard/operations/history", { params });
   return response.data;
 };
 

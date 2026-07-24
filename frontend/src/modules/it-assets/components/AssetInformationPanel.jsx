@@ -63,7 +63,10 @@ const AssetInformationPanel = ({ asset }) => {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <InfoItem label="Condition">
-              <AppChip label={safeText(asset.ConditionName)} status={asset.ConditionName} />
+              <AppChip 
+                label={asset.ConditionName === "Beyond Repair" ? "Beyond Repair / Disposed" : safeText(asset.ConditionName)} 
+                status={asset.ConditionName === "Beyond Repair" ? "Disposed" : asset.ConditionName} 
+              />
             </InfoItem>
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>

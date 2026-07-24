@@ -19,9 +19,9 @@ const createImportBatch = async ({ batchName, originalFileName, uploadedBy }) =>
     .input("UploadedBy", sql.Int, uploadedBy || null)
     .query(`
       INSERT INTO dbo.ITAssetImportBatches
-      (BatchName, OriginalFileName, UploadedBy, TotalRows, ValidRows, InvalidRows, ImportedRows, Status, CreatedAt)
+      (BatchName, OriginalFileName, UploadedBy, TotalRows, ValidRows, InvalidRows, ImportedRows, UpdateRows, IgnoredRows, Status, CreatedAt)
       OUTPUT INSERTED.*
-      VALUES (@BatchName, @OriginalFileName, @UploadedBy, 0, 0, 0, 0, 'Pending', GETDATE());
+      VALUES (@BatchName, @OriginalFileName, @UploadedBy, 0, 0, 0, 0, 0, 0, 'Pending', GETDATE());
     `);
 
   return result.recordset[0];
@@ -33,6 +33,8 @@ const updateBatchStats = async ({
   validRows,
   invalidRows,
   importedRows = 0,
+  updateRows = 0,
+  ignoredRows = 0,
   status = "Validated",
   importedAt = null,
 }) => {
@@ -44,6 +46,8 @@ const updateBatchStats = async ({
     .input("ValidRows", sql.Int, validRows)
     .input("InvalidRows", sql.Int, invalidRows)
     .input("ImportedRows", sql.Int, importedRows)
+    .input("UpdateRows", sql.Int, updateRows || 0)
+    .input("IgnoredRows", sql.Int, ignoredRows || 0)
     .input("Status", sql.NVarChar(100), status)
     .input("ImportedAt", sql.DateTime, importedAt)
     .query(`
@@ -52,6 +56,8 @@ const updateBatchStats = async ({
           ValidRows=@ValidRows,
           InvalidRows=@InvalidRows,
           ImportedRows=@ImportedRows,
+          UpdateRows=@UpdateRows,
+          IgnoredRows=@IgnoredRows,
           Status=@Status,
           ImportedAt=@ImportedAt
       OUTPUT INSERTED.*
@@ -227,7 +233,7 @@ const getLookupCache = async () => {
   };
 };
 
-const getExistingAssetTags = async (assetTags = []) => {
+const getExistingAssetsByTags = async (assetTags = []) => {
   if (!assetTags.length) return [];
 
   const pool = await poolPromise;
@@ -241,12 +247,15 @@ const getExistingAssetTags = async (assetTags = []) => {
   });
 
   const result = await request.query(`
-    SELECT AssetTag
+    SELECT AssetId, AssetTag, ITAssetCategoryId, ITAssetModelId, ITAssetStatusId,
+           ITAssetConditionId, CurrentAssignedUserId, CurrentAssignedName,
+           CurrentAssignedEmployeeCode, CurrentAssignedEmail, CurrentRoomId,
+           CurrentDepartmentId, CurrentLocationId, AcquiredChangedDate
     FROM dbo.ITAssets
     WHERE AssetTag IN (${params.join(",")});
   `);
 
-  return result.recordset.map((row) => row.AssetTag);
+  return result.recordset;
 };
 
 /* =========================================================
@@ -506,7 +515,44 @@ const getOrCreateModelFromCache = async ({
 
 /* =========================================================
    Commit Import
-========================================================= */
+   ========================================================= */
+
+const updateAssetFromImport = async ({ transaction, assetId, data }) => {
+  await new sql.Request(transaction)
+    .input("AssetId", sql.Int, assetId)
+    .input("ITAssetCategoryId", sql.Int, data.ITAssetCategoryId)
+    .input("ITAssetModelId", sql.Int, data.ITAssetModelId || null)
+    .input("ModelDescription", sql.NVarChar(510), data.ModelDescription || null)
+    .input("ITAssetStatusId", sql.Int, data.ITAssetStatusId)
+    .input("ITAssetConditionId", sql.Int, data.ITAssetConditionId || null)
+    .input("CurrentAssignedUserId", sql.Int, data.CurrentAssignedUserId || null)
+    .input("CurrentAssignedName", sql.NVarChar(510), data.CurrentAssignedName || null)
+    .input("CurrentAssignedEmployeeCode", sql.NVarChar(100), data.CurrentAssignedEmployeeCode || null)
+    .input("CurrentAssignedEmail", sql.NVarChar(510), data.CurrentAssignedEmail || null)
+    .input("CurrentRoomId", sql.Int, data.CurrentRoomId || null)
+    .input("CurrentDepartmentId", sql.Int, data.CurrentDepartmentId || null)
+    .input("CurrentLocationId", sql.Int, data.CurrentLocationId || null)
+    .input("AcquiredChangedDate", sql.Date, data.AcquiredChangedDate || null)
+    .input("UpdatedAt", sql.DateTime, new Date())
+    .query(`
+      UPDATE dbo.ITAssets
+      SET ITAssetCategoryId = @ITAssetCategoryId,
+          ITAssetModelId = @ITAssetModelId,
+          ModelDescription = @ModelDescription,
+          ITAssetStatusId = @ITAssetStatusId,
+          ITAssetConditionId = @ITAssetConditionId,
+          CurrentAssignedUserId = @CurrentAssignedUserId,
+          CurrentAssignedName = @CurrentAssignedName,
+          CurrentAssignedEmployeeCode = @CurrentAssignedEmployeeCode,
+          CurrentAssignedEmail = @CurrentAssignedEmail,
+          CurrentRoomId = @CurrentRoomId,
+          CurrentDepartmentId = @CurrentDepartmentId,
+          CurrentLocationId = @CurrentLocationId,
+          AcquiredChangedDate = @AcquiredChangedDate,
+          UpdatedAt = @UpdatedAt
+      WHERE AssetId = @AssetId;
+    `);
+};
 
 const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
   const pool = await poolPromise;
@@ -523,33 +569,54 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
         SELECT *
         FROM dbo.ITAssetImportStaging
         WHERE ImportBatchId = @ImportBatchId
-          AND ImportStatus = 'Valid'
+          AND ImportStatus IN ('Valid', 'Update')
         ORDER BY SourceRow ASC, ImportStagingId ASC;
       `);
 
     let importedRows = 0;
+    let updatedRows = 0;
 
     for (const row of stagingResult.recordset) {
-      const duplicateCheck = await new sql.Request(transaction)
-        .input("AssetTag", sql.NVarChar(200), row.AssetTag)
-        .query(`
-          SELECT TOP 1 AssetId
-          FROM dbo.ITAssets
-          WHERE AssetTag = @AssetTag;
-        `);
+      const isUpdate = row.ImportStatus === "Update";
 
-      if (duplicateCheck.recordset.length > 0) {
-        await new sql.Request(transaction)
-          .input("ImportStagingId", sql.Int, row.ImportStagingId)
-          .query(`
-            UPDATE dbo.ITAssetImportStaging
-            SET ImportStatus = 'Invalid',
-                DuplicateTagStatus = 'DuplicateInDatabase',
-                ImportMessage = 'AssetCode already exists in asset inventory.'
-            WHERE ImportStagingId = @ImportStagingId;
-          `);
+      let existingAssetId = null;
 
-        continue;
+      if (isUpdate) {
+        const existing = await new sql.Request(transaction)
+          .input("AssetTag", sql.NVarChar(200), row.AssetTag)
+          .query(`SELECT TOP 1 AssetId FROM dbo.ITAssets WHERE AssetTag = @AssetTag;`);
+
+        if (existing.recordset.length === 0) {
+          await new sql.Request(transaction)
+            .input("ImportStagingId", sql.Int, row.ImportStagingId)
+            .query(`
+              UPDATE dbo.ITAssetImportStaging
+              SET ImportStatus = 'Invalid',
+                  DuplicateTagStatus = 'DuplicateInDatabase',
+                  ImportMessage = 'AssetCode no longer exists for update.'
+              WHERE ImportStagingId = @ImportStagingId;
+            `);
+          continue;
+        }
+
+        existingAssetId = existing.recordset[0].AssetId;
+      } else {
+        const duplicateCheck = await new sql.Request(transaction)
+          .input("AssetTag", sql.NVarChar(200), row.AssetTag)
+          .query(`SELECT TOP 1 AssetId FROM dbo.ITAssets WHERE AssetTag = @AssetTag;`);
+
+        if (duplicateCheck.recordset.length > 0) {
+          await new sql.Request(transaction)
+            .input("ImportStagingId", sql.Int, row.ImportStagingId)
+            .query(`
+              UPDATE dbo.ITAssetImportStaging
+              SET ImportStatus = 'Invalid',
+                  DuplicateTagStatus = 'DuplicateInDatabase',
+                  ImportMessage = 'AssetCode already exists in asset inventory.'
+              WHERE ImportStagingId = @ImportStagingId;
+            `);
+          continue;
+        }
       }
 
       const brand = row.ResolvedBrandId
@@ -619,96 +686,114 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
         throw new Error("Assigned status is missing in ITAssetStatuses.");
       }
 
-      const assetResult = await new sql.Request(transaction)
-        .input("AssetTag", sql.NVarChar(200), row.AssetTag)
-        .input("ITAssetCategoryId", sql.Int, row.ResolvedCategoryId)
-        .input("ITAssetModelId", sql.Int, model?.ITAssetModelId || null)
-        .input("ModelDescription", sql.NVarChar(510), model?.ModelName || row.ModelName || null)
-        .input("SerialIpMac", sql.NVarChar(510), null)
-        .input(
-          "ITAssetStatusId",
-          sql.Int,
-          hasAssignmentTarget
-            ? assignedStatus.ITAssetStatusId
-            : row.ResolvedStatusId
-        )
-        .input("ITAssetConditionId", sql.Int, row.ResolvedConditionId || null)
-        .input("CurrentAssignedUserId", sql.Int, user?.UserId || null)
-        .input("CurrentAssignedName", sql.NVarChar(510), user?.FullName || null)
-        .input("CurrentAssignedEmployeeCode", sql.NVarChar(100), user?.EmployeeId || row.EmployeeCode || null)
-        .input("CurrentAssignedEmail", sql.NVarChar(510), user?.SchoolEmail || null)
-        .input("CurrentRoomId", sql.Int, room?.RoomId || null)
-        .input("CurrentDepartmentId", sql.Int, row.ResolvedDepartmentId || null)
-        .input("CurrentLocationId", sql.Int, location?.LocationId || null)
-        .input("AcquiredChangedDate", sql.Date, row.PurchaseDate || null)
-        .input("PreviousOwner", sql.NVarChar(510), null)
-        .input("SourceSheet", sql.NVarChar(300), row.SourceSheet || null)
-        .input("SourceRow", sql.Int, row.SourceRow || null)
-        .input("DuplicateTagStatus", sql.NVarChar(100), row.DuplicateTagStatus || "None")
-        .input("OriginalRecordId", sql.Int, null)
-        .input("ImportBatchId", sql.Int, importBatchId)
-        .input("SchoolId", sql.Int, user?.SchoolId || null)
-        .query(`
-          INSERT INTO dbo.ITAssets
-          (
-            AssetTag,
-            ITAssetCategoryId,
-            ITAssetModelId,
-            ModelDescription,
-            SerialIpMac,
-            ITAssetStatusId,
-            ITAssetConditionId,
-            CurrentAssignedUserId,
-            CurrentAssignedName,
-            CurrentAssignedEmployeeCode,
-            CurrentAssignedEmail,
-            CurrentRoomId,
-            CurrentDepartmentId,
-            CurrentLocationId,
-            AcquiredChangedDate,
-            PreviousOwner,
-            SourceSheet,
-            SourceRow,
-            DuplicateTagStatus,
-            OriginalRecordId,
-            ImportBatchId,
-            IsActive,
-            CreatedAt,
-            UpdatedAt,
-            SchoolId
-          )
-          OUTPUT INSERTED.AssetId
-          VALUES
-          (
-            @AssetTag,
-            @ITAssetCategoryId,
-            @ITAssetModelId,
-            @ModelDescription,
-            @SerialIpMac,
-            @ITAssetStatusId,
-            @ITAssetConditionId,
-            @CurrentAssignedUserId,
-            @CurrentAssignedName,
-            @CurrentAssignedEmployeeCode,
-            @CurrentAssignedEmail,
-            @CurrentRoomId,
-            @CurrentDepartmentId,
-            @CurrentLocationId,
-            @AcquiredChangedDate,
-            @PreviousOwner,
-            @SourceSheet,
-            @SourceRow,
-            @DuplicateTagStatus,
-            @OriginalRecordId,
-            @ImportBatchId,
-            1,
-            GETDATE(),
-            NULL,
-            @SchoolId
-          );
-        `);
+      const assetData = {
+        ITAssetCategoryId: row.ResolvedCategoryId,
+        ITAssetModelId: model?.ITAssetModelId || null,
+        ModelDescription: model?.ModelName || row.ModelName || null,
+        ITAssetStatusId: hasAssignmentTarget ? assignedStatus.ITAssetStatusId : row.ResolvedStatusId,
+        ITAssetConditionId: row.ResolvedConditionId || null,
+        CurrentAssignedUserId: user?.UserId || null,
+        CurrentAssignedName: user?.FullName || null,
+        CurrentAssignedEmployeeCode: user?.EmployeeId || row.EmployeeCode || null,
+        CurrentAssignedEmail: user?.SchoolEmail || null,
+        CurrentRoomId: room?.RoomId || null,
+        CurrentDepartmentId: row.ResolvedDepartmentId || null,
+        CurrentLocationId: location?.LocationId || null,
+        AcquiredChangedDate: row.PurchaseDate || null,
+      };
 
-      const assetId = assetResult.recordset[0].AssetId;
+      if (isUpdate) {
+        await updateAssetFromImport({
+          transaction,
+          assetId: existingAssetId,
+          data: assetData,
+        });
+      } else {
+        await new sql.Request(transaction)
+          .input("AssetTag", sql.NVarChar(200), row.AssetTag)
+          .input("ITAssetCategoryId", sql.Int, assetData.ITAssetCategoryId)
+          .input("ITAssetModelId", sql.Int, assetData.ITAssetModelId)
+          .input("ModelDescription", sql.NVarChar(510), assetData.ModelDescription)
+          .input("SerialIpMac", sql.NVarChar(510), null)
+          .input("ITAssetStatusId", sql.Int, assetData.ITAssetStatusId)
+          .input("ITAssetConditionId", sql.Int, assetData.ITAssetConditionId)
+          .input("CurrentAssignedUserId", sql.Int, assetData.CurrentAssignedUserId)
+          .input("CurrentAssignedName", sql.NVarChar(510), assetData.CurrentAssignedName)
+          .input("CurrentAssignedEmployeeCode", sql.NVarChar(100), assetData.CurrentAssignedEmployeeCode)
+          .input("CurrentAssignedEmail", sql.NVarChar(510), assetData.CurrentAssignedEmail)
+          .input("CurrentRoomId", sql.Int, assetData.CurrentRoomId)
+          .input("CurrentDepartmentId", sql.Int, assetData.CurrentDepartmentId)
+          .input("CurrentLocationId", sql.Int, assetData.CurrentLocationId)
+          .input("AcquiredChangedDate", sql.Date, assetData.AcquiredChangedDate)
+          .input("PreviousOwner", sql.NVarChar(510), null)
+          .input("SourceSheet", sql.NVarChar(300), row.SourceSheet || null)
+          .input("SourceRow", sql.Int, row.SourceRow || null)
+          .input("DuplicateTagStatus", sql.NVarChar(100), row.DuplicateTagStatus || "None")
+          .input("OriginalRecordId", sql.Int, null)
+          .input("ImportBatchId", sql.Int, importBatchId)
+          .input("SchoolId", sql.Int, user?.SchoolId || null)
+          .query(`
+            INSERT INTO dbo.ITAssets
+            (
+              AssetTag,
+              ITAssetCategoryId,
+              ITAssetModelId,
+              ModelDescription,
+              SerialIpMac,
+              ITAssetStatusId,
+              ITAssetConditionId,
+              CurrentAssignedUserId,
+              CurrentAssignedName,
+              CurrentAssignedEmployeeCode,
+              CurrentAssignedEmail,
+              CurrentRoomId,
+              CurrentDepartmentId,
+              CurrentLocationId,
+              AcquiredChangedDate,
+              PreviousOwner,
+              SourceSheet,
+              SourceRow,
+              DuplicateTagStatus,
+              OriginalRecordId,
+              ImportBatchId,
+              IsActive,
+              CreatedAt,
+              UpdatedAt,
+              SchoolId
+            )
+            OUTPUT INSERTED.AssetId
+            VALUES
+            (
+              @AssetTag,
+              @ITAssetCategoryId,
+              @ITAssetModelId,
+              @ModelDescription,
+              @SerialIpMac,
+              @ITAssetStatusId,
+              @ITAssetConditionId,
+              @CurrentAssignedUserId,
+              @CurrentAssignedName,
+              @CurrentAssignedEmployeeCode,
+              @CurrentAssignedEmail,
+              @CurrentRoomId,
+              @CurrentDepartmentId,
+              @CurrentLocationId,
+              @AcquiredChangedDate,
+              @PreviousOwner,
+              @SourceSheet,
+              @SourceRow,
+              @DuplicateTagStatus,
+              @OriginalRecordId,
+              @ImportBatchId,
+              1,
+              GETDATE(),
+              NULL,
+              @SchoolId
+            );
+          `);
+      }
+
+      const assetId = isUpdate ? existingAssetId : assetResult.recordset[0].AssetId;
 
       if (row.Remarks) {
         await new sql.Request(transaction)
@@ -732,15 +817,42 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
           WHERE ImportStagingId = @ImportStagingId;
         `);
 
-      importedRows += 1;
+      const activityType = isUpdate ? "ASSET_IMPORT_UPDATED" : "ASSET_IMPORTED";
+      const activityTitle = isUpdate ? "Asset Updated via Import" : "Asset Imported";
+      const activityDescription = isUpdate
+        ? `Asset ${row.AssetTag} was updated via import batch #${importBatchId}.`
+        : `Asset ${row.AssetTag} was imported via batch #${importBatchId}.`;
+
+      await new sql.Request(transaction)
+        .input("UserId", sql.Int, importedBy || null)
+        .input("ModuleKey", sql.NVarChar(200), "IT_ASSETS")
+        .input("EntityType", sql.NVarChar(200), "ITAsset")
+        .input("EntityId", sql.NVarChar(200), String(assetId))
+        .input("ActivityType", sql.NVarChar(200), activityType)
+        .input("ActivityTitle", sql.NVarChar(510), activityTitle)
+        .input("ActivityDescription", sql.NVarChar(sql.MAX), activityDescription)
+        .query(`
+          INSERT INTO dbo.ActivityTimeline
+          (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
+          VALUES
+          (@UserId, @ModuleKey, @EntityType, @EntityId, @ActivityType, @ActivityTitle, @ActivityDescription, GETDATE());
+        `);
+
+      if (isUpdate) {
+        updatedRows += 1;
+      } else {
+        importedRows += 1;
+      }
     }
 
     await new sql.Request(transaction)
       .input("ImportBatchId", sql.Int, importBatchId)
       .input("ImportedRows", sql.Int, importedRows)
+      .input("UpdatedRows", sql.Int, updatedRows)
       .query(`
         UPDATE dbo.ITAssetImportBatches
         SET ImportedRows = @ImportedRows,
+            UpdateRows = @UpdatedRows,
             Status = 'Imported',
             ImportedAt = GETDATE()
         WHERE ITAssetImportBatchId = @ImportBatchId;
@@ -751,6 +863,7 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
     return {
       importBatchId,
       importedRows,
+      updatedRows,
     };
   } catch (error) {
     if (transaction._aborted !== true) {
@@ -798,7 +911,8 @@ module.exports = {
   getStagingRowsByBatchId,
   updateStagingValidation,
   getLookupCache,
-  getExistingAssetTags,
+  getExistingAssetsByTags,
+  updateAssetFromImport,
   commitValidStagingRows,
   getImportHistory,
 };

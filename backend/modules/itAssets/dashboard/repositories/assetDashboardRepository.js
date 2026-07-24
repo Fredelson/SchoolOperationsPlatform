@@ -83,10 +83,13 @@ async function getDashboardSummary(filters) {
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'BORROWED' THEN 1 ELSE 0 END) AS BorrowedAssets,
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('MAINTENANCE', 'UNDERMAINTENANCE') THEN 1 ELSE 0 END) AS UnderMaintenanceAssets,
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'UNDERREPAIR' THEN 1 ELSE 0 END) AS UnderRepairAssets,
-      SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED' THEN 1 ELSE 0 END) AS DisposedAssets
+      SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED'
+        OR UPPER(ISNULL(c.ConditionKey, '')) = 'BEYONDREPAIR' THEN 1 ELSE 0 END) AS DisposedAssets
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetConditions c
+      ON a.ITAssetConditionId = c.ITAssetConditionId
     WHERE a.IsDeleted = 0 ${filter.clause};
   `, filter.parameters);
 
@@ -96,11 +99,23 @@ async function getDashboardSummary(filters) {
 async function getAssetsByCondition(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
-    SELECT ISNULL(c.ConditionName, 'Not Recorded') AS ConditionName, COUNT(*) AS Total
+    SELECT 
+      CASE 
+        WHEN UPPER(ISNULL(c.ConditionKey, '')) = 'BEYONDREPAIR'
+          OR UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED' THEN N'Beyond Repair / Disposed'
+        ELSE ISNULL(c.ConditionName, 'Not Recorded')
+      END AS ConditionName,
+      COUNT(*) AS Total
     FROM dbo.ITAssets a
+    LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
     LEFT JOIN dbo.ITAssetConditions c ON a.ITAssetConditionId = c.ITAssetConditionId
     WHERE a.IsDeleted = 0 ${filter.clause}
-    GROUP BY c.ConditionName
+    GROUP BY 
+      CASE 
+        WHEN UPPER(ISNULL(c.ConditionKey, '')) = 'BEYONDREPAIR'
+          OR UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED' THEN N'Beyond Repair / Disposed'
+        ELSE ISNULL(c.ConditionName, 'Not Recorded')
+      END
     ORDER BY Total DESC;
   `, filter.parameters);
   return rows(result);
@@ -196,8 +211,13 @@ async function getDisposalSummary(filters) {
       FROM dbo.ITAssets a
       LEFT JOIN dbo.ITAssetStatuses assetStatus
         ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+      LEFT JOIN dbo.ITAssetConditions assetCondition
+        ON a.ITAssetConditionId = assetCondition.ITAssetConditionId
       WHERE a.IsDeleted = 0
-        AND UPPER(ISNULL(assetStatus.StatusKey, assetStatus.StatusName)) = 'DISPOSED'
+        AND (
+          UPPER(ISNULL(assetStatus.StatusKey, assetStatus.StatusName)) = 'DISPOSED'
+          OR UPPER(ISNULL(assetCondition.ConditionKey, '')) = 'BEYONDREPAIR'
+        )
         AND NOT EXISTS (
           SELECT 1 FROM dbo.ITAssetDisposals existingDisposal
           WHERE existingDisposal.AssetId = a.AssetId
@@ -320,7 +340,8 @@ async function getAssetsByStatus(filters) {
     SELECT
       CASE
         WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
-          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED')
+          OR UPPER(ISNULL(con.ConditionKey, '')) = 'BEYONDREPAIR' THEN N'Disposed'
         WHEN a.CurrentAssignedUserId IS NOT NULL
           OR a.CurrentAssignedName IS NOT NULL
           OR a.CurrentAssignedEmployeeCode IS NOT NULL
@@ -334,11 +355,14 @@ async function getAssetsByStatus(filters) {
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetConditions con
+      ON a.ITAssetConditionId = con.ITAssetConditionId
     WHERE a.IsDeleted = 0 ${filter.clause}
     GROUP BY
       CASE
         WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
-          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED')
+          OR UPPER(ISNULL(con.ConditionKey, '')) = 'BEYONDREPAIR' THEN N'Disposed'
         WHEN a.CurrentAssignedUserId IS NOT NULL
           OR a.CurrentAssignedName IS NOT NULL
           OR a.CurrentAssignedEmployeeCode IS NOT NULL
@@ -393,7 +417,7 @@ async function getRecentActivity(filters) {
       AND TRY_CONVERT(INT, activity.EntityId) = asset.AssetId
     WHERE (UPPER(activity.ModuleKey) IN ('ITASSETS', 'IT_ASSETS')
        OR activity.EntityType IN ('ITAsset', 'ITAssets'))
-      AND asset.IsDeleted = 0 ${filter.clause}
+      AND (asset.IsDeleted = 0 OR asset.IsDeleted IS NULL) ${filter.clause}
     ORDER BY activity.CreatedAt DESC;
   `, filter.parameters);
 
@@ -467,6 +491,81 @@ async function getFilteredAssets(filters) {
   return rows(result);
 }
 
+async function getOperationsHistory(filters = {}) {
+  const page = Number(filters.page || 1);
+  const limit = Number(filters.limit || 50);
+  const offset = (page - 1) * limit;
+
+  const activityType = filters.activityType || null;
+  const entityType = filters.entityType || null;
+  const search = filters.search || null;
+
+  const result = await executeQuery(`
+    SELECT
+      activity.ActivityTimelineId,
+      activity.UserId,
+      activity.ModuleKey,
+      activity.EntityType,
+      activity.EntityId,
+      activity.ActivityType,
+      activity.ActivityTitle,
+      activity.ActivityDescription,
+      activity.CreatedAt,
+      u.FullName AS PerformedByName,
+      asset.AssetTag
+    FROM dbo.ActivityTimeline activity
+    LEFT JOIN dbo.Users u ON activity.UserId = u.UserId
+    LEFT JOIN dbo.ITAssets asset
+      ON activity.EntityType IN ('ITAsset', 'ITAssets')
+      AND TRY_CONVERT(INT, activity.EntityId) = asset.AssetId
+    WHERE
+      (@ActivityType IS NULL OR activity.ActivityType = @ActivityType)
+      AND (@EntityType IS NULL OR activity.EntityType = @EntityType)
+      AND (UPPER(activity.ModuleKey) IN ('ITASSETS', 'IT_ASSETS') OR activity.EntityType IN ('ITAsset', 'ITAssets'))
+      AND (
+        @Search IS NULL
+        OR activity.ActivityTitle LIKE @Search
+        OR activity.ActivityDescription LIKE @Search
+        OR asset.AssetTag LIKE @Search
+        OR u.FullName LIKE @Search
+      )
+    ORDER BY activity.CreatedAt DESC
+    OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;
+
+    SELECT COUNT(*) AS Total
+    FROM dbo.ActivityTimeline activity
+    LEFT JOIN dbo.Users u ON activity.UserId = u.UserId
+    LEFT JOIN dbo.ITAssets asset
+      ON activity.EntityType IN ('ITAsset', 'ITAssets')
+      AND TRY_CONVERT(INT, activity.EntityId) = asset.AssetId
+    WHERE
+      (@ActivityType IS NULL OR activity.ActivityType = @ActivityType)
+      AND (@EntityType IS NULL OR activity.EntityType = @EntityType)
+      AND (UPPER(activity.ModuleKey) IN ('ITASSETS', 'IT_ASSETS') OR activity.EntityType IN ('ITAsset', 'ITAssets'))
+      AND (
+        @Search IS NULL
+        OR activity.ActivityTitle LIKE @Search
+        OR activity.ActivityDescription LIKE @Search
+        OR asset.AssetTag LIKE @Search
+        OR u.FullName LIKE @Search
+      );
+  `, [
+    { name: "Offset", type: sql.Int, value: offset },
+    { name: "Limit", type: sql.Int, value: limit },
+    { name: "ActivityType", type: sql.NVarChar(200), value: activityType },
+    { name: "EntityType", type: sql.NVarChar(200), value: entityType },
+    { name: "Search", type: sql.NVarChar(200), value: search ? `%${search}%` : null },
+  ]);
+
+  return {
+    rows: result.recordsets[0],
+    total: result.recordsets[1][0]?.Total || 0,
+    page,
+    limit,
+    totalPages: Math.ceil((result.recordsets[1][0]?.Total || 0) / limit),
+  };
+}
+
 module.exports = {
   getDashboardSummary,
   getOpenIssueCount,
@@ -486,4 +585,5 @@ module.exports = {
   getRecentAssignments,
   getRecentTransfers,
   getFilteredAssets,
+  getOperationsHistory,
 };

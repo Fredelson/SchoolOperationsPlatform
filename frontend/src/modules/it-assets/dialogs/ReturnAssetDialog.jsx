@@ -21,6 +21,8 @@ const RETURN_PART_OPTIONS = [
   { partKey: "BATTERY", partName: "BATTERY" },
   { partKey: "KEYBOARD", partName: "KEYBOARD" },
   { partKey: "NETWORK_CARD", partName: "NETWORK CARD" },
+  { partKey: "BULB", partName: "BULB" },
+  { partKey: "HDMI", partName: "HDMI" },
 ];
 
 const ELIGIBLE_CATEGORY_KEYS = new Set([
@@ -30,6 +32,7 @@ const ELIGIBLE_CATEGORY_KEYS = new Set([
   "admindesktop",
   "adminpc",
   "computerlabpc",
+  "projector",
 ]);
 
 const normalizeCondition = (condition) =>

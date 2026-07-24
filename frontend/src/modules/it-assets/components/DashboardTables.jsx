@@ -1,26 +1,12 @@
 import { Box, Grid, Stack, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 
-import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
-import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import LocalPrintshopOutlinedIcon from "@mui/icons-material/LocalPrintshopOutlined";
-import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
-import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
-
-import { usePermissions } from "../../../context/PermissionContext";
 import {
   DashboardBottomRow,
   DashboardMiddleRow,
-  DashboardSection,
 } from "../../../components/layout";
 import {
-  AppButton,
   AppCard,
   AppChip,
-  AppDataTable,
   AppEmptyState,
 } from "../../../platform/ui";
 import { DashboardChartCard } from "./DashboardCharts";
@@ -69,69 +55,12 @@ const SummaryList = ({ rows = [], emptyTitle }) => (
   </Stack>
 );
 
-const partsToOrderColumns = [
-  { field: "partName", headerName: "Part" },
-  { field: "totalQuantity", headerName: "Quantity Required", align: "right" },
-  { field: "assetCount", headerName: "Affected Assets", align: "right" },
-];
-
-const QuickActions = () => {
-  const navigate = useNavigate();
-  const { hasActionAccess, loading } = usePermissions();
-
-  const actions = [
-    { label: "Asset Explorer", icon: <Inventory2OutlinedIcon />, path: "/it-assets/assets", permission: "View" },
-    { label: "Assign Asset", icon: <AssignmentIndOutlinedIcon />, path: "/it-assets/assignments", permission: "Assign" },
-    { label: "Transfer Asset", icon: <SwapHorizOutlinedIcon />, path: "/it-assets/transfers", permission: "Transfer" },
-    { label: "Issues", icon: <BuildOutlinedIcon />, path: "/it-assets/issues", permission: "ViewIssues" },
-    { label: "Rectangular Asset Tag Printer", icon: <LocalPrintshopOutlinedIcon />, path: "/it-assets/asset-tag-printer", permission: "PrintRectangularTags" },
-    { label: "Rounded Asset Tag Printer", icon: <LocalPrintshopOutlinedIcon />, path: "/it-assets/rounded-asset-tag-printer", permission: "PrintRoundedTags" },
-    { label: "Maintenance", icon: <BuildOutlinedIcon />, path: "/it-assets/maintenance", permission: "Maintenance" },
-    { label: "Disposal", icon: <DeleteOutlineOutlinedIcon />, path: "/it-assets/disposals", permission: "Disposal" },
-    { label: "Reports", icon: <SummarizeOutlinedIcon />, path: "/it-assets/reports", permission: "Reports" },
-    { label: "Import Assets", icon: <FileUploadOutlinedIcon />, path: "/it-assets/assets", permission: "Import" },
-  ];
-
-  const visibleActions = loading ? actions : actions.filter((action) => hasActionAccess("ITAssets", action.permission));
-
-  return (
-    <Grid container spacing={1.25}>
-      {visibleActions.map((action) => (
-        <Grid key={action.label} size={{ xs: 12, sm: 6 }}>
-          <AppButton
-            fullWidth
-            variant="outlined"
-            startIcon={action.icon}
-            onClick={() => navigate(action.path)}
-            sx={{ justifyContent: "flex-start" }}
-          >
-            {action.label}
-          </AppButton>
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-
 const DashboardTables = ({ dashboard = {} }) => {
   const maintenance = dashboard.operations?.maintenance || [];
 
   return (
     <Stack spacing={2}>
       <DashboardMiddleRow columns="1.45fr 1fr 1fr">
-        <DashboardSection
-          title="Parts To Order"
-          subtitle="Replacement parts recorded from computer returns marked Need Parts."
-        >
-          <AppDataTable
-            rows={dashboard.partsToOrder || []}
-            columns={partsToOrderColumns}
-            getRowId={(row) => row.partKey}
-            emptyTitle="No parts to order"
-            emptyMessage="No active replacement-part requirements have been recorded."
-          />
-        </DashboardSection>
-
         <Box>
           <AppCard sx={{ height: "100%" }}>
             <PanelTitle>Recent Activity</PanelTitle>
@@ -187,6 +116,39 @@ const DashboardTables = ({ dashboard = {} }) => {
                 ))}
               </Stack>
             )}
+          </AppCard>
+        </Box>
+
+        <Box>
+          <AppCard sx={{ height: "100%" }}>
+            <PanelTitle>Parts To Order</PanelTitle>
+            <Stack spacing={1.25}>
+              {!dashboard.partsToOrder?.length ? (
+                <AppEmptyState title="No parts to order" />
+              ) : (
+                dashboard.partsToOrder.map((part) => (
+                  <Stack
+                    key={part.partKey}
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ py: 0.75, borderBottom: "1px solid", borderColor: "divider" }}
+                  >
+                    <Box>
+                      <Typography variant="body2" fontWeight={700}>
+                        {part.partName || "Unknown part"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {Number(part.assetCount || 0)} asset{Number(part.assetCount || 0) === 1 ? "" : "s"} affected
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" fontWeight={900} color="warning.main">
+                      {Number(part.totalQuantity || 0).toLocaleString()}
+                    </Typography>
+                  </Stack>
+                ))
+              )}
+            </Stack>
           </AppCard>
         </Box>
       </DashboardMiddleRow>
@@ -265,12 +227,6 @@ const DashboardTables = ({ dashboard = {} }) => {
           <AppCard sx={{ height: "100%" }}>
             <PanelTitle>Disposal Summary</PanelTitle>
             <SummaryList rows={dashboard.operations?.disposals} emptyTitle="No disposals recorded" />
-          </AppCard>
-        </Box>
-        <Box>
-          <AppCard sx={{ height: "100%" }}>
-            <PanelTitle>Quick Actions</PanelTitle>
-            <QuickActions />
           </AppCard>
         </Box>
       </DashboardBottomRow>

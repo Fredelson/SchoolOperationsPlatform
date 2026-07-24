@@ -10,8 +10,7 @@ const getStatusColor = (status = "") => {
   if (normalized.includes("available")) return "success";
   if (normalized.includes("assigned")) return "info";
   if (normalized.includes("borrowed")) return "warning";
-  if (normalized.includes("maintenance") || normalized.includes("repair")) return "warning";
-  if (normalized.includes("disposed")) return "default";
+  if (normalized.includes("disposed") || normalized.includes("beyond repair")) return "default";
   if (normalized.includes("lost")) return "error";
   if (normalized.includes("damaged")) return "warning";
 

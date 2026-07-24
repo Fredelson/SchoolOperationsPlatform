@@ -237,7 +237,10 @@ const AssetDetails = () => {
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <AppChip label={asset.StatusName || "Status unknown"} status={asset.StatusName} />
-                  <AppChip label={asset.ConditionName || "Condition unknown"} status={asset.ConditionName} />
+                  <AppChip 
+                    label={asset.ConditionName === "Beyond Repair" ? "Beyond Repair / Disposed" : (asset.ConditionName || "Condition unknown")} 
+                    status={asset.ConditionName === "Beyond Repair" ? "Disposed" : asset.ConditionName} 
+                  />
                 </Stack>
               </Stack>
             </Grid>

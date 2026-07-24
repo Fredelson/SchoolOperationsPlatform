@@ -25,6 +25,20 @@ const getDashboard = asyncHandler(async (req, res) => {
   );
 });
 
+/**
+ * GET /api/it-assets/operations/history
+ */
+const getOperationsHistory = asyncHandler(async (req, res) => {
+  const result = await dashboardService.getOperationsHistory(req.query);
+
+  return sendSuccess(
+    res,
+    "IT Operations history loaded successfully.",
+    result
+  );
+});
+
 module.exports = {
   getDashboard,
+  getOperationsHistory,
 };

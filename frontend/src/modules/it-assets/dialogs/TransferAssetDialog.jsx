@@ -29,6 +29,12 @@ const TransferAssetDialog = ({
     [lookups.rooms, form.toLocationId]
   );
 
+  const roomOptions = useMemo(() => {
+    if (rooms.length > 0) return rooms;
+    if (lookups.rooms?.length) return lookups.rooms;
+    return [];
+  }, [rooms, lookups.rooms]);
+
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -102,7 +108,7 @@ const TransferAssetDialog = ({
           label="Room"
           value={form.toRoomId}
           onChange={(value) => updateField("toRoomId", value)}
-          options={rooms}
+          options={roomOptions}
           valueKey="RoomId"
           labelKey="RoomName"
         />

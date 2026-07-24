@@ -2,8 +2,6 @@ import { Navigate } from "react-router-dom";
 
 import PlatformLayout from "@layouts/PlatformLayout";
 
-import Profile from "../../shared/pages/Profile";
-
 import ItAssetDashboard from "../pages/ItAssetDashboard";
 import AssetExplorer from "../assetExplorer/pages/AssetExplorer";
 import AssetTagPrinter from "../pages/AssetTagPrinter";
@@ -15,6 +13,7 @@ import Issues from "../pages/Issues";
 import Maintenance from "../pages/Maintenance";
 import Disposals from "../pages/Disposals";
 import Reports from "../pages/Reports";
+import OperationsHistory from "../pages/OperationsHistory";
 import AssetDetails from "../pages/AssetDetails";
 
 const itOperationsLayoutRoutes = [
@@ -72,6 +71,11 @@ const itOperationsLayoutRoutes = [
       {
         path: "disposals",
         element: <Disposals />,
+      },
+
+      {
+        path: "operations-history",
+        element: <OperationsHistory />,
       },
 
       {

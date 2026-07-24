@@ -83,6 +83,19 @@ const receiveMaintenanceParts = async (req, res) => {
   }
 };
 
+const requestDisposal = async (req, res) => {
+  try {
+    const data = await service.requestDisposal({
+      assetId: req.params.assetId,
+      user: req.user,
+      reason: req.body.reason || null,
+    });
+    return res.status(201).json({ success: true, message: "Disposal request created successfully.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createMaintenanceLog,
   getMaintenanceLogs,
@@ -90,4 +103,5 @@ module.exports = {
   completeMaintenance,
   reopenMaintenance,
   receiveMaintenanceParts,
+  requestDisposal,
 };

@@ -64,6 +64,7 @@ const getStatusByKey = async (statusKey) => {
 };
 
 const requestDisposal = async ({ payload, requestedBy }) => {
+  const asset = await getAssetById(payload.assetId);
   const result = await executeQuery(
     `
       INSERT INTO dbo.ITAssetDisposals
@@ -91,7 +92,47 @@ const requestDisposal = async ({ payload, requestedBy }) => {
     ]
   );
 
-  return firstOrNull(result);
+  const disposal = firstOrNull(result);
+
+  if (disposal && asset) {
+    await executeQuery(
+      `
+        INSERT INTO dbo.ActivityTimeline
+        (
+          UserId,
+          ModuleKey,
+          EntityType,
+          EntityId,
+          ActivityType,
+          ActivityTitle,
+          ActivityDescription,
+          CreatedAt
+        )
+        VALUES
+        (
+          @UserId,
+          @ModuleKey,
+          @EntityType,
+          @EntityId,
+          @ActivityType,
+          @ActivityTitle,
+          @ActivityDescription,
+          GETDATE()
+        );
+      `,
+      [
+        { name: "UserId", type: sql.Int, value: requestedBy || null },
+        { name: "ModuleKey", type: sql.NVarChar(200), value: "IT_ASSETS" },
+        { name: "EntityType", type: sql.NVarChar(200), value: "ITAsset" },
+        { name: "EntityId", type: sql.NVarChar(200), value: String(asset.AssetId) },
+        { name: "ActivityType", type: sql.NVarChar(200), value: "ASSET_DISPOSAL_REQUESTED" },
+        { name: "ActivityTitle", type: sql.NVarChar(510), value: "Disposal Requested" },
+        { name: "ActivityDescription", type: sql.NVarChar(sql.MAX), value: `Disposal requested for asset ${asset.AssetTag}.` },
+      ]
+    );
+  }
+
+  return disposal;
 };
 
 const approveDisposal = async ({ disposalId, approvedBy }) => {
@@ -112,7 +153,47 @@ const approveDisposal = async ({ disposalId, approvedBy }) => {
     ]
   );
 
-  return firstOrNull(result);
+  const disposal = firstOrNull(result);
+
+  if (disposal) {
+    await executeQuery(
+      `
+        INSERT INTO dbo.ActivityTimeline
+        (
+          UserId,
+          ModuleKey,
+          EntityType,
+          EntityId,
+          ActivityType,
+          ActivityTitle,
+          ActivityDescription,
+          CreatedAt
+        )
+        VALUES
+        (
+          @UserId,
+          @ModuleKey,
+          @EntityType,
+          @EntityId,
+          @ActivityType,
+          @ActivityTitle,
+          @ActivityDescription,
+          GETDATE()
+        );
+      `,
+      [
+        { name: "UserId", type: sql.Int, value: approvedBy || null },
+        { name: "ModuleKey", type: sql.NVarChar(200), value: "IT_ASSETS" },
+        { name: "EntityType", type: sql.NVarChar(200), value: "ITAsset" },
+        { name: "EntityId", type: sql.NVarChar(200), value: String(disposal.AssetId) },
+        { name: "ActivityType", type: sql.NVarChar(200), value: "ASSET_DISPOSAL_APPROVED" },
+        { name: "ActivityTitle", type: sql.NVarChar(510), value: "Disposal Approved" },
+        { name: "ActivityDescription", type: sql.NVarChar(sql.MAX), value: `Disposal request approved for asset ID ${disposal.AssetId}.` },
+      ]
+    );
+  }
+
+  return disposal;
 };
 
 const rejectDisposal = async ({ disposalId, approvedBy }) => {
@@ -133,7 +214,47 @@ const rejectDisposal = async ({ disposalId, approvedBy }) => {
     ]
   );
 
-  return firstOrNull(result);
+  const disposal = firstOrNull(result);
+
+  if (disposal) {
+    await executeQuery(
+      `
+        INSERT INTO dbo.ActivityTimeline
+        (
+          UserId,
+          ModuleKey,
+          EntityType,
+          EntityId,
+          ActivityType,
+          ActivityTitle,
+          ActivityDescription,
+          CreatedAt
+        )
+        VALUES
+        (
+          @UserId,
+          @ModuleKey,
+          @EntityType,
+          @EntityId,
+          @ActivityType,
+          @ActivityTitle,
+          @ActivityDescription,
+          GETDATE()
+        );
+      `,
+      [
+        { name: "UserId", type: sql.Int, value: approvedBy || null },
+        { name: "ModuleKey", type: sql.NVarChar(200), value: "IT_ASSETS" },
+        { name: "EntityType", type: sql.NVarChar(200), value: "ITAsset" },
+        { name: "EntityId", type: sql.NVarChar(200), value: String(disposal.AssetId) },
+        { name: "ActivityType", type: sql.NVarChar(200), value: "ASSET_DISPOSAL_REJECTED" },
+        { name: "ActivityTitle", type: sql.NVarChar(510), value: "Disposal Rejected" },
+        { name: "ActivityDescription", type: sql.NVarChar(sql.MAX), value: `Disposal request rejected for asset ID ${disposal.AssetId}.` },
+      ]
+    );
+  }
+
+  return disposal;
 };
 
 const completeDisposal = async ({

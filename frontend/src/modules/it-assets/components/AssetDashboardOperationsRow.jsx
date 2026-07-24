@@ -1,17 +1,8 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-
-import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
-import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import SummarizeOutlinedIcon from "@mui/icons-material/SummarizeOutlined";
-import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import { Box, Stack, Typography } from "@mui/material";
 
 import DashboardCard from "../../../components/dashboard/DashboardCard";
 import ActivityItem from "../../../components/widgets/ActivityItem";
 import { dashboardColors } from "../../../theme/dashboardColors";
-import { usePermissions } from "../../../context/PermissionContext";
 import { DashboardChartCard } from "./DashboardCharts";
 
 const formatActivityTime = (value) => {
@@ -73,18 +64,13 @@ const RecentAssetActivity = ({ items = [] }) => {
 const AttentionQueue = ({ kpis = {} }) => {
   const items = [
     {
-      label: "Open issues",
-      value: kpis.openIssues || kpis.itemsRequiringAttention || 0,
-      color: dashboardColors.danger,
-    },
-    {
       label: "Parts to order",
       value: kpis.partsToOrder || 0,
       color: dashboardColors.warning,
     },
     {
-      label: "Under maintenance",
-      value: kpis.underMaintenanceAssets || 0,
+      label: "Under maintenance / repair",
+      value: (kpis.underMaintenanceAssets || 0) + (kpis.underRepairAssets || 0),
       color: dashboardColors.warning,
     },
     {
@@ -155,119 +141,47 @@ const AttentionQueue = ({ kpis = {} }) => {
   );
 };
 
-const QuickActions = () => {
-  const navigate = useNavigate();
-  const { hasActionAccess, loading } = usePermissions();
-
-  const actions = [
-    {
-      label: "Asset Explorer",
-      icon: <Inventory2OutlinedIcon />,
-      path: "/it-assets/assets",
-      permission: "View",
-    },
-    {
-      label: "Assign Asset",
-      icon: <AssignmentIndOutlinedIcon />,
-      path: "/it-assets/assignments",
-      permission: "Assign",
-    },
-    {
-      label: "Transfer Asset",
-      icon: <SwapHorizOutlinedIcon />,
-      path: "/it-assets/transfers",
-      permission: "Transfer",
-    },
-    {
-      label: "Asset Issues",
-      icon: <WarningAmberOutlinedIcon />,
-      path: "/it-assets/issues",
-      permission: "ViewIssues",
-    },
-    {
-      label: "Maintenance",
-      icon: <BuildOutlinedIcon />,
-      path: "/it-assets/maintenance",
-      permission: "Maintenance",
-    },
-    {
-      label: "Reports",
-      icon: <SummarizeOutlinedIcon />,
-      path: "/it-assets/reports",
-      permission: "Reports",
-    },
-  ];
-
-  const visibleActions = loading
-    ? actions
-    : actions.filter((action) =>
-        hasActionAccess("ITAssets", action.permission)
-      );
-
-  return (
-    <DashboardCard
-      title="Quick Actions"
-      subtitle="Common asset workflows"
-      sx={{ height: "100%" }}
-    >
-      {visibleActions.length ? (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 1,
-          }}
-        >
-          {visibleActions.map((action) => (
-            <Button
-              key={action.label}
-              variant="outlined"
-              startIcon={action.icon}
-              onClick={() => navigate(action.path)}
-              sx={{
-                minHeight: 48,
-                px: 1.25,
-                justifyContent: "flex-start",
-                borderRadius: 2,
-                textTransform: "none",
-                fontSize: "0.76rem",
-                fontWeight: 800,
-                color: dashboardColors.textPrimary,
-                borderColor: dashboardColors.border,
-                bgcolor: dashboardColors.cardBackground,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                "& .MuiButton-startIcon": {
-                  color: dashboardColors.assets,
-                  flexShrink: 0,
-                },
-                "&:hover": {
-                  borderColor: dashboardColors.assets,
-                  bgcolor: dashboardColors.assetsLight,
-                },
-              }}
-            >
-              <Box
-                component="span"
-                sx={{
-                  minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {action.label}
-              </Box>
-            </Button>
-          ))}
-        </Box>
-      ) : (
+const PartsToOrder = ({ partsToOrder = [] }) => (
+  <DashboardCard
+    title="Parts To Order"
+    subtitle="Replacement parts from asset returns"
+    sx={{ height: "100%" }}
+  >
+    <Stack spacing={1.25}>
+      {!partsToOrder.length ? (
         <Typography sx={{ fontSize: 13, color: dashboardColors.textSecondary }}>
-          No asset actions are available for this workspace.
+          No parts to order
         </Typography>
+      ) : (
+        partsToOrder.map((part) => (
+          <Box
+            key={part.partKey}
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              py: 0.75,
+              borderBottom: `1px solid ${dashboardColors.border}`,
+              "&:last-child": { borderBottom: "none" },
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontSize: "0.8rem", fontWeight: 700, color: dashboardColors.textPrimary }}>
+                {part.partName || "Unknown part"}
+              </Typography>
+              <Typography sx={{ fontSize: "0.7rem", color: dashboardColors.textSecondary }}>
+                {Number(part.assetCount || 0)} asset{Number(part.assetCount || 0) === 1 ? "" : "s"} affected
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: "0.85rem", fontWeight: 900, color: dashboardColors.warning }}>
+              {Number(part.totalQuantity || 0).toLocaleString()}
+            </Typography>
+          </Box>
+        ))
       )}
-    </DashboardCard>
-  );
-};
+    </Stack>
+  </DashboardCard>
+);
 
 export default function AssetDashboardOperationsRow({ dashboard = {} }) {
   return (
@@ -291,7 +205,7 @@ export default function AssetDashboardOperationsRow({ dashboard = {} }) {
       />
       <RecentAssetActivity items={dashboard.recentActivity} />
       <AttentionQueue kpis={dashboard.kpis} />
-      <QuickActions />
+      <PartsToOrder partsToOrder={dashboard.partsToOrder || []} />
     </Box>
   );
 }

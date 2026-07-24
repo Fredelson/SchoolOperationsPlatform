@@ -76,6 +76,109 @@ const findModel = (models, modelName, brandId = null) => {
   });
 };
 
+const lookupName = (items, id, nameField) => {
+  if (!id && id !== 0) return null;
+  const item = items.find((i) => Number(i[nameField.replace("Name", "Id")] || i.ITAssetCategoryId || i.ITAssetStatusId || i.ITAssetConditionId || i.DepartmentId || i.LocationId || i.RoomId || i.UserId) === Number(id));
+  return item ? item[nameField] : String(id);
+};
+
+const getCategoryName = (id, categories) => {
+  const cat = categories.find((c) => c.ITAssetCategoryId === Number(id));
+  return cat ? cat.CategoryName : String(id);
+};
+
+const getStatusName = (id, statuses) => {
+  const s = statuses.find((st) => st.ITAssetStatusId === Number(id));
+  return s ? s.StatusName : String(id);
+};
+
+const getConditionName = (id, conditions) => {
+  const c = conditions.find((co) => co.ITAssetConditionId === Number(id));
+  return c ? c.ConditionName : String(id);
+};
+
+const getDepartmentName = (id, departments) => {
+  const d = departments.find((dept) => dept.DepartmentId === Number(id));
+  return d ? d.DepartmentName : String(id);
+};
+
+const getLocationName = (id, locations) => {
+  const l = locations.find((loc) => loc.LocationId === Number(id));
+  return l ? l.LocationName : String(id);
+};
+
+const getRoomName = (id, rooms) => {
+  const r = rooms.find((rm) => rm.RoomId === Number(id));
+  return r ? r.RoomName : String(id);
+};
+
+const getUserName = (id, users) => {
+  const u = users.find((usr) => usr.UserId === Number(id));
+  return u ? usr.FullName : String(id);
+};
+
+const formatDate = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toISOString().slice(0, 10);
+};
+
+const compareAssetWithImport = (existingAsset, row, lookups) => {
+  const changes = [];
+
+  const existingCategory = getCategoryName(existingAsset.ITAssetCategoryId, lookups.categories);
+  if (existingCategory !== row.CategoryName) {
+    changes.push({ field: "Category", oldValue: existingCategory, newValue: row.CategoryName });
+  }
+
+  const existingModel = lookups.models.find(
+    (m) => m.ITAssetModelId === Number(existingAsset.ITAssetModelId)
+  );
+  const existingModelName = existingModel ? existingModel.ModelName : String(existingAsset.ITAssetModelId);
+  if (existingModelName !== row.ModelName) {
+    changes.push({ field: "Model", oldValue: existingModelName, newValue: row.ModelName });
+  }
+
+  const existingStatus = getStatusName(existingAsset.ITAssetStatusId, lookups.statuses);
+  if (existingStatus !== row.StatusName) {
+    changes.push({ field: "Status", oldValue: existingStatus, newValue: row.StatusName });
+  }
+
+  const existingCondition = getConditionName(existingAsset.ITAssetConditionId, lookups.conditions);
+  if (existingCondition !== row.ConditionName) {
+    changes.push({ field: "Condition", oldValue: existingCondition, newValue: row.ConditionName });
+  }
+
+  const existingDepartment = getDepartmentName(existingAsset.CurrentDepartmentId, lookups.departments);
+  if (existingDepartment !== row.DepartmentName) {
+    changes.push({ field: "Department", oldValue: existingDepartment, newValue: row.DepartmentName });
+  }
+
+  const existingLocation = getLocationName(existingAsset.CurrentLocationId, lookups.locations);
+  if (existingLocation !== row.LocationName) {
+    changes.push({ field: "Location", oldValue: existingLocation, newValue: row.LocationName });
+  }
+
+  const existingRoom = getRoomName(existingAsset.CurrentRoomId, lookups.rooms);
+  if (existingRoom !== row.RoomName) {
+    changes.push({ field: "Room", oldValue: existingRoom, newValue: row.RoomName });
+  }
+
+  const existingUser = getUserName(existingAsset.CurrentAssignedUserId, lookups.users);
+  if (existingUser !== row.EmployeeCode) {
+    changes.push({ field: "AssignedTo", oldValue: existingUser, newValue: row.EmployeeCode });
+  }
+
+  const existingDate = formatDate(existingAsset.AcquiredChangedDate);
+  const importDate = row.PurchaseDate || "";
+  if (existingDate !== importDate) {
+    changes.push({ field: "PurchaseDate", oldValue: existingDate || "Not set", newValue: importDate || "Not set" });
+  }
+
+  return changes;
+};
+
 const parseWorkbookRows = (file) => {
   const workbook = XLSX.readFile(file.path);
   const sheetName = workbook.SheetNames[0];
@@ -147,7 +250,11 @@ const validateBatch = async (importBatchId) => {
   const lookups = await repository.getLookupCache();
 
   const assetTags = stagingRows.map((row) => row.AssetTag).filter(Boolean);
-  const existingTags = await repository.getExistingAssetTags(assetTags);
+  const existingAssets = await repository.getExistingAssetsByTags(assetTags);
+  const existingAssetsByTag = new Map();
+  for (const asset of existingAssets) {
+    existingAssetsByTag.set(normalizeCompare(asset.AssetTag), asset);
+  }
 
   const fileTagCounts = assetTags.reduce((acc, tag) => {
     const key = normalizeCompare(tag);
@@ -157,11 +264,16 @@ const validateBatch = async (importBatchId) => {
 
   let validRows = 0;
   let invalidRows = 0;
+  let updateRows = 0;
+  let ignoredRows = 0;
+
+  const previewData = [];
 
   for (const row of stagingRows) {
     const errors = [];
     const warnings = [];
-
+    let changes = [];
+    let importStatus = "Valid";
     let matchStatus = "NotProvided";
     let matchedUserId = null;
     let duplicateTagStatus = "None";
@@ -194,12 +306,22 @@ const validateBatch = async (importBatchId) => {
       errors.push("Duplicate AssetCode inside uploaded file.");
     }
 
-    if (
-      row.AssetTag &&
-      existingTags.some((tag) => normalizeCompare(tag) === tagKey)
-    ) {
+    const existingAsset = existingAssetsByTag.get(tagKey);
+
+    if (existingAsset) {
       duplicateTagStatus = "DuplicateInDatabase";
-      errors.push("AssetCode already exists in asset inventory.");
+
+      if (errors.length === 0) {
+        changes = compareAssetWithImport(existingAsset, row, lookups);
+
+        if (changes.length > 0) {
+          importStatus = "Update";
+          updateRows++;
+        } else {
+          importStatus = "Ignored";
+          ignoredRows++;
+        }
+      }
     }
 
     const category = findByNameOrKey(
@@ -326,12 +448,23 @@ const validateBatch = async (importBatchId) => {
       matchedUserId = user.UserId;
     }
 
-    const importStatus = errors.length ? "Invalid" : "Valid";
+    if (errors.length > 0 && importStatus !== "Update" && importStatus !== "Ignored") {
+      importStatus = "Invalid";
+    } else if (errors.length > 0 && (importStatus === "Update" || importStatus === "Ignored")) {
+      const previousStatus = importStatus;
+      importStatus = "Invalid";
+      if (previousStatus === "Update") {
+        updateRows--;
+      } else {
+        ignoredRows--;
+      }
+    }
+
     const message = [...errors, ...warnings].join(" ");
 
     if (importStatus === "Valid") {
       validRows += 1;
-    } else {
+    } else if (importStatus === "Invalid") {
       invalidRows += 1;
     }
 
@@ -351,6 +484,26 @@ const validateBatch = async (importBatchId) => {
       resolvedLocationId,
       resolvedRoomId,
     });
+
+    previewData.push({
+      importStagingId: row.ImportStagingId,
+      sourceRow: row.SourceRow,
+      assetTag: row.AssetTag,
+      categoryName: row.CategoryName,
+      brandName: row.BrandName,
+      modelName: row.ModelName,
+      statusName: row.StatusName,
+      conditionName: row.ConditionName,
+      departmentName: row.DepartmentName,
+      locationName: row.LocationName,
+      roomName: row.RoomName,
+      employeeCode: row.EmployeeCode,
+      remarks: row.Remarks,
+      importStatus,
+      importMessage: message,
+      duplicateTagStatus,
+      changes,
+    });
   }
 
   await repository.updateBatchStats({
@@ -359,10 +512,10 @@ const validateBatch = async (importBatchId) => {
     validRows,
     invalidRows,
     importedRows: 0,
+    updateRows,
+    ignoredRows,
     status: "Validated",
   });
-
-  const previewRows = await repository.getStagingRowsByBatchId(importBatchId);
 
   return {
     success: true,
@@ -370,7 +523,9 @@ const validateBatch = async (importBatchId) => {
     totalRows: stagingRows.length,
     validRows,
     invalidRows,
-    rows: previewRows,
+    updateRows,
+    ignoredRows,
+    rows: previewData,
   };
 };
 

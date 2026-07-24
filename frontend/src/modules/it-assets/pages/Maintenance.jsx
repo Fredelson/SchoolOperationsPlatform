@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Stack, Typography } from "@mui/material";
 import usePageTitle from "../../../platform/hooks/usePageTitle";
-import { AppBreadcrumbs, AppButton, AppCard, AppDataTable, AppPageHeader } from "../../../platform/ui";
-import { completeItAssetMaintenanceService, getItAssetMaintenanceDueService, getItAssetMaintenanceLogsService, receiveItAssetMaintenancePartsService, reopenItAssetMaintenanceService } from "../services/itAssetService";
+import { AppBreadcrumbs, AppButton, AppCard, AppConfirmDialog, AppDataTable, AppPageHeader } from "../../../platform/ui";
+import { completeItAssetMaintenanceService, getItAssetMaintenanceDueService, getItAssetMaintenanceLogsService, receiveItAssetMaintenancePartsService, reopenItAssetMaintenanceService, requestItAssetMaintenanceDisposalService } from "../services/itAssetService";
 
 const date = (value) => value ? new Intl.DateTimeFormat("en-AE", { dateStyle: "medium" }).format(new Date(value)) : "—";
 export default function Maintenance() {
   usePageTitle("IT Asset Maintenance");
   const [logs, setLogs] = useState([]); const [due, setDue] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const [disposalAsset, setDisposalAsset] = useState(null);
   const load = useCallback(async () => { try { setLoading(true); setError(""); const [all, dueRows] = await Promise.all([getItAssetMaintenanceLogsService(), getItAssetMaintenanceDueService()]); setLogs(all); setDue(dueRows); }
     catch (err) { setError(err?.response?.data?.message || err.message || "Unable to load maintenance."); } finally { setLoading(false); } }, []);
   useEffect(() => {
@@ -44,6 +45,18 @@ export default function Maintenance() {
       setLoading(false);
     }
   };
+  const handleRequestDisposal = async () => {
+    if (!disposalAsset) return;
+    try {
+      setLoading(true); setError("");
+      await requestItAssetMaintenanceDisposalService(disposalAsset.AssetId);
+      setDisposalAsset(null);
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Unable to request disposal.");
+      setLoading(false);
+    }
+  };
   const columns = [
     { field: "AssetTag", headerName: "Asset Tag" }, { field: "ModelDescription", headerName: "Asset" },
     { field: "MaintenanceType", headerName: "Issue" }, { field: "PerformedByName", headerName: "Performed By" },
@@ -57,9 +70,9 @@ export default function Maintenance() {
       const isLatest = Number(row.MaintenanceSequence) === 1;
       if (isLatest && unfinished) {
         if (pendingParts > 0) {
-          return <AppButton size="small" onClick={() => receiveParts(row.AssetId)}>Receive Parts</AppButton>;
+          return <><AppButton size="small" onClick={() => receiveParts(row.AssetId)}>Receive Parts</AppButton><AppButton size="small" color="error" onClick={() => setDisposalAsset(row)}>Request Disposal</AppButton></>;
         }
-        return <AppButton size="small" onClick={() => finish(row.MaintenanceLogId)}>Mark Finished</AppButton>;
+        return <><AppButton size="small" onClick={() => finish(row.MaintenanceLogId)}>Mark Finished</AppButton><AppButton size="small" color="error" onClick={() => setDisposalAsset(row)}>Request Disposal</AppButton></>;
       }
       if (!unfinished && isLatest) {
         return <><AppButton size="small" color="warning" onClick={() => reopen(row.MaintenanceLogId)}>Reopen</AppButton> <Typography variant="caption" color="text.secondary">Done</Typography></>;
@@ -72,5 +85,18 @@ export default function Maintenance() {
     {error && <AppCard><Typography color="error">{error}</Typography></AppCard>}
     <AppCard><Typography variant="h6" fontWeight={900} sx={{ mb: 2 }}>Maintenance Due</Typography><AppDataTable rows={due} columns={columns} loading={loading} getRowId={(row) => row.MaintenanceLogId} /></AppCard>
     <AppCard><Typography variant="h6" fontWeight={900} sx={{ mb: 2 }}>Maintenance History</Typography><AppDataTable rows={logs} columns={columns} loading={loading} getRowId={(row) => row.MaintenanceLogId} /></AppCard>
+    <AppConfirmDialog
+      open={Boolean(disposalAsset)}
+      title="Request Asset Disposal"
+      message={
+        disposalAsset
+          ? `Request disposal for asset ${disposalAsset.AssetTag}? This will create a disposal request that requires approval.`
+          : ""
+      }
+      confirmText="Request Disposal"
+      loading={Boolean(disposalAsset && loading)}
+      onConfirm={handleRequestDisposal}
+      onCancel={() => setDisposalAsset(null)}
+    />
   </Stack>;
 }

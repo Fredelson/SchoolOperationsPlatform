@@ -152,6 +152,7 @@ const getAssets = async ({
 
       /* Hide disposed assets from normal Asset Management */
       AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+      AND UPPER(ISNULL(con.ConditionKey, '')) <> 'BEYONDREPAIR'
 
       AND (
         a.AssetTag LIKE @Search
@@ -190,11 +191,14 @@ const getAssets = async ({
       ON m.ITAssetBrandId = b.ITAssetBrandId
     INNER JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetConditions con
+      ON a.ITAssetConditionId = con.ITAssetConditionId
     WHERE
       a.IsDeleted = 0
 
       /* Hide disposed assets from normal Asset Management */
       AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+      AND UPPER(ISNULL(con.ConditionKey, '')) <> 'BEYONDREPAIR'
 
       AND (
         a.AssetTag LIKE @Search

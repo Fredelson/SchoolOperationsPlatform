@@ -13,6 +13,7 @@ const { requireActiveWorkspace } = require("../../../../middleware/permissionMid
 router.use(protect, requireActiveWorkspace);
 
 router.post("/", validator.validateCreateMaintenance, controller.createMaintenanceLog);
+router.post("/:assetId/request-disposal", controller.requestDisposal);
 router.put("/:maintenanceLogId/complete", controller.completeMaintenance);
 router.post("/:maintenanceLogId/reopen", controller.reopenMaintenance);
 router.post("/:assetId/parts/receive", controller.receiveMaintenanceParts);

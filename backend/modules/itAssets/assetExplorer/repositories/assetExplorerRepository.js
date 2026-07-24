@@ -19,10 +19,16 @@ const { poolPromise, sql } = require("../../../../config/db");
 /**
  * Shared SQL rule:
  * Asset Management excludes disposed and soft-deleted assets.
+ * Assets with status Disposed or condition Beyond Repair are treated as disposed.
  */
 const ACTIVE_ASSET_FILTER = `
   a.IsDeleted = 0
   AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
+  AND NOT EXISTS (
+    SELECT 1 FROM dbo.ITAssetConditions c 
+    WHERE c.ITAssetConditionId = a.ITAssetConditionId 
+      AND UPPER(c.ConditionKey) = 'BEYONDREPAIR'
+  )
 `;
 
 /**

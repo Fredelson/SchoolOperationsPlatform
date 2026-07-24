@@ -181,6 +181,11 @@ async function getDashboard(filters = {}) {
   };
 }
 
+const getOperationsHistory = async (filters = {}) => {
+  return dashboardRepository.getOperationsHistory(filters);
+};
+
 module.exports = {
   getDashboard,
+  getOperationsHistory,
 };

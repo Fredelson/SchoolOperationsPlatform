@@ -6,6 +6,8 @@ const RETURN_PARTS = Object.freeze([
   { partKey: "BATTERY", partName: "BATTERY" },
   { partKey: "KEYBOARD", partName: "KEYBOARD" },
   { partKey: "NETWORK_CARD", partName: "NETWORK CARD" },
+  { partKey: "BULB", partName: "BULB" },
+  { partKey: "HDMI", partName: "HDMI" },
 ]);
 
 const ELIGIBLE_CATEGORY_KEYS = new Set([
@@ -15,6 +17,7 @@ const ELIGIBLE_CATEGORY_KEYS = new Set([
   "ADMINDESKTOP",
   "ADMINPC",
   "COMPUTERLABPC",
+  "PROJECTOR",
 ]);
 
 const PARTS_BY_KEY = new Map(

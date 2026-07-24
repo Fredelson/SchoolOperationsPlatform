@@ -90,6 +90,8 @@ export default function ImportAssetDialog({ open, onClose, onSuccess }) {
   const rows = preview?.rows || [];
   const validRows = preview?.validRows || 0;
   const invalidRows = preview?.invalidRows || 0;
+  const updateRows = preview?.updateRows || 0;
+  const ignoredRows = preview?.ignoredRows || 0;
   const totalRows = preview?.totalRows || rows.length || 0;
 
   return (
@@ -137,13 +139,14 @@ export default function ImportAssetDialog({ open, onClose, onSuccess }) {
         {preview && (
           <Alert severity={invalidRows > 0 ? "warning" : "success"} sx={{ mb: 2 }}>
             Preview ready. Total: {totalRows}, Valid: {validRows}, Invalid:{" "}
-            {invalidRows}
+            {invalidRows}, Update: {updateRows}, Ignored: {ignoredRows}
           </Alert>
         )}
 
         {commitResult && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Import committed. Imported rows: {commitResult.importedRows || 0}
+            Import committed. Imported rows: {commitResult.importedRows || 0},
+            Updated rows: {commitResult.updatedRows || 0}
           </Alert>
         )}
 
@@ -181,6 +184,10 @@ export default function ImportAssetDialog({ open, onClose, onSuccess }) {
                         color={
                           (row.ImportStatus || row.importStatus) === "Valid"
                             ? "success"
+                            : (row.ImportStatus || row.importStatus) === "Update"
+                            ? "warning"
+                            : (row.ImportStatus || row.importStatus) === "Ignored"
+                            ? "default"
                             : "error"
                         }
                       />
@@ -197,14 +204,14 @@ export default function ImportAssetDialog({ open, onClose, onSuccess }) {
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={resetAndClose}>Cancel</Button>
 
-        <Button
-          variant="contained"
-          color="success"
-          disabled={!preview?.batchId || validRows === 0 || loading}
-          onClick={handleCommit}
-        >
-          Commit Import
-        </Button>
+          <Button
+            variant="contained"
+            color="success"
+            disabled={!preview?.batchId || (validRows === 0 && updateRows === 0) || loading}
+            onClick={handleCommit}
+          >
+            Commit Import
+          </Button>
       </DialogActions>
     </Dialog>
   );

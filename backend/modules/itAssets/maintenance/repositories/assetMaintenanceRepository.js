@@ -378,6 +378,21 @@ const completeMaintenance = async ({ maintenance, asset, targetStatusId, actionB
         VALUES
           (@AssetId, @OldStatusId, @NewStatusId, @ChangedBy, GETDATE(), @Notes);
       `);
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, actionByUserId || null)
+      .input("ModuleKey", sql.NVarChar(200), "IT_ASSETS")
+      .input("EntityType", sql.NVarChar(200), "ITAsset")
+      .input("EntityId", sql.NVarChar(200), String(asset.AssetId))
+      .input("ActivityType", sql.NVarChar(200), "ASSET_MAINTENANCE_FINISHED")
+      .input("ActivityTitle", sql.NVarChar(510), "Maintenance Finished")
+      .input("ActivityDescription", sql.NVarChar(sql.MAX), `Maintenance finished for asset ${asset.AssetTag}. Status changed to ${maintenance.MaintenanceType}.`)
+      .query(`
+        INSERT INTO dbo.ActivityTimeline
+        (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
+        VALUES
+        (@UserId, @ModuleKey, @EntityType, @EntityId, @ActivityType, @ActivityTitle, @ActivityDescription, GETDATE());
+      `);
+
     await transaction.commit();
     return { maintenance, asset: result.recordset[0] };
   } catch (error) {
@@ -460,6 +475,21 @@ const reopenMaintenance = async ({ assetId, actionByUserId }) => {
         );
       `);
 
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, actionByUserId || null)
+      .input("ModuleKey", sql.NVarChar(200), "IT_ASSETS")
+      .input("EntityType", sql.NVarChar(200), "ITAsset")
+      .input("EntityId", sql.NVarChar(200), String(asset.AssetId))
+      .input("ActivityType", sql.NVarChar(200), "ASSET_MAINTENANCE_REOPENED")
+      .input("ActivityTitle", sql.NVarChar(510), "Maintenance Reopened")
+      .input("ActivityDescription", sql.NVarChar(sql.MAX), `Maintenance reopened for asset ${asset.AssetTag}.`)
+      .query(`
+        INSERT INTO dbo.ActivityTimeline
+        (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
+        VALUES
+        (@UserId, @ModuleKey, @EntityType, @EntityId, @ActivityType, @ActivityTitle, @ActivityDescription, GETDATE());
+      `);
+
     await transaction.commit();
     return { asset: assetResult.recordset[0] };
   } catch (error) {
@@ -517,6 +547,21 @@ const receiveMaintenanceParts = async ({ assetId, actionByUserId }) => {
         (
           @UserId, @ActionType, @EntityType, @EntityId, @Description, @OldValue, @NewValue, @IpAddress, GETDATE()
         );
+      `);
+
+    await new sql.Request(transaction)
+      .input("UserId", sql.Int, actionByUserId || null)
+      .input("ModuleKey", sql.NVarChar(200), "IT_ASSETS")
+      .input("EntityType", sql.NVarChar(200), "ITAsset")
+      .input("EntityId", sql.NVarChar(200), String(assetId))
+      .input("ActivityType", sql.NVarChar(200), "ASSET_MAINTENANCE_PARTS_RECEIVED")
+      .input("ActivityTitle", sql.NVarChar(510), "Maintenance Parts Received")
+      .input("ActivityDescription", sql.NVarChar(sql.MAX), `Parts received for asset ${asset.AssetTag}.`)
+      .query(`
+        INSERT INTO dbo.ActivityTimeline
+        (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
+        VALUES
+        (@UserId, @ModuleKey, @EntityType, @EntityId, @ActivityType, @ActivityTitle, @ActivityDescription, GETDATE());
       `);
 
     await transaction.commit();

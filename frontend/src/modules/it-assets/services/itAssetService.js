@@ -20,6 +20,7 @@ import {
   completeItAssetDisposalApi,
   createItAssetMaintenanceApi,
   requestItAssetDisposalApi,
+  requestItAssetMaintenanceDisposalApi,
   getActiveItAssetAssignmentsApi,
   getItAssetAssignmentHistoryApi,
   getItAssetTransfersApi,
@@ -32,6 +33,7 @@ import {
   getActiveItAssetBorrowsApi,
   getOverdueItAssetBorrowsApi,
   getItAssetBorrowHistoryApi,
+  getItAssetOperationsHistoryApi,
 } from "../api/itAssetApi";
 
 /**
@@ -179,6 +181,11 @@ export const receiveItAssetMaintenancePartsService = async (assetId) => {
   return response?.data || null;
 };
 
+export const requestItAssetMaintenanceDisposalService = async (assetId, reason = "") => {
+  const response = await requestItAssetMaintenanceDisposalApi(assetId, reason);
+  return response?.data || null;
+};
+
 export const borrowItAssetService = async (payload) => {
   const response = await borrowItAssetApi(payload);
   return response?.data || null;
@@ -202,4 +209,9 @@ export const getOverdueItAssetBorrowsService = async () => {
 export const getItAssetBorrowHistoryService = async (params = {}) => {
   const response = await getItAssetBorrowHistoryApi(params);
   return response?.data || [];
+};
+
+export const getItAssetOperationsHistoryService = async (params = {}) => {
+  const response = await getItAssetOperationsHistoryApi(params);
+  return response?.data || { rows: [], total: 0, page: 1, limit: 50, totalPages: 0 };
 };

@@ -28,6 +28,7 @@ const router = express.Router();
 router.use("/auth", require("../modules/auth"));
 router.use("/users", require("../modules/users"));
 router.use("/lookups", require("../modules/lookups"));
+router.use("/notifications", require("../modules/notifications"));
 
 router.use("/it-assets", require("../modules/itAssets"));
 

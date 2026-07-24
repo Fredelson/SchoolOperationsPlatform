@@ -6,6 +6,14 @@ const repository = require("../repositories/assetMaintenanceRepository");
 
 const userId = (user) => user?.id || user?.UserId || null;
 
+const requestDisposal = async ({ assetId, user, reason }) => {
+  const disposalService = require("../../disposal/services/assetDisposalService");
+  return disposalService.requestDisposal({
+    payload: { assetId, reason },
+    user,
+  });
+};
+
 const createMaintenanceLog = async ({ payload, user, ipAddress }) => {
   const asset = await repository.getAssetById(payload.assetId);
 
@@ -110,4 +118,5 @@ module.exports = {
   completeMaintenance,
   reopenMaintenance,
   receiveMaintenanceParts,
+  requestDisposal,
 };
