@@ -21,33 +21,33 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 router.get(
   "/departments",
   protect,
-  requirePermission("printing.limits.view"),
+  requireActiveWorkspace,
   getDepartmentLimits
 );
 
 router.put(
   "/departments/:departmentId",
   protect,
-  requirePermission("printing.limits.update"),
+  requireActiveWorkspace,
   upsertDepartmentLimit
 );
 
 router.get(
   "/subjects",
   protect,
-  requirePermission("printing.limits.view"),
+  requireActiveWorkspace,
   getSubjectLimits
 );
 
 router.put(
   "/subjects/:subjectId",
   protect,
-  requirePermission("printing.limits.update"),
+  requireActiveWorkspace,
   upsertSubjectLimit
 );
 

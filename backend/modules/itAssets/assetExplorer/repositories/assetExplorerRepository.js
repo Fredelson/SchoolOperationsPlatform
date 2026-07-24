@@ -71,9 +71,24 @@ const getCategories = async ({
 
         COUNT(a.AssetId) AS TotalAssets,
 
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE' THEN 1 ELSE 0 END) AS AvailableCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE') THEN 1 ELSE 0 END) AS AssignedCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'MAINTENANCE' THEN 1 ELSE 0 END) AS MaintenanceCount,
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE'
+          AND a.CurrentAssignedUserId IS NULL
+          AND a.CurrentAssignedName IS NULL
+          AND a.CurrentAssignedEmployeeCode IS NULL
+          AND a.CurrentAssignedEmail IS NULL
+          AND a.CurrentRoomId IS NULL
+          AND a.CurrentDepartmentId IS NULL
+          AND a.CurrentLocationId IS NULL THEN 1 ELSE 0 END) AS AvailableCount,
+        SUM(CASE WHEN (UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE')
+          OR a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL)
+          AND UPPER(ISNULL(s.StatusKey, '')) NOT IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED', 'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN 1 ELSE 0 END) AS AssignedCount,
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN 1 ELSE 0 END) AS MaintenanceCount,
 
         COUNT(DISTINCT b.ITAssetBrandId) AS BrandCount,
 
@@ -160,9 +175,24 @@ const getBrandsByCategory = async ({
 
         COUNT(a.AssetId) AS TotalAssets,
 
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE' THEN 1 ELSE 0 END) AS AvailableCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE') THEN 1 ELSE 0 END) AS AssignedCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'MAINTENANCE' THEN 1 ELSE 0 END) AS MaintenanceCount,
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE'
+          AND a.CurrentAssignedUserId IS NULL
+          AND a.CurrentAssignedName IS NULL
+          AND a.CurrentAssignedEmployeeCode IS NULL
+          AND a.CurrentAssignedEmail IS NULL
+          AND a.CurrentRoomId IS NULL
+          AND a.CurrentDepartmentId IS NULL
+          AND a.CurrentLocationId IS NULL THEN 1 ELSE 0 END) AS AvailableCount,
+        SUM(CASE WHEN (UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE')
+            OR a.CurrentAssignedUserId IS NOT NULL
+            OR a.CurrentAssignedName IS NOT NULL
+            OR a.CurrentAssignedEmployeeCode IS NOT NULL
+            OR a.CurrentAssignedEmail IS NOT NULL
+            OR a.CurrentRoomId IS NOT NULL
+            OR a.CurrentDepartmentId IS NOT NULL
+            OR a.CurrentLocationId IS NOT NULL)
+            AND UPPER(ISNULL(s.StatusKey, '')) NOT IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED', 'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN 1 ELSE 0 END) AS AssignedCount,
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN 1 ELSE 0 END) AS MaintenanceCount,
 
         COUNT(DISTINCT
           CASE
@@ -247,9 +277,24 @@ const getModelsByBrand = async ({
 
         COUNT(a.AssetId) AS TotalAssets,
 
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE' THEN 1 ELSE 0 END) AS AvailableCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE') THEN 1 ELSE 0 END) AS AssignedCount,
-        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'MAINTENANCE' THEN 1 ELSE 0 END) AS MaintenanceCount
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE'
+          AND a.CurrentAssignedUserId IS NULL
+          AND a.CurrentAssignedName IS NULL
+          AND a.CurrentAssignedEmployeeCode IS NULL
+          AND a.CurrentAssignedEmail IS NULL
+          AND a.CurrentRoomId IS NULL
+          AND a.CurrentDepartmentId IS NULL
+          AND a.CurrentLocationId IS NULL THEN 1 ELSE 0 END) AS AvailableCount,
+        SUM(CASE WHEN (UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'IN_USE')
+          OR a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL)
+          AND UPPER(ISNULL(s.StatusKey, '')) NOT IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED', 'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN 1 ELSE 0 END) AS AssignedCount,
+        SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN 1 ELSE 0 END) AS MaintenanceCount
 
       FROM dbo.ITAssetModels m
 
@@ -329,8 +374,28 @@ const getExplorerAssets = async ({
         a.ModelDescription,
         a.SerialIpMac,
         a.ITAssetStatusId,
-        s.StatusName,
-        s.StatusKey,
+        CASE
+          WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN s.StatusName
+          WHEN a.CurrentAssignedUserId IS NOT NULL
+            OR a.CurrentAssignedName IS NOT NULL
+            OR a.CurrentAssignedEmployeeCode IS NOT NULL
+            OR a.CurrentAssignedEmail IS NOT NULL
+            OR a.CurrentRoomId IS NOT NULL
+            OR a.CurrentDepartmentId IS NOT NULL
+            OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+          ELSE N'Available'
+        END AS StatusName,
+        CASE
+          WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN s.StatusKey
+          WHEN a.CurrentAssignedUserId IS NOT NULL
+            OR a.CurrentAssignedName IS NOT NULL
+            OR a.CurrentAssignedEmployeeCode IS NOT NULL
+            OR a.CurrentAssignedEmail IS NOT NULL
+            OR a.CurrentRoomId IS NOT NULL
+            OR a.CurrentDepartmentId IS NOT NULL
+            OR a.CurrentLocationId IS NOT NULL THEN 'Assigned'
+          ELSE 'Available'
+        END AS StatusKey,
         a.ITAssetConditionId,
         con.ConditionName,
         a.CurrentAssignedName,
@@ -481,8 +546,28 @@ const findAssetPathByTag = async ({ assetTag }) => {
         m.ITAssetModelId,
         m.ModelName,
         a.ModelDescription,
-        s.StatusKey,
-        s.StatusName
+        CASE
+          WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN s.StatusKey
+          WHEN a.CurrentAssignedUserId IS NOT NULL
+            OR a.CurrentAssignedName IS NOT NULL
+            OR a.CurrentAssignedEmployeeCode IS NOT NULL
+            OR a.CurrentAssignedEmail IS NOT NULL
+            OR a.CurrentRoomId IS NOT NULL
+            OR a.CurrentDepartmentId IS NOT NULL
+            OR a.CurrentLocationId IS NOT NULL THEN 'Assigned'
+          ELSE 'Available'
+        END AS StatusKey,
+        CASE
+          WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') THEN s.StatusName
+          WHEN a.CurrentAssignedUserId IS NOT NULL
+            OR a.CurrentAssignedName IS NOT NULL
+            OR a.CurrentAssignedEmployeeCode IS NOT NULL
+            OR a.CurrentAssignedEmail IS NOT NULL
+            OR a.CurrentRoomId IS NOT NULL
+            OR a.CurrentDepartmentId IS NOT NULL
+            OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+          ELSE N'Available'
+        END AS StatusName
       FROM dbo.ITAssets a
       INNER JOIN dbo.ITAssetCategories c
         ON a.ITAssetCategoryId = c.ITAssetCategoryId

@@ -1,79 +1,106 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// Printing Admin Service
-// Frontend API calls for Printing Admin module
-// ============================================
-
 import api from "./api";
 
-// ============================================
-// Get Printing Dashboard KPI Data
-// GET /api/printing/dashboard
-// ============================================
-export const getPrintingDashboard = async () => {
-  const response = await api.get("/printing/dashboard");
+const unwrap = (response) => response.data?.data ?? response.data;
 
-  return response.data;
-};
+export const createPrintingDraft = async (payload) =>
+  unwrap(await api.post("/printing/requests/drafts", payload));
 
-// ============================================
-// Get Printing Queue Requests
-// GET /api/printing/requests
-// ============================================
-export const getPrintingRequests = async () => {
-  const response = await api.get("/printing/requests");
-
-  return response.data;
-};
-
-// ============================================
-// Get Single Printing Request Details
-// GET /api/printing/requests/:id
-// ============================================
-export const getPrintingRequestById = async (requestId) => {
-  const response = await api.get(
-    `/printing/requests/${requestId}`
+export const uploadPrintingAttachment = async (requestId, formData) =>
+  unwrap(
+    await api.post(
+      `/printing/requests/${requestId}/attachments`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    )
   );
 
-  return response.data;
-};
+export const submitPrintingRequest = async (requestId) =>
+  unwrap(await api.post(`/printing/requests/${requestId}/submit`));
 
-// ============================================
-// Start Printing
-// PUT /api/printing/requests/:id/start
-// ============================================
-export const startPrintingRequest = async (requestId) => {
-  const response = await api.put(
-    `/printing/requests/${requestId}/start`
+export const getMyPrintingRequests = async () =>
+  unwrap(await api.get("/printing/requests/mine"));
+
+export const getMyPrintingAttachments = async () =>
+  unwrap(await api.get("/printing/requests/attachments/mine"));
+
+export const getPrintingRequestById = async (requestId) =>
+  unwrap(await api.get(`/printing/requests/${requestId}`));
+
+export const cancelMyPrintingRequest = async (requestId, remarks) =>
+  unwrap(
+    await api.put(`/printing/requests/${requestId}/cancel`, { remarks })
   );
 
-  return response.data;
-};
+export const getPrintingDashboard = async () =>
+  unwrap(await api.get("/printing/dashboard"));
 
-// ============================================
-// Complete Printing
-// PUT /api/printing/requests/:id/complete
-// ============================================
-export const completePrintingRequest = async (
-  requestId,
-  remarks = "Printing completed"
-) => {
-  const response = await api.put(
-    `/printing/requests/${requestId}/complete`,
-    {
-      remarks,
-    }
+export const getPrintingQueue = async () =>
+  unwrap(await api.get("/printing/queue"));
+
+export const getQueueRequestById = async (requestId) =>
+  unwrap(await api.get(`/printing/queue/${requestId}`));
+
+export const claimPrintingRequest = async (requestId) =>
+  unwrap(await api.put(`/printing/queue/${requestId}/claim`));
+
+export const startPrintingRequest = async (requestId) =>
+  unwrap(await api.put(`/printing/queue/${requestId}/start`));
+
+export const holdPrintingRequest = async (requestId, remarks) =>
+  unwrap(
+    await api.put(`/printing/queue/${requestId}/hold`, { remarks })
   );
 
-  return response.data;
-};
+export const resumePrintingRequest = async (requestId) =>
+  unwrap(await api.put(`/printing/queue/${requestId}/resume`));
 
-// ============================================
-// Get Printing History
-// GET /api/printing/history
-// ============================================
-export const getPrintingHistory = async () => {
-  const response = await api.get("/printing/history");
+export const cancelPrintingRequest = async (requestId, remarks) =>
+  unwrap(
+    await api.put(`/printing/queue/${requestId}/cancel`, { remarks })
+  );
 
-  return response.data;
-};
+export const completePrintingRequest = async (requestId, payload = {}) =>
+  unwrap(await api.put(`/printing/queue/${requestId}/complete`, payload));
+
+export const getManagedPrintingRequests = async () =>
+  unwrap(await api.get("/printing/managed-requests"));
+
+export const getPrintingHistory = async () =>
+  unwrap(await api.get("/printing/history"));
+
+export const getPrintingReport = async () =>
+  unwrap(await api.get("/printing/reports"));
+
+export const getPrintingSettings = async () =>
+  unwrap(await api.get("/printing/settings"));
+
+export const updatePrintingSettings = async (payload) =>
+  unwrap(await api.put("/printing/settings", payload));
+
+export const getPrintingInventory = async () =>
+  unwrap(await api.get("/printing/inventory"));
+
+export const updatePrintingInventory = async (payload) =>
+  unwrap(await api.put("/printing/inventory", payload));
+
+export const getPrintingInventoryTransactions = async () =>
+  unwrap(await api.get("/printing/inventory/transactions"));
+
+export const getPrintingPurchases = async () =>
+  unwrap(await api.get("/printing/purchases"));
+
+export const addPrintingPurchase = async (payload) =>
+  unwrap(await api.post("/printing/purchases", payload));
+
+export const getPrintingDistributions = async () =>
+  unwrap(await api.get("/printing/distributions"));
+
+export const searchPrintingDistributionUsers = async (query) =>
+  unwrap(
+    await api.get("/printing/distributions/users/search", {
+      params: { query },
+    })
+  );
+
+export const addPrintingDistribution = async (payload) =>
+  unwrap(await api.post("/printing/distributions", payload));

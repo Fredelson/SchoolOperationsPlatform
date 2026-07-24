@@ -24,41 +24,41 @@ const requirePermission = require("../../../modules/permissionResolver/middlewar
 
 router.use(protect);
 
-router.get("/", requirePermission("Module.View"), moduleController.getModules);
+router.get("/", requirePermission("modules.view"), moduleController.getModules);
 router.get(
   "/:id",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateModuleId,
   moduleController.getModuleById
 );
 router.post(
   "/",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateCreateModule,
   moduleController.createModule
 );
 router.put(
   "/:id",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateModuleId,
   validateUpdateModule,
   moduleController.updateModule
 );
 router.patch(
   "/:id/activate",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateModuleId,
   moduleController.activateModule
 );
 router.patch(
   "/:id/deactivate",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateModuleId,
   moduleController.deactivateModule
 );
 router.delete(
   "/:id",
-  requirePermission("Module.View"),
+  requirePermission("modules.view"),
   validateModuleId,
   moduleController.deleteModule
 );

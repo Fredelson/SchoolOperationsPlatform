@@ -25,6 +25,18 @@ const validateHexColor = (value, fieldName) => {
   }
 };
 
+const validateIntegerRange = (value, fieldName, min, max) => {
+  if (value === undefined || value === null || value === "") return;
+
+  if (!Number.isInteger(value) || value < min || value > max) {
+    const error = new Error(
+      `${fieldName} must be an integer between ${min} and ${max}.`
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
 // ============================================================
 // SCHOOL PROFILE VALIDATION
 // ============================================================
@@ -54,6 +66,9 @@ const validateBrandingPayload = (payload = {}) => {
   validateHexColor(payload.sidebarColor, "Sidebar color");
   validateHexColor(payload.topbarColor, "Topbar color");
   validateHexColor(payload.loginCardColor, "Login card color");
+  validateIntegerRange(payload.floatingLogoX, "Floating logo horizontal position", 0, 7680);
+  validateIntegerRange(payload.floatingLogoY, "Floating logo vertical position", 0, 4320);
+  validateIntegerRange(payload.floatingLogoSize, "Floating logo size", 40, 180);
 
   if (payload.supportEmail && !/^\S+@\S+\.\S+$/.test(payload.supportEmail)) {
     const error = new Error("Support email is invalid.");

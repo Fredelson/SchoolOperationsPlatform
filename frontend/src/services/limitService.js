@@ -12,14 +12,14 @@ import api from "./api";
 // Used by Printing Admin
 // ============================================
 export const getDepartmentLimits = async (month, year) => {
-  const response = await api.get("/limits/departments", {
+  const response = await api.get("/printing/limits/departments", {
     params: {
       month,
       year,
     },
   });
 
-  return response.data;
+  return response.data?.data ?? response.data;
 };
 
 // ============================================
@@ -33,13 +33,13 @@ export const updateDepartmentLimit = async (
   month,
   year
 ) => {
-  const response = await api.put(`/limits/departments/${departmentId}`, {
+  const response = await api.put(`/printing/limits/departments/${departmentId}`, {
     sheetLimit,
     month,
     year,
   });
 
-  return response.data;
+  return response.data?.data ?? response.data;
 };
 
 // ============================================
@@ -48,7 +48,7 @@ export const updateDepartmentLimit = async (
 // Used by HOS
 // ============================================
 export const getSubjectLimits = async (departmentId, month, year) => {
-  const response = await api.get("/limits/subjects", {
+  const response = await api.get("/printing/limits/subjects", {
     params: {
       departmentId,
       month,
@@ -56,7 +56,7 @@ export const getSubjectLimits = async (departmentId, month, year) => {
     },
   });
 
-  return response.data;
+  return response.data?.data ?? response.data;
 };
 
 // ============================================
@@ -72,7 +72,7 @@ export const updateSubjectLimit = async (
   year,
   hodUserId = null
 ) => {
-  const response = await api.put(`/limits/subjects/${subjectId}`, {
+  const response = await api.put(`/printing/limits/subjects/${subjectId}`, {
     departmentId,
     sheetLimit,
     month,
@@ -80,5 +80,5 @@ export const updateSubjectLimit = async (
     hodUserId,
   });
 
-  return response.data;
+  return response.data?.data ?? response.data;
 };

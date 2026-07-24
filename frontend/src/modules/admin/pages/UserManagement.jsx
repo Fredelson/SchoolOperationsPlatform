@@ -5,7 +5,6 @@
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import {
   Alert,
@@ -16,9 +15,16 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
   IconButton,
+  InputAdornment,
   MenuItem,
   Paper,
+  Radio,
+  RadioGroup,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -26,19 +32,27 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 
 import {
   Add,
+  ContentCopy,
   Edit,
+  Key,
   ToggleOff,
   ToggleOn,
   UploadFile,
-  AssignmentInd,
+  Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
 
 import { AppFilterBar, AppPageHeader } from "../../../platform/ui";
+import { useAuth } from "../../../context/AuthContext";
+import { usePermissions } from "../../../context/PermissionContext";
 
 import {
   getUsers,
@@ -46,6 +60,7 @@ import {
   updateUser,
   activateUser,
   deactivateUser,
+  resetUserPassword,
   previewUserImport,
   commitUserImport,
   downloadCSVUserTemplate,
@@ -62,6 +77,13 @@ const initialForm = {
   role: "Teacher",
 };
 
+const initialPasswordForm = {
+  generatePassword: true,
+  password: "",
+  confirmPassword: "",
+  requirePasswordChange: true,
+};
+
 const getUserId = (user) =>
   user?.UserId ||
   user?.userId ||
@@ -70,8 +92,31 @@ const getUserId = (user) =>
   user?.ID ||
   user?.UserID;
 
+const getRoleValue = (role) =>
+  role?.RoleKey ||
+  role?.roleKey ||
+  role?.RoleName ||
+  role?.roleName ||
+  role?.Role ||
+  role?.role ||
+  "";
+
+const getRoleLabel = (role) =>
+  role?.DisplayName ||
+  role?.displayName ||
+  role?.RoleDisplayName ||
+  role?.roleDisplayName ||
+  role?.RoleName ||
+  role?.roleName ||
+  role?.RoleKey ||
+  role?.roleKey ||
+  role?.Role ||
+  role?.role ||
+  "";
+
 export default function UserManagement() {
-  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const { hasPermission } = usePermissions();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
 
@@ -83,11 +128,24 @@ export default function UserManagement() {
   const [form, setForm] = useState(initialForm);
 
   const [loading, setLoading] = useState(false);
+  const [passwordUser, setPasswordUser] = useState(null);
+  const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
+  const [passwordResult, setPasswordResult] = useState(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [importFile, setImportFile] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importPreview, setImportPreview] = useState(null);
   const [commitResult, setCommitResult] = useState(null);
+  const currentRole = String(
+    currentUser?.roleKey || currentUser?.role || currentUser?.Role || ""
+  )
+    .replace(/[\s_-]/g, "")
+    .toLowerCase();
+  const canResetPassword =
+    ["superadmin", "platformadmin"].includes(currentRole) &&
+    hasPermission("users.update");
 
   const loadUsers = async () => {
     try {
@@ -134,7 +192,7 @@ export default function UserManagement() {
       const fullName = user.FullName || user.fullName || "";
       const employeeId = user.EmployeeId || user.employeeId || "";
       const schoolEmail = user.SchoolEmail || user.schoolEmail || "";
-      const role = user.RoleKey || user.Role || user.role || user.RoleName || "";
+      const role = getRoleValue(user);
 
       const matchesSearch =
         fullName.toLowerCase().includes(keyword) ||
@@ -163,7 +221,7 @@ export default function UserManagement() {
       fullName: user.FullName || user.fullName || "",
       employeeId: user.EmployeeId || user.employeeId || "",
       schoolEmail: user.SchoolEmail || user.schoolEmail || "",
-      role: user.Role || user.role || user.RoleName || "Teacher",
+      role: getRoleValue(user) || "Teacher",
     });
 
     setOpen(true);
@@ -241,6 +299,85 @@ export default function UserManagement() {
     } catch (error) {
       console.error("Toggle user error:", error);
       alert(error.response?.data?.message || "Failed to update user status");
+    }
+  };
+
+  const handleOpenPasswordReset = (user) => {
+    setPasswordUser(user);
+    setPasswordForm(initialPasswordForm);
+    setPasswordResult(null);
+    setShowPassword(false);
+  };
+
+  const handleClosePasswordReset = () => {
+    if (passwordLoading) return;
+    setPasswordUser(null);
+    setPasswordForm(initialPasswordForm);
+    setPasswordResult(null);
+    setShowPassword(false);
+  };
+
+  const handleResetPassword = async () => {
+    const userId = getUserId(passwordUser);
+
+    if (!userId) {
+      alert("User ID missing. Please refresh the page and try again.");
+      return;
+    }
+
+    if (!passwordForm.generatePassword) {
+      if (passwordForm.password !== passwordForm.confirmPassword) {
+        alert("Password confirmation does not match.");
+        return;
+      }
+
+      if (passwordForm.password.length < 8) {
+        alert("Password must be at least 8 characters.");
+        return;
+      }
+    }
+
+    try {
+      setPasswordLoading(true);
+      const response = await resetUserPassword(userId, {
+        generatePassword: passwordForm.generatePassword,
+        password: passwordForm.generatePassword
+          ? undefined
+          : passwordForm.password,
+        requirePasswordChange: passwordForm.requirePasswordChange,
+      });
+
+      const result = response?.data || response;
+      const displayedPassword =
+        result?.temporaryPassword ||
+        (!passwordForm.generatePassword ? passwordForm.password : null);
+      setPasswordResult({
+        ...result,
+        displayedPassword,
+      });
+      setShowPassword(Boolean(displayedPassword));
+      setPasswordForm((current) => ({
+        ...current,
+        password: "",
+        confirmPassword: "",
+      }));
+      await loadUsers();
+    } catch (error) {
+      console.error("Reset password error:", error);
+      alert(error.response?.data?.message || "Failed to reset password.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleCopyTemporaryPassword = async () => {
+    if (!passwordResult?.displayedPassword) return;
+
+    try {
+      await navigator.clipboard.writeText(passwordResult.displayedPassword);
+    } catch (error) {
+      console.error("Copy temporary password error:", error);
+      alert("Could not copy the temporary password.");
     }
   };
 
@@ -522,10 +659,10 @@ export default function UserManagement() {
             <MenuItem value="All">All Roles</MenuItem>
             {roles.map((role) => (
               <MenuItem
-                key={role.RoleId || role.roleId}
-                value={role.RoleName || role.RoleKey || role.roleName}
+                key={role.RoleId || role.roleId || getRoleValue(role)}
+                value={getRoleValue(role)}
               >
-                {role.DisplayName || role.RoleName || role.RoleKey}
+                {getRoleLabel(role)}
               </MenuItem>
             ))}
           </TextField>
@@ -555,7 +692,7 @@ export default function UserManagement() {
                 const fullName = user.FullName || user.fullName || "-";
                 const employeeId = user.EmployeeId || user.employeeId || "-";
                 const schoolEmail = user.SchoolEmail || user.schoolEmail || "-";
-                const role = user.Role || user.role || user.RoleName || "-";
+                const role = getRoleLabel(user) || "-";
                 const assignmentSummary = user.AssignmentSummary || user.assignmentSummary || "None";
                 const isActive = user.IsActive ?? user.isActive;
 
@@ -587,9 +724,16 @@ export default function UserManagement() {
                         <Edit />
                       </IconButton>
 
-                      <IconButton title="Manage Assignments" onClick={() => navigate(`/super-admin/user-assignments?userId=${userId}`)}>
-                        <AssignmentInd />
-                      </IconButton>
+                      {canResetPassword && (
+                        <Tooltip title="Reset password">
+                          <IconButton
+                            aria-label={`Reset password for ${fullName}`}
+                            onClick={() => handleOpenPasswordReset(user)}
+                          >
+                            <Key />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
                       <IconButton onClick={() => handleToggleStatus(user)}>
                         {isActive ? <ToggleOn /> : <ToggleOff />}
@@ -667,10 +811,10 @@ export default function UserManagement() {
             >
               {roles.map((role) => (
                 <MenuItem
-                  key={role.RoleId || role.roleId}
-                  value={role.RoleName || role.RoleKey || role.roleName}
+                  key={role.RoleId || role.roleId || getRoleValue(role)}
+                  value={getRoleValue(role)}
                 >
-                  {role.DisplayName || role.RoleName || role.RoleKey}
+                  {getRoleLabel(role)}
                 </MenuItem>
               ))}
             </TextField>
@@ -684,6 +828,243 @@ export default function UserManagement() {
           <Button variant="contained" onClick={handleSave}>
             Save User
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(passwordUser)}
+        onClose={handleClosePasswordReset}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Reset User Password</DialogTitle>
+
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ pt: 1 }}>
+            <Alert severity="info">
+              Existing passwords cannot be displayed. They are stored as
+              one-way hashes. Resetting creates a new password.
+            </Alert>
+
+            <Box>
+              <Typography fontWeight={700}>
+                {passwordUser?.FullName || passwordUser?.fullName || "User"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {passwordUser?.EmployeeId || passwordUser?.employeeId || ""}
+              </Typography>
+            </Box>
+
+            {!passwordResult && (
+              <>
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  value={
+                    passwordForm.generatePassword ? "generate" : "replace"
+                  }
+                  onChange={(_event, value) => {
+                    if (!value) return;
+                    setPasswordForm((current) => ({
+                      ...current,
+                      generatePassword: value === "generate",
+                      password: "",
+                      confirmPassword: "",
+                    }));
+                  }}
+                  aria-label="Password reset method"
+                >
+                  <ToggleButton value="generate">
+                    Generate Password
+                  </ToggleButton>
+                  <ToggleButton value="replace">
+                    Set New Password
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                <Typography variant="body2" color="text.secondary">
+                  Both options replace the user&apos;s current password.
+                </Typography>
+
+                {!passwordForm.generatePassword && (
+                  <>
+                    <TextField
+                      fullWidth
+                      label="New password"
+                      type={showPassword ? "text" : "password"}
+                      value={passwordForm.password}
+                      helperText="At least 8 characters."
+                      onChange={(event) =>
+                        setPasswordForm((current) => ({
+                          ...current,
+                          password: event.target.value,
+                        }))
+                      }
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Tooltip
+                              title={
+                                showPassword ? "Hide password" : "Show password"
+                              }
+                            >
+                              <IconButton
+                                aria-label={
+                                  showPassword
+                                    ? "Hide new password"
+                                    : "Show new password"
+                                }
+                                edge="end"
+                                onClick={() =>
+                                  setShowPassword((current) => !current)
+                                }
+                              >
+                                {showPassword ? (
+                                  <VisibilityOff />
+                                ) : (
+                                  <Visibility />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Confirm new password"
+                      type={showPassword ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) =>
+                        setPasswordForm((current) => ({
+                          ...current,
+                          confirmPassword: event.target.value,
+                        }))
+                      }
+                    />
+                  </>
+                )}
+
+                <FormControl>
+                  <FormLabel>Require password change at next sign-in?</FormLabel>
+                  <RadioGroup
+                    row
+                    value={
+                      passwordForm.requirePasswordChange ? "yes" : "no"
+                    }
+                    onChange={(event) =>
+                      setPasswordForm((current) => ({
+                        ...current,
+                        requirePasswordChange: event.target.value === "yes",
+                      }))
+                    }
+                  >
+                    <FormControlLabel
+                      value="yes"
+                      control={<Radio />}
+                      label="Yes"
+                    />
+                    <FormControlLabel
+                      value="no"
+                      control={<Radio />}
+                      label="No"
+                    />
+                  </RadioGroup>
+                </FormControl>
+              </>
+            )}
+
+            {passwordResult && (
+              <>
+                <Alert severity="success">
+                  Password reset successfully. The account lockout state was
+                  also cleared.
+                </Alert>
+
+                {passwordResult.displayedPassword && (
+                  <>
+                    <TextField
+                      fullWidth
+                      label={
+                        passwordForm.generatePassword
+                          ? "Generated password"
+                          : "New password"
+                      }
+                      type={showPassword ? "text" : "password"}
+                      value={passwordResult.displayedPassword}
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Tooltip
+                              title={
+                                showPassword ? "Hide password" : "Show password"
+                              }
+                            >
+                              <IconButton
+                                aria-label={
+                                  showPassword
+                                    ? "Hide temporary password"
+                                    : "Show temporary password"
+                                }
+                                onClick={() =>
+                                  setShowPassword((current) => !current)
+                                }
+                              >
+                                {showPassword ? (
+                                  <VisibilityOff />
+                                ) : (
+                                  <Visibility />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Copy password">
+                              <IconButton
+                                aria-label="Copy temporary password"
+                                edge="end"
+                                onClick={handleCopyTemporaryPassword}
+                              >
+                                <ContentCopy />
+                              </IconButton>
+                            </Tooltip>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+
+                    <Typography variant="body2" color="warning.main">
+                      This password is shown only now. Share it securely before
+                      closing the dialog.
+                    </Typography>
+                  </>
+                )}
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleClosePasswordReset} disabled={passwordLoading}>
+            {passwordResult ? "Done" : "Cancel"}
+          </Button>
+
+          {!passwordResult && (
+            <Button
+              variant="contained"
+              startIcon={<Key />}
+              onClick={handleResetPassword}
+              disabled={
+                passwordLoading ||
+                (!passwordForm.generatePassword &&
+                  (!passwordForm.password ||
+                    !passwordForm.confirmPassword))
+              }
+            >
+              {passwordLoading ? "Resetting..." : "Reset Password"}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

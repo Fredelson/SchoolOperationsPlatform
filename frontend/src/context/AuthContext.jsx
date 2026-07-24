@@ -22,6 +22,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import {
+  changeCurrentPassword,
   loginUser,
   getCurrentUser,
 } from "../services/authService";
@@ -125,6 +126,28 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const completeRequiredPasswordChange = async ({
+    currentPassword,
+    newPassword,
+  }) => {
+    const response = await changeCurrentPassword({
+      currentPassword,
+      newPassword,
+    });
+    const refreshedToken = response?.data?.token || response?.token;
+
+    if (refreshedToken) {
+      localStorage.setItem("token", refreshedToken);
+      setToken(refreshedToken);
+    }
+
+    const currentUser = await getCurrentUser();
+    setUser(currentUser);
+    await loadPermissions(currentUser);
+
+    return currentUser;
+  };
+
   // ==========================================
   // Logout
   // ==========================================
@@ -158,6 +181,7 @@ export function AuthProvider({ children }) {
         loading,
 
         login,
+        completeRequiredPasswordChange,
         logout,
 
         reloadPermissions: () => loadPermissions(user),

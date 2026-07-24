@@ -1,536 +1,445 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Printing Repository
-// ============================================================
-//
-// Purpose:
-// Handles all SQL operations for the Printing module.
-//
-// Architecture:
-// Repository Layer
-//
-// Rules:
-// - SQL only
-// - No HTTP handling
-// - No business decision logic
-// - No request/response objects
-//
-// ============================================================
-
-const {
-  sql,
-  executeQuery,
-  rows,
-  firstOrNull,
-} = require("../../../shared/database");
+const { poolPromise, sql } = require("../../../config/db");
 
 const {
   PRINTING_QUEUE_STATUSES,
+  PRINTING_START_ALLOWED_STATUSES,
   PRINTING_STATUSES,
 } = require("../constants/printingStatuses");
 
-// ============================================================
-// Shared Select Columns
-// ============================================================
+const request = (transaction) => new sql.Request(transaction);
+const toSqlList = (values) =>
+  values.map((value) => `'${String(value).replace(/'/g, "''")}'`).join(", ");
+
+const QUEUE_STATUSES_SQL = toSqlList(PRINTING_QUEUE_STATUSES);
+const START_STATUSES_SQL = toSqlList(PRINTING_START_ALLOWED_STATUSES);
 
 const PRINTING_REQUEST_SELECT = `
-  r.RequestId,
-  r.RequestNumber,
-  r.TeacherId,
-  r.DepartmentId,
-  r.SectionId,
-  r.SubjectId,
-  r.PurposeId,
-  r.Copies,
-  r.TotalPages,
-  r.TotalSheets,
-  r.PriorityLevel,
-  r.Status,
-  r.CurrentApproverId,
-  r.SourceModule,
-  r.SourceEntityType,
-  r.SourceEntityId,
-  r.PaperSize,
-  r.PrintType,
-  r.PrintSide,
-  r.IsExam,
-  r.DueDate,
-  r.Remarks AS RequestRemarks,
-  r.SubmittedAt,
-  r.ApprovedAt,
-  r.PrintedAt,
-  r.CompletedAt,
-  r.UpdatedAt,
-
-  teacher.FullName AS TeacherName,
-  teacher.EmployeeId AS TeacherEmployeeId,
-  teacher.SchoolEmail AS TeacherEmail,
-
-  d.DepartmentName,
-  sec.SectionName,
-  s.SubjectName,
-  p.PurposeName
+  printingRequest.RequestId,
+  printingRequest.RequestNumber,
+  printingRequest.TeacherId,
+  printingRequest.DepartmentId,
+  printingRequest.SectionId,
+  printingRequest.SubjectId,
+  printingRequest.PurposeId,
+  printingRequest.Copies,
+  printingRequest.TotalPages,
+  printingRequest.TotalSheets,
+  printingRequest.PriorityLevel,
+  printingRequest.Status,
+  printingRequest.CurrentApproverId,
+  printingRequest.ClaimedByUserId,
+  printingRequest.ClaimedAt,
+  printingRequest.WorkflowVersion,
+  printingRequest.PaperSize,
+  printingRequest.PrintType,
+  printingRequest.PrintSide,
+  printingRequest.IsExam,
+  printingRequest.DueDate,
+  printingRequest.Remarks AS RequestRemarks,
+  printingRequest.SubmittedAt,
+  printingRequest.ApprovedAt,
+  printingRequest.PrintedAt,
+  printingRequest.CompletedAt,
+  printingRequest.UpdatedAt,
+  requester.FullName AS TeacherName,
+  requester.EmployeeId AS TeacherEmployeeId,
+  requester.SchoolEmail AS TeacherEmail,
+  department.DepartmentName,
+  sectionRecord.SectionName,
+  subject.SubjectName,
+  purpose.PurposeName,
+  claimedBy.FullName AS ClaimedByName
 `;
 
-// ============================================================
-// Dashboard
-// ============================================================
+const beginTransaction = async () => {
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+  return transaction;
+};
 
-const getDashboardKpis = async (printingAdminId) => {
-  const result = await executeQuery(
-    `
-    SELECT
-      SUM(CASE
-        WHEN Status IN ('Approved by HOD', 'Approved by HOS', 'Forwarded to Printing')
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS PendingJobs,
+const getDashboardKpis = async (schoolId, operatorId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .input("OperatorId", sql.Int, operatorId)
+    .query(`
+      SELECT
+        SUM(CASE WHEN Status IN (${START_STATUSES_SQL}) THEN 1 ELSE 0 END) AS PendingJobs,
+        SUM(CASE
+          WHEN Status = '${PRINTING_STATUSES.PRINTING}'
+           AND (ClaimedByUserId = @OperatorId OR CurrentApproverId = @OperatorId)
+          THEN 1 ELSE 0
+        END) AS PrintingNow,
+        SUM(CASE
+          WHEN Status = '${PRINTING_STATUSES.ON_HOLD}'
+           AND (ClaimedByUserId = @OperatorId OR CurrentApproverId = @OperatorId)
+          THEN 1 ELSE 0
+        END) AS OnHoldJobs,
+        SUM(CASE
+          WHEN Status = '${PRINTING_STATUSES.COMPLETED}'
+           AND CAST(CompletedAt AS date) = CAST(GETDATE() AS date)
+          THEN 1 ELSE 0
+        END) AS CompletedToday,
+        SUM(CASE
+          WHEN Status = '${PRINTING_STATUSES.COMPLETED}'
+           AND MONTH(CompletedAt) = MONTH(GETDATE())
+           AND YEAR(CompletedAt) = YEAR(GETDATE())
+          THEN 1 ELSE 0
+        END) AS CompletedMonth,
+        SUM(CASE
+          WHEN Status IN (${QUEUE_STATUSES_SQL})
+           AND DueDate IS NOT NULL
+           AND DueDate < GETDATE()
+          THEN 1 ELSE 0
+        END) AS OverdueJobs
+      FROM dbo.PhotocopyRequests
+      WHERE IsDeleted = 0
+        AND (SchoolId = @SchoolId OR SchoolId IS NULL);
+    `);
 
-      SUM(CASE
-        WHEN Status = 'Printing'
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS PrintingNow,
-
-      SUM(CASE
-        WHEN Status = 'On Hold'
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS OnHoldJobs,
-
-      SUM(CASE
-        WHEN Status = 'Completed'
-         AND CAST(CompletedAt AS DATE) = CAST(GETDATE() AS DATE)
-        THEN 1 ELSE 0
-      END) AS CompletedToday,
-
-      SUM(CASE
-        WHEN Status = 'Completed'
-         AND MONTH(CompletedAt) = MONTH(GETDATE())
-         AND YEAR(CompletedAt) = YEAR(GETDATE())
-        THEN 1 ELSE 0
-      END) AS CompletedMonth,
-
-      SUM(CASE
-        WHEN Status IN ('Approved by HOD', 'Approved by HOS', 'Forwarded to Printing', 'Printing', 'On Hold')
-         AND DueDate IS NOT NULL
-         AND DueDate < GETDATE()
-        THEN 1 ELSE 0
-      END) AS OverdueJobs
-    FROM PhotocopyRequests
-    `,
-    [
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
+  return result.recordset[0] || {};
 };
 
 const getDashboardInventory = async () => {
-  const result = await executeQuery(
-    `
-    SELECT
-      PaperType,
-      CurrentStock,
-      LastUpdated
-    FROM PaperInventory
-    ORDER BY PaperType ASC
-    `
-  );
-
-  return rows(result);
+  const pool = await poolPromise;
+  const result = await pool.request().query(`
+    SELECT InventoryId, PaperType, CurrentStock, LastUpdated
+    FROM dbo.PaperInventory
+    ORDER BY PaperType;
+  `);
+  return result.recordset;
 };
 
-const getDashboardJobStatus = async (printingAdminId) => {
-  const result = await executeQuery(
-    `
-    SELECT
-      SUM(CASE
-        WHEN Status IN ('Approved by HOD', 'Approved by HOS', 'Forwarded to Printing')
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS Pending,
-
-      SUM(CASE
-        WHEN Status = 'Printing'
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS Printing,
-
-      SUM(CASE
-        WHEN Status = 'On Hold'
-         AND CurrentApproverId = @PrintingAdminId
-        THEN 1 ELSE 0
-      END) AS OnHold,
-
-      SUM(CASE
-        WHEN Status = 'Completed'
-        THEN 1 ELSE 0
-      END) AS Completed,
-
-      SUM(CASE
-        WHEN Status LIKE '%Rejected%'
-        THEN 1 ELSE 0
-      END) AS Rejected,
-
-      SUM(CASE
-        WHEN Status = 'Cancelled'
-        THEN 1 ELSE 0
-      END) AS Cancelled
-    FROM PhotocopyRequests
-    `,
-    [
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-};
-
-const getTopDepartmentsThisMonth = async () => {
-  const result = await executeQuery(
-    `
-    SELECT TOP 5
-      ISNULL(d.DepartmentName, 'No Department') AS label,
-      ISNULL(SUM(r.TotalSheets), 0) AS value
-    FROM PhotocopyRequests r
-    LEFT JOIN Departments d
-      ON r.DepartmentId = d.DepartmentId
-    WHERE MONTH(r.SubmittedAt) = MONTH(GETDATE())
-      AND YEAR(r.SubmittedAt) = YEAR(GETDATE())
-    GROUP BY d.DepartmentName
-    ORDER BY SUM(r.TotalSheets) DESC
-    `
-  );
-
-  return rows(result);
-};
-
-const getRecentPrintJobs = async () => {
-  const result = await executeQuery(
-    `
-    SELECT TOP 5
-      RequestNumber,
-      Status,
-      TotalSheets,
-      CompletedAt,
-      PrintedAt,
-      SubmittedAt,
-      CASE
-        WHEN CompletedAt IS NOT NULL THEN CompletedAt
-        WHEN PrintedAt IS NOT NULL THEN PrintedAt
-        ELSE SubmittedAt
-      END AS ActivityDate
-    FROM PhotocopyRequests
-    ORDER BY
-      CASE
-        WHEN CompletedAt IS NOT NULL THEN CompletedAt
-        WHEN PrintedAt IS NOT NULL THEN PrintedAt
-        ELSE SubmittedAt
-      END DESC
-    `
-  );
-
-  return rows(result);
-};
-
-// ============================================================
-// Queue / Requests
-// ============================================================
-
-const getPrintingQueue = async (printingAdminId) => {
-  const result = await executeQuery(
-    `
-    SELECT
-      ${PRINTING_REQUEST_SELECT}
-    FROM PhotocopyRequests r
-    LEFT JOIN Users teacher
-      ON r.TeacherId = teacher.UserId
-    LEFT JOIN Departments d
-      ON r.DepartmentId = d.DepartmentId
-    LEFT JOIN Sections sec
-      ON r.SectionId = sec.SectionId
-    LEFT JOIN Subjects s
-      ON r.SubjectId = s.SubjectId
-    LEFT JOIN Purposes p
-      ON r.PurposeId = p.PurposeId
-    WHERE r.CurrentApproverId = @PrintingAdminId
-      AND r.Status IN (
-        'Approved by HOD',
-        'Approved by HOS',
-        'Forwarded to Printing',
-        'Printing',
-        'On Hold'
-      )
-    ORDER BY
-      CASE
-        WHEN r.PriorityLevel = 'Urgent' THEN 1
-        WHEN r.PriorityLevel = 'High' THEN 2
-        WHEN r.PriorityLevel = 'Normal' THEN 3
-        ELSE 4
-      END,
-      CASE
-        WHEN r.DueDate IS NULL THEN 1 ELSE 0
-      END,
-      r.DueDate ASC,
-      r.SubmittedAt ASC
-    `,
-    [
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return rows(result);
-};
-
-const getPrintingRequestById = async (requestId, printingAdminId) => {
-  const result = await executeQuery(
-    `
-    SELECT
-      ${PRINTING_REQUEST_SELECT}
-    FROM PhotocopyRequests r
-    LEFT JOIN Users teacher
-      ON r.TeacherId = teacher.UserId
-    LEFT JOIN Departments d
-      ON r.DepartmentId = d.DepartmentId
-    LEFT JOIN Sections sec
-      ON r.SectionId = sec.SectionId
-    LEFT JOIN Subjects s
-      ON r.SubjectId = s.SubjectId
-    LEFT JOIN Purposes p
-      ON r.PurposeId = p.PurposeId
-    WHERE r.RequestId = @RequestId
-      AND (
-        r.CurrentApproverId = @PrintingAdminId
-        OR r.Status = 'Completed'
-      )
-    `,
-    [
-      {
-        name: "RequestId",
-        type: sql.Int,
-        value: requestId,
-      },
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-};
-
-const getRequestForWorkflow = async (requestId, printingAdminId, transaction = null) => {
-  const executor = transaction || executeQuery;
-
-  const query = `
-    SELECT
-      RequestId,
-      RequestNumber,
-      TeacherId,
-      Copies,
-      TotalPages,
-      TotalSheets,
-      PriorityLevel,
-      Status,
-      CurrentApproverId,
-      PaperSize,
-      PrintType,
-      PrintSide,
-      DueDate,
-      Remarks
-    FROM PhotocopyRequests
-    WHERE RequestId = @RequestId
-      AND CurrentApproverId = @PrintingAdminId
-  `;
-
-  const params = [
-    {
-      name: "RequestId",
-      type: sql.Int,
-      value: requestId,
-    },
-    {
-      name: "PrintingAdminId",
-      type: sql.Int,
-      value: printingAdminId,
-    },
-  ];
-
-  if (transaction) {
-    const result = await new sql.Request(transaction)
-      .input("RequestId", sql.Int, requestId)
-      .input("PrintingAdminId", sql.Int, printingAdminId)
-      .query(query);
-
-    return result.recordset[0] || null;
-  }
-
-  const result = await executor(query, params);
-  return firstOrNull(result);
-};
-
-// ============================================================
-// Workflow Updates
-// ============================================================
-
-const markAsPrinting = async (requestId, printingAdminId) => {
-  const result = await executeQuery(
-    `
-    UPDATE PhotocopyRequests
-    SET
-      Status = @Status,
-      PrintedAt = ISNULL(PrintedAt, GETDATE()),
-      UpdatedAt = GETDATE()
-    OUTPUT INSERTED.*
-    WHERE RequestId = @RequestId
-      AND CurrentApproverId = @PrintingAdminId
-    `,
-    [
-      {
-        name: "Status",
-        type: sql.NVarChar,
-        value: PRINTING_STATUSES.PRINTING,
-      },
-      {
-        name: "RequestId",
-        type: sql.Int,
-        value: requestId,
-      },
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-};
-
-const markAsOnHold = async (requestId, printingAdminId, remarks = null) => {
-  const result = await executeQuery(
-    `
-    UPDATE PhotocopyRequests
-    SET
-      Status = @Status,
-      Remarks = COALESCE(@Remarks, Remarks),
-      UpdatedAt = GETDATE()
-    OUTPUT INSERTED.*
-    WHERE RequestId = @RequestId
-      AND CurrentApproverId = @PrintingAdminId
-    `,
-    [
-      {
-        name: "Status",
-        type: sql.NVarChar,
-        value: PRINTING_STATUSES.ON_HOLD,
-      },
-      {
-        name: "Remarks",
-        type: sql.NVarChar,
-        value: remarks,
-      },
-      {
-        name: "RequestId",
-        type: sql.Int,
-        value: requestId,
-      },
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-};
-
-const markAsCancelled = async (requestId, printingAdminId, remarks = null) => {
-  const result = await executeQuery(
-    `
-    UPDATE PhotocopyRequests
-    SET
-      Status = @Status,
-      CurrentApproverId = NULL,
-      Remarks = COALESCE(@Remarks, Remarks),
-      UpdatedAt = GETDATE()
-    OUTPUT INSERTED.*
-    WHERE RequestId = @RequestId
-      AND CurrentApproverId = @PrintingAdminId
-    `,
-    [
-      {
-        name: "Status",
-        type: sql.NVarChar,
-        value: PRINTING_STATUSES.CANCELLED,
-      },
-      {
-        name: "Remarks",
-        type: sql.NVarChar,
-        value: remarks,
-      },
-      {
-        name: "RequestId",
-        type: sql.Int,
-        value: requestId,
-      },
-      {
-        name: "PrintingAdminId",
-        type: sql.Int,
-        value: printingAdminId,
-      },
-    ]
-  );
-
-  return firstOrNull(result);
-};
-
-// ============================================================
-// Inventory + Completion Transaction Helpers
-// ============================================================
-
-const getPaperInventoryForUpdate = async (transaction, paperType) => {
-  const result = await new sql.Request(transaction)
-    .input("PaperType", sql.VarChar(10), paperType)
+const getDashboardJobStatus = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
     .query(`
       SELECT
-        InventoryId,
-        PaperType,
-        CurrentStock
-      FROM PaperInventory WITH (UPDLOCK, ROWLOCK)
-      WHERE PaperType = @PaperType
+        SUM(CASE WHEN Status IN (${START_STATUSES_SQL}) THEN 1 ELSE 0 END) AS Pending,
+        SUM(CASE WHEN Status = '${PRINTING_STATUSES.PRINTING}' THEN 1 ELSE 0 END) AS Printing,
+        SUM(CASE WHEN Status = '${PRINTING_STATUSES.ON_HOLD}' THEN 1 ELSE 0 END) AS OnHold,
+        SUM(CASE WHEN Status = '${PRINTING_STATUSES.COMPLETED}' THEN 1 ELSE 0 END) AS Completed,
+        SUM(CASE WHEN Status LIKE 'Rejected by %' THEN 1 ELSE 0 END) AS Rejected,
+        SUM(CASE WHEN Status LIKE 'Cancelled%' THEN 1 ELSE 0 END) AS Cancelled
+      FROM dbo.PhotocopyRequests
+      WHERE IsDeleted = 0
+        AND (SchoolId = @SchoolId OR SchoolId IS NULL);
     `);
+  return result.recordset[0] || {};
+};
 
+const getDashboardActivity = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      WITH DayOffsets AS (
+        SELECT DaysAgo
+        FROM (VALUES (6), (5), (4), (3), (2), (1), (0)) offsets(DaysAgo)
+      ),
+      ActivityDates AS (
+        SELECT DATEADD(day, -DaysAgo, CAST(GETDATE() AS date)) AS ActivityDate
+        FROM DayOffsets
+      )
+      SELECT
+        activity.ActivityDate,
+        SUM(CASE
+          WHEN CAST(printingRequest.SubmittedAt AS date) = activity.ActivityDate
+          THEN 1 ELSE 0
+        END) AS PrintRequests,
+        SUM(CASE
+          WHEN CAST(printingRequest.CompletedAt AS date) = activity.ActivityDate
+          THEN 1 ELSE 0
+        END) AS CompletedJobs
+      FROM ActivityDates activity
+      LEFT JOIN dbo.PhotocopyRequests printingRequest
+        ON printingRequest.IsDeleted = 0
+       AND (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+       AND (
+         CAST(printingRequest.SubmittedAt AS date) = activity.ActivityDate
+         OR CAST(printingRequest.CompletedAt AS date) = activity.ActivityDate
+       )
+      GROUP BY activity.ActivityDate
+      ORDER BY activity.ActivityDate;
+    `);
+  return result.recordset;
+};
+
+const getDashboardPaperUsage = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT
+        consumption.PaperType,
+        SUM(consumption.ActualSheets) AS UsedSheets
+      FROM dbo.PrintingJobConsumptions consumption
+      JOIN dbo.PhotocopyRequests printingRequest
+        ON printingRequest.RequestId = consumption.RequestId
+      WHERE (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+        AND MONTH(consumption.RecordedAt) = MONTH(GETDATE())
+        AND YEAR(consumption.RecordedAt) = YEAR(GETDATE())
+      GROUP BY consumption.PaperType;
+    `);
+  return result.recordset;
+};
+
+const getTopDepartmentsThisMonth = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT TOP 5
+        ISNULL(department.DepartmentName, 'No Department') AS label,
+        ISNULL(SUM(printingRequest.TotalSheets), 0) AS value
+      FROM dbo.PhotocopyRequests printingRequest
+      LEFT JOIN dbo.Departments department
+        ON department.DepartmentId = printingRequest.DepartmentId
+      WHERE printingRequest.IsDeleted = 0
+        AND (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+        AND MONTH(printingRequest.SubmittedAt) = MONTH(GETDATE())
+        AND YEAR(printingRequest.SubmittedAt) = YEAR(GETDATE())
+      GROUP BY department.DepartmentName
+      ORDER BY SUM(printingRequest.TotalSheets) DESC;
+    `);
+  return result.recordset;
+};
+
+const getRecentPrintJobs = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT TOP 8
+        RequestId,
+        RequestNumber,
+        Status,
+        TotalSheets,
+        COALESCE(CompletedAt, PrintedAt, UpdatedAt, SubmittedAt) AS ActivityDate
+      FROM dbo.PhotocopyRequests
+      WHERE IsDeleted = 0
+        AND (SchoolId = @SchoolId OR SchoolId IS NULL)
+      ORDER BY COALESCE(CompletedAt, PrintedAt, UpdatedAt, SubmittedAt) DESC;
+    `);
+  return result.recordset;
+};
+
+const getPrintingQueue = async ({
+  schoolId,
+  operatorId,
+  assignmentMode,
+}) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .input("OperatorId", sql.Int, operatorId)
+    .input("SharedQueue", sql.Bit, assignmentMode === "shared")
+    .query(`
+      SELECT ${PRINTING_REQUEST_SELECT}
+      FROM dbo.PhotocopyRequests printingRequest
+      LEFT JOIN dbo.Users requester ON requester.UserId = printingRequest.TeacherId
+      LEFT JOIN dbo.Departments department
+        ON department.DepartmentId = printingRequest.DepartmentId
+      LEFT JOIN dbo.Sections sectionRecord
+        ON sectionRecord.SectionId = printingRequest.SectionId
+      LEFT JOIN dbo.Subjects subject ON subject.SubjectId = printingRequest.SubjectId
+      LEFT JOIN dbo.Purposes purpose ON purpose.PurposeId = printingRequest.PurposeId
+      LEFT JOIN dbo.Users claimedBy ON claimedBy.UserId = printingRequest.ClaimedByUserId
+      WHERE printingRequest.IsDeleted = 0
+        AND (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+        AND printingRequest.Status IN (${QUEUE_STATUSES_SQL})
+        AND (
+          printingRequest.ClaimedByUserId = @OperatorId
+          OR printingRequest.CurrentApproverId = @OperatorId
+          OR (
+            @SharedQueue = 1
+            AND printingRequest.ClaimedByUserId IS NULL
+            AND printingRequest.CurrentApproverId IS NULL
+          )
+        )
+      ORDER BY
+        CASE printingRequest.PriorityLevel
+          WHEN 'Urgent' THEN 1
+          WHEN 'High' THEN 2
+          WHEN 'Normal' THEN 3
+          ELSE 4
+        END,
+        CASE WHEN printingRequest.DueDate IS NULL THEN 1 ELSE 0 END,
+        printingRequest.DueDate,
+        printingRequest.SubmittedAt;
+    `);
+  return result.recordset;
+};
+
+const getPrintingRequestById = async ({
+  requestId,
+  schoolId,
+  operatorId,
+  assignmentMode,
+}) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("RequestId", sql.Int, requestId)
+    .input("SchoolId", sql.Int, schoolId)
+    .input("OperatorId", sql.Int, operatorId)
+    .input("SharedQueue", sql.Bit, assignmentMode === "shared")
+    .query(`
+      SELECT ${PRINTING_REQUEST_SELECT}
+      FROM dbo.PhotocopyRequests printingRequest
+      LEFT JOIN dbo.Users requester ON requester.UserId = printingRequest.TeacherId
+      LEFT JOIN dbo.Departments department
+        ON department.DepartmentId = printingRequest.DepartmentId
+      LEFT JOIN dbo.Sections sectionRecord
+        ON sectionRecord.SectionId = printingRequest.SectionId
+      LEFT JOIN dbo.Subjects subject ON subject.SubjectId = printingRequest.SubjectId
+      LEFT JOIN dbo.Purposes purpose ON purpose.PurposeId = printingRequest.PurposeId
+      LEFT JOIN dbo.Users claimedBy ON claimedBy.UserId = printingRequest.ClaimedByUserId
+      WHERE printingRequest.RequestId = @RequestId
+        AND printingRequest.IsDeleted = 0
+        AND (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+        AND (
+          printingRequest.ClaimedByUserId = @OperatorId
+          OR printingRequest.CurrentApproverId = @OperatorId
+          OR printingRequest.Status = '${PRINTING_STATUSES.COMPLETED}'
+          OR (
+            @SharedQueue = 1
+            AND printingRequest.Status IN (${START_STATUSES_SQL})
+            AND printingRequest.ClaimedByUserId IS NULL
+            AND printingRequest.CurrentApproverId IS NULL
+          )
+        );
+    `);
   return result.recordset[0] || null;
 };
 
-const deductPaperInventory = async (transaction, inventoryId, quantity) => {
-  await new sql.Request(transaction)
+const getQueueRequestForUpdate = async (
+  transaction,
+  requestId,
+  schoolId
+) => {
+  const result = await request(transaction)
+    .input("RequestId", sql.Int, requestId)
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT *
+      FROM dbo.PhotocopyRequests WITH (UPDLOCK, HOLDLOCK)
+      WHERE RequestId = @RequestId
+        AND IsDeleted = 0
+        AND (SchoolId = @SchoolId OR SchoolId IS NULL);
+    `);
+  return result.recordset[0] || null;
+};
+
+const updateQueueState = async (
+  transaction,
+  {
+    requestId,
+    status,
+    operatorId,
+    remarks = null,
+    clearClaim = false,
+    completed = false,
+  }
+) => {
+  const result = await request(transaction)
+    .input("RequestId", sql.Int, requestId)
+    .input("Status", sql.NVarChar(50), status)
+    .input("OperatorId", sql.Int, operatorId)
+    .input("Remarks", sql.NVarChar(sql.MAX), remarks)
+    .input("ClearClaim", sql.Bit, clearClaim)
+    .input("Completed", sql.Bit, completed)
+    .query(`
+      UPDATE dbo.PhotocopyRequests
+      SET
+        Status = @Status,
+        CurrentApproverId = CASE WHEN @ClearClaim = 1 THEN NULL ELSE @OperatorId END,
+        ClaimedByUserId = CASE WHEN @ClearClaim = 1 THEN NULL ELSE @OperatorId END,
+        ClaimedAt = CASE
+          WHEN @ClearClaim = 1 THEN NULL
+          ELSE ISNULL(ClaimedAt, GETDATE())
+        END,
+        PrintedAt = CASE
+          WHEN @Status = '${PRINTING_STATUSES.PRINTING}'
+            THEN ISNULL(PrintedAt, GETDATE())
+          ELSE PrintedAt
+        END,
+        CompletedAt = CASE WHEN @Completed = 1 THEN GETDATE() ELSE CompletedAt END,
+        Remarks = CASE
+          WHEN @Remarks IS NULL OR LTRIM(RTRIM(@Remarks)) = '' THEN Remarks
+          WHEN Remarks IS NULL OR LTRIM(RTRIM(Remarks)) = '' THEN @Remarks
+          ELSE Remarks + CHAR(13) + CHAR(10) + @Remarks
+        END,
+        WorkflowVersion = WorkflowVersion + 1,
+        UpdatedAt = GETDATE()
+      OUTPUT INSERTED.*
+      WHERE RequestId = @RequestId;
+    `);
+  return result.recordset[0] || null;
+};
+
+const getExpectedConsumptions = async (
+  transaction,
+  requestId,
+  fallbackPaperType,
+  fallbackSheets
+) => {
+  const result = await request(transaction)
+    .input("RequestId", sql.Int, requestId)
+    .query(`
+      SELECT
+        UPPER(ISNULL(PaperSize, 'A4')) AS PaperType,
+        SUM(ISNULL(TotalSheets, 0)) AS ExpectedSheets
+      FROM dbo.RequestAttachments
+      WHERE RequestId = @RequestId
+      GROUP BY UPPER(ISNULL(PaperSize, 'A4'));
+    `);
+
+  if (result.recordset.length) return result.recordset;
+  return [
+    {
+      PaperType:
+        String(fallbackPaperType || "A4").toUpperCase() === "MIXED"
+          ? "A4"
+          : String(fallbackPaperType || "A4").toUpperCase(),
+      ExpectedSheets: Number(fallbackSheets || 0),
+    },
+  ];
+};
+
+const getPaperInventoryForUpdate = async (transaction, paperType) => {
+  const result = await request(transaction)
+    .input("PaperType", sql.VarChar(10), paperType)
+    .query(`
+      SELECT InventoryId, PaperType, CurrentStock
+      FROM dbo.PaperInventory WITH (UPDLOCK, HOLDLOCK)
+      WHERE PaperType = @PaperType;
+    `);
+  return result.recordset[0] || null;
+};
+
+const deductPaperInventory = async (
+  transaction,
+  inventoryId,
+  quantity
+) => {
+  await request(transaction)
     .input("InventoryId", sql.Int, inventoryId)
     .input("Quantity", sql.Int, quantity)
     .query(`
-      UPDATE PaperInventory
-      SET
-        CurrentStock = CurrentStock - @Quantity,
-        LastUpdated = GETDATE()
+      UPDATE dbo.PaperInventory
+      SET CurrentStock = CurrentStock - @Quantity, LastUpdated = GETDATE()
       WHERE InventoryId = @InventoryId
+        AND CurrentStock >= @Quantity;
     `);
 };
 
@@ -547,18 +456,17 @@ const insertInventoryTransaction = async (
     createdBy,
   }
 ) => {
-  await new sql.Request(transaction)
+  await request(transaction)
     .input("PaperType", sql.VarChar(10), paperType)
     .input("TransactionType", sql.VarChar(50), transactionType)
     .input("Quantity", sql.Int, quantity)
     .input("PreviousStock", sql.Int, previousStock)
     .input("NewStock", sql.Int, newStock)
     .input("ReferenceId", sql.Int, referenceId)
-    .input("Remarks", sql.VarChar(255), remarks)
+    .input("Remarks", sql.VarChar(255), String(remarks || "").slice(0, 255))
     .input("CreatedBy", sql.Int, createdBy)
     .query(`
-      INSERT INTO InventoryTransactions
-      (
+      INSERT INTO dbo.InventoryTransactions (
         PaperType,
         TransactionType,
         Quantity,
@@ -566,10 +474,10 @@ const insertInventoryTransaction = async (
         NewStock,
         ReferenceId,
         Remarks,
-        CreatedBy
+        CreatedBy,
+        CreatedAt
       )
-      VALUES
-      (
+      VALUES (
         @PaperType,
         @TransactionType,
         @Quantity,
@@ -577,23 +485,39 @@ const insertInventoryTransaction = async (
         @NewStock,
         @ReferenceId,
         @Remarks,
-        @CreatedBy
-      )
+        @CreatedBy,
+        GETDATE()
+      );
     `);
 };
 
-const markRequestCompleted = async (transaction, requestId) => {
-  await new sql.Request(transaction)
+const insertJobConsumption = async (
+  transaction,
+  { requestId, paperType, expectedSheets, actualSheets, recordedBy }
+) => {
+  await request(transaction)
     .input("RequestId", sql.Int, requestId)
-    .input("Status", sql.NVarChar(50), PRINTING_STATUSES.COMPLETED)
+    .input("PaperType", sql.VarChar(10), paperType)
+    .input("ExpectedSheets", sql.Int, expectedSheets)
+    .input("ActualSheets", sql.Int, actualSheets)
+    .input("RecordedBy", sql.Int, recordedBy)
     .query(`
-      UPDATE PhotocopyRequests
-      SET
-        Status = @Status,
-        CurrentApproverId = NULL,
-        CompletedAt = GETDATE(),
-        UpdatedAt = GETDATE()
-      WHERE RequestId = @RequestId
+      INSERT INTO dbo.PrintingJobConsumptions (
+        RequestId,
+        PaperType,
+        ExpectedSheets,
+        ActualSheets,
+        RecordedBy,
+        RecordedAt
+      )
+      VALUES (
+        @RequestId,
+        @PaperType,
+        @ExpectedSheets,
+        @ActualSheets,
+        @RecordedBy,
+        GETDATE()
+      );
     `);
 };
 
@@ -608,16 +532,15 @@ const insertPrintingLog = async (
     printerAssetId = null,
   }
 ) => {
-  await new sql.Request(transaction)
+  await request(transaction)
     .input("RequestId", sql.Int, requestId)
     .input("PrintedBy", sql.Int, printedBy)
     .input("PrinterAssetId", sql.Int, printerAssetId)
     .input("PrintedPages", sql.Int, printedPages)
     .input("PrintedSheets", sql.Int, printedSheets)
-    .input("Remarks", sql.NVarChar, remarks)
+    .input("Remarks", sql.NVarChar(sql.MAX), remarks)
     .query(`
-      INSERT INTO PrintingLogs
-      (
+      INSERT INTO dbo.PrintingLogs (
         RequestId,
         PrintedBy,
         PrinterAssetId,
@@ -626,8 +549,7 @@ const insertPrintingLog = async (
         Remarks,
         PrintedAt
       )
-      VALUES
-      (
+      VALUES (
         @RequestId,
         @PrintedBy,
         @PrinterAssetId,
@@ -635,84 +557,149 @@ const insertPrintingLog = async (
         @PrintedSheets,
         @Remarks,
         GETDATE()
-      )
+      );
     `);
 };
 
-// ============================================================
-// History
-// ============================================================
+const insertWorkflowEvent = async (
+  transaction,
+  {
+    requestId,
+    eventType,
+    fromStatus,
+    toStatus,
+    actorUserId,
+    remarks = null,
+    metadata = null,
+  }
+) => {
+  await request(transaction)
+    .input("RequestId", sql.Int, requestId)
+    .input("EventType", sql.NVarChar(50), eventType)
+    .input("FromStatus", sql.NVarChar(50), fromStatus)
+    .input("ToStatus", sql.NVarChar(50), toStatus)
+    .input("ActorUserId", sql.Int, actorUserId)
+    .input("Remarks", sql.NVarChar(sql.MAX), remarks)
+    .input(
+      "MetadataJson",
+      sql.NVarChar(sql.MAX),
+      metadata ? JSON.stringify(metadata) : null
+    )
+    .query(`
+      INSERT INTO dbo.PrintingWorkflowEvents (
+        RequestId,
+        EventType,
+        FromStatus,
+        ToStatus,
+        ActorUserId,
+        ActorAssignmentKey,
+        Remarks,
+        MetadataJson,
+        CreatedAt
+      )
+      VALUES (
+        @RequestId,
+        @EventType,
+        @FromStatus,
+        @ToStatus,
+        @ActorUserId,
+        'PRINTING_OPERATOR',
+        @Remarks,
+        @MetadataJson,
+        GETDATE()
+      );
+    `);
+};
 
-const getPrintingHistory = async () => {
-  const result = await executeQuery(
-    `
-    SELECT
-      pl.PrintingLogId,
-      pl.RequestId,
-      pl.PrintedBy,
-      pl.PrinterAssetId,
-      pl.PrintedPages,
-      pl.PrintedSheets,
-      pl.Remarks,
-      pl.PrintedAt,
+const getPrintingHistory = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT
+        printingLog.PrintingLogId,
+        printingLog.RequestId,
+        printingLog.PrintedBy,
+        printingLog.PrinterAssetId,
+        printingLog.PrintedPages,
+        printingLog.PrintedSheets,
+        printingLog.Remarks,
+        printingLog.PrintedAt,
+        printingRequest.RequestNumber,
+        printingRequest.Status,
+        printingRequest.PaperSize,
+        printingRequest.PrintType,
+        printingRequest.PrintSide,
+        printingRequest.Copies,
+        printingRequest.TotalPages,
+        printingRequest.TotalSheets,
+        printingRequest.CompletedAt,
+        operator.FullName AS PrintedByName,
+        requester.FullName AS TeacherName,
+        requester.EmployeeId AS TeacherEmployeeId,
+        department.DepartmentName,
+        subject.SubjectName,
+        purpose.PurposeName
+      FROM dbo.PrintingLogs printingLog
+      JOIN dbo.PhotocopyRequests printingRequest
+        ON printingRequest.RequestId = printingLog.RequestId
+      LEFT JOIN dbo.Users operator ON operator.UserId = printingLog.PrintedBy
+      LEFT JOIN dbo.Users requester ON requester.UserId = printingRequest.TeacherId
+      LEFT JOIN dbo.Departments department
+        ON department.DepartmentId = printingRequest.DepartmentId
+      LEFT JOIN dbo.Subjects subject ON subject.SubjectId = printingRequest.SubjectId
+      LEFT JOIN dbo.Purposes purpose ON purpose.PurposeId = printingRequest.PurposeId
+      WHERE printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL
+      ORDER BY printingLog.PrintedAt DESC;
+    `);
+  return result.recordset;
+};
 
-      r.RequestNumber,
-      r.Status,
-      r.PaperSize,
-      r.PrintType,
-      r.PrintSide,
-      r.Copies,
-      r.TotalPages,
-      r.TotalSheets,
-      r.CompletedAt,
-
-      operator.FullName AS PrintedByName,
-      teacher.FullName AS TeacherName,
-      teacher.EmployeeId AS TeacherEmployeeId,
-
-      d.DepartmentName,
-      s.SubjectName,
-      p.PurposeName
-    FROM PrintingLogs pl
-    INNER JOIN PhotocopyRequests r
-      ON pl.RequestId = r.RequestId
-    LEFT JOIN Users operator
-      ON pl.PrintedBy = operator.UserId
-    LEFT JOIN Users teacher
-      ON r.TeacherId = teacher.UserId
-    LEFT JOIN Departments d
-      ON r.DepartmentId = d.DepartmentId
-    LEFT JOIN Subjects s
-      ON r.SubjectId = s.SubjectId
-    LEFT JOIN Purposes p
-      ON r.PurposeId = p.PurposeId
-    ORDER BY pl.PrintedAt DESC
-    `
-  );
-
-  return rows(result);
+const listManagedRequests = async (schoolId) => {
+  const pool = await poolPromise;
+  const result = await pool
+    .request()
+    .input("SchoolId", sql.Int, schoolId)
+    .query(`
+      SELECT ${PRINTING_REQUEST_SELECT}
+      FROM dbo.PhotocopyRequests printingRequest
+      LEFT JOIN dbo.Users requester ON requester.UserId = printingRequest.TeacherId
+      LEFT JOIN dbo.Departments department
+        ON department.DepartmentId = printingRequest.DepartmentId
+      LEFT JOIN dbo.Sections sectionRecord
+        ON sectionRecord.SectionId = printingRequest.SectionId
+      LEFT JOIN dbo.Subjects subject ON subject.SubjectId = printingRequest.SubjectId
+      LEFT JOIN dbo.Purposes purpose ON purpose.PurposeId = printingRequest.PurposeId
+      LEFT JOIN dbo.Users claimedBy ON claimedBy.UserId = printingRequest.ClaimedByUserId
+      WHERE printingRequest.IsDeleted = 0
+        AND (printingRequest.SchoolId = @SchoolId OR printingRequest.SchoolId IS NULL)
+      ORDER BY printingRequest.SubmittedAt DESC, printingRequest.RequestId DESC;
+    `);
+  return result.recordset;
 };
 
 module.exports = {
+  sql,
+  beginTransaction,
   getDashboardKpis,
   getDashboardInventory,
   getDashboardJobStatus,
+  getDashboardActivity,
+  getDashboardPaperUsage,
   getTopDepartmentsThisMonth,
   getRecentPrintJobs,
-
   getPrintingQueue,
   getPrintingRequestById,
-  getRequestForWorkflow,
-
-  markAsPrinting,
-  markAsOnHold,
-  markAsCancelled,
-
+  getQueueRequestForUpdate,
+  updateQueueState,
+  getExpectedConsumptions,
   getPaperInventoryForUpdate,
   deductPaperInventory,
   insertInventoryTransaction,
-  markRequestCompleted,
+  insertJobConsumption,
   insertPrintingLog,
-
+  insertWorkflowEvent,
   getPrintingHistory,
+  listManagedRequests,
 };

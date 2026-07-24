@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 const itAssetLookupRoutes = require("./lookup/routes/itAssetLookupRoutes");
 const itAssetRoutes = require("./asset/routes/itAssetRoutes");
@@ -26,7 +26,7 @@ const assetAuditRoutes = require("./audit/routes/assetAuditRoutes");
 // Every IT Asset endpoint requires an authenticated platform session.
 // Workflow-specific routes add their existing action authorization on top.
 router.use(protect);
-router.use(requirePermission("it_assets.assets.view"));
+router.use(requireActiveWorkspace);
 
 router.use("/audit", assetAuditRoutes);
 

@@ -67,6 +67,13 @@ const resolveUploadDestination = (req) => {
     return path.join("uploads", "printing", "attachments");
   }
 
+  if (
+    url.includes("/printing/requests/") &&
+    url.includes("/attachments")
+  ) {
+    return path.join("uploads", "printing", "attachments");
+  }
+
   return path.join("uploads", "general");
 };
 

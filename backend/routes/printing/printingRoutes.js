@@ -18,7 +18,7 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ const router = express.Router();
 router.get(
   "/dashboard",
   protect,
-  requirePermission("printing.dashboard.view"),
+  requireActiveWorkspace,
   getPrintingDashboard
 );
 
@@ -41,7 +41,7 @@ router.get(
 router.get(
   "/history",
   protect,
-  requirePermission("printing.history.view"),
+  requireActiveWorkspace,
   getPrintingHistory
 );
 
@@ -52,7 +52,7 @@ router.get(
 router.get(
   "/inventory-transactions",
   protect,
-  requirePermission("printing.inventory.view"),
+  requireActiveWorkspace,
   getInventoryTransactions
 );
 
@@ -63,7 +63,7 @@ router.get(
 router.get(
   "/requests",
   protect,
-  requirePermission("printing.queue.view"),
+  requireActiveWorkspace,
   getPrintingRequests
 );
 
@@ -74,7 +74,7 @@ router.get(
 router.get(
   "/requests/:id",
   protect,
-  requirePermission("printing.request.view"),
+  requireActiveWorkspace,
   getPrintingRequestById
 );
 
@@ -85,7 +85,7 @@ router.get(
 router.put(
   "/requests/:id/start",
   protect,
-  requirePermission("printing.request.start"),
+  requireActiveWorkspace,
   startPrinting
 );
 
@@ -96,7 +96,7 @@ router.put(
 router.put(
   "/requests/:id/complete",
   protect,
-  requirePermission("printing.request.complete"),
+  requireActiveWorkspace,
   completePrinting
 );
 

@@ -80,6 +80,7 @@ const validateCompletePrinting = asyncHandler(async (req, res, next) => {
   const {
     remarks,
     actualPrintedSheets,
+    actualConsumptions,
     printerAssetId,
   } = req.body || {};
 
@@ -103,6 +104,22 @@ const validateCompletePrinting = asyncHandler(async (req, res, next) => {
     return sendError(
       res,
       "Actual printed sheets must be a positive whole number.",
+      400
+    );
+  }
+
+  if (
+    actualConsumptions !== undefined &&
+    actualConsumptions !== null &&
+    (typeof actualConsumptions !== "object" ||
+      Array.isArray(actualConsumptions) ||
+      Object.values(actualConsumptions).some(
+        (value) => !isPositiveInteger(value)
+      ))
+  ) {
+    return sendError(
+      res,
+      "Actual consumptions must contain positive whole-number paper quantities.",
       400
     );
   }

@@ -47,8 +47,12 @@ import resolveAssetLookups from "../utils/resolveAssetLookups";
 const isAssigned = (asset) =>
   Boolean(
     asset?.CurrentAssignedUserId ||
-      asset?.CurrentAssignedName ||
-      asset?.CurrentRoomId
+    asset?.CurrentAssignedName ||
+    asset?.CurrentAssignedEmployeeCode ||
+    asset?.CurrentAssignedEmail ||
+    asset?.CurrentRoomId ||
+    asset?.CurrentDepartmentId ||
+    asset?.CurrentLocationId
   );
 
 const Detail = ({ label, value }) => (
@@ -68,8 +72,11 @@ const AssetDetails = () => {
   const { assetId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const role = user?.roleKey || user?.role;
-  const canManageLifecycle = ["SuperAdmin", "PlatformAdmin"].includes(role);
+  const role =
+    String(user?.roleKey || user?.role || user?.Role || "")
+      .replace(/[\s_-]/g, "")
+      .toLowerCase();
+  const canManageLifecycle = role === "superadmin" || role === "platformadmin";
 
   const [asset, setAsset] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -343,7 +350,7 @@ const AssetDetails = () => {
                           variant="outlined"
                           color="warning"
                           startIcon={<BuildOutlinedIcon />}
-                          disabled={disposed}
+                          disabled={disposed || maintenanceUnfinished}
                           onClick={() => openDialog("maintenance")}
                           sx={{ justifyContent: "flex-start" }}
                         >
@@ -354,7 +361,7 @@ const AssetDetails = () => {
                           variant="outlined"
                           color="error"
                           startIcon={<DeleteOutlineOutlinedIcon />}
-                          disabled={disposed}
+                          disabled={disposed || maintenanceUnfinished}
                           onClick={() => openDialog("disposal")}
                           sx={{ justifyContent: "flex-start" }}
                         >

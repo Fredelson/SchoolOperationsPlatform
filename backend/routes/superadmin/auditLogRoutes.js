@@ -10,15 +10,14 @@ const {
   getAuditLogs,
 } = require("../../controllers/superadmin/auditLogController");
 
-const { protect,authorizeRoles } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
+
 
 // GET /api/superadmin/audit-logs
 router.get(
   "/",
   protect,
-  authorizeRoles("SuperAdmin","PlatformAdmin"),
-  requirePermission("AuditLog.View"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   getAuditLogs
 );
 

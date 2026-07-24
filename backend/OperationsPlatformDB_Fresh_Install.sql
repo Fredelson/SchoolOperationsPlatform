@@ -78,6 +78,10 @@ CREATE TABLE [dbo].[PhotocopyRequests](
 	[DeletedAt] [datetime] NULL,
 	[DeletedBy] [int] NULL,
 	[SchoolId] [int] NULL,
+	[SubmittedByAssignmentKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ClaimedByUserId] [int] NULL,
+	[ClaimedAt] [datetime] NULL,
+	[WorkflowVersion] [int] NOT NULL CONSTRAINT [DF_PhotocopyRequests_WorkflowVersion] DEFAULT ((1)),
 PRIMARY KEY CLUSTERED 
 (
 	[RequestId] ASC
@@ -101,7 +105,17 @@ SELECT
     YEAR(SubmittedAt) AS YearNumber,
     SUM(TotalSheets) AS UsedSheets
 FROM dbo.PhotocopyRequests
-WHERE Status IN ('Approved by HOD', 'Approved by HOS', 'Printing', 'Completed')
+    WHERE Status IN (
+      'Pending HOS Approval',
+      'Forwarded to HOS',
+      'Approved by HOD',
+      'Approved by HOS',
+      'Forwarded to Printing',
+      'Queued for Printing',
+      'Printing',
+      'On Hold',
+      'Completed'
+    )
 GROUP BY DepartmentId, MONTH(SubmittedAt), YEAR(SubmittedAt);
 GO
 /****** Object:  View [dbo].[vw_SubjectMonthlyUsage]    Script Date: 10/07/2026 12:54:05 PM ******/
@@ -118,7 +132,17 @@ SELECT
     YEAR(SubmittedAt) AS YearNumber,
     SUM(TotalSheets) AS UsedSheets
 FROM dbo.PhotocopyRequests
-WHERE Status IN ('Approved by HOD', 'Approved by HOS', 'Printing', 'Completed')
+WHERE Status IN (
+  'Pending HOS Approval',
+  'Forwarded to HOS',
+  'Approved by HOD',
+  'Approved by HOS',
+  'Forwarded to Printing',
+  'Queued for Printing',
+  'Printing',
+  'On Hold',
+  'Completed'
+)
 GROUP BY DepartmentId, SubjectId, MONTH(SubmittedAt), YEAR(SubmittedAt);
 GO
 /****** Object:  Table [dbo].[StaffImportStaging]    Script Date: 10/07/2026 12:54:05 PM ******/
@@ -524,6 +548,10 @@ CREATE TABLE [dbo].[Branding](
 	[TopbarGradientMiddle] [nvarchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[SidebarGradientPosition] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[TopbarGradientPosition] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[TopbarLogoX] [int] NULL,
+	[TopbarLogoY] [int] NULL,
+	[TopbarLogoWidth] [int] NULL,
+	[TopbarLogoHeight] [int] NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[BrandingId] ASC
@@ -2075,6 +2103,7 @@ CREATE TABLE [dbo].[PaperDistributions](
 	[DistributionId] [int] IDENTITY(1,1) NOT NULL,
 	[PaperType] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[BundlesIssued] [int] NOT NULL,
+	[SheetsPerBundle] [int] NOT NULL CONSTRAINT [DF_PaperDistributions_SheetsPerBundle] DEFAULT ((500)),
 	[IssuedTo] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[IssuedDate] [date] NOT NULL,
 	[ReceivedByName] [varchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -2112,8 +2141,10 @@ CREATE TABLE [dbo].[PaperPurchases](
 	[PurchaseId] [int] IDENTITY(1,1) NOT NULL,
 	[PaperType] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[QuantityBoxes] [int] NOT NULL,
-	[TotalBundles]  AS ([QuantityBoxes]*(5)) PERSISTED,
-	[TotalSheets]  AS (([QuantityBoxes]*(5))*(500)) PERSISTED,
+	[BundlesPerBox] [int] NOT NULL CONSTRAINT [DF_PaperPurchases_BundlesPerBox] DEFAULT ((5)),
+	[SheetsPerBundle] [int] NOT NULL CONSTRAINT [DF_PaperPurchases_SheetsPerBundle] DEFAULT ((500)),
+	[TotalBundles]  AS ([QuantityBoxes]*[BundlesPerBox]) PERSISTED,
+	[TotalSheets]  AS (([QuantityBoxes]*[BundlesPerBox])*[SheetsPerBundle]) PERSISTED,
 	[PurchaseDate] [date] NOT NULL,
 	[CreatedBy] [int] NULL,
 	[CreatedAt] [datetime] NOT NULL,
@@ -2141,25 +2172,6 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[PermissionGroups]    Script Date: 10/07/2026 12:54:05 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PermissionGroups](
-	[PermissionGroupId] [int] IDENTITY(1,1) NOT NULL,
-	[GroupKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	[GroupName] [nvarchar](150) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	[Description] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	[SortOrder] [int] NOT NULL,
-	[CreatedAt] [datetime] NOT NULL,
-	[UpdatedAt] [datetime] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[PermissionGroupId] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 /****** Object:  Table [dbo].[Permissions]    Script Date: 10/07/2026 12:54:05 PM ******/
 SET ANSI_NULLS ON
 GO
@@ -2170,7 +2182,8 @@ CREATE TABLE [dbo].[Permissions](
 	[PermissionKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[PermissionName] [nvarchar](150) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[ModuleId] [int] NOT NULL,
-	[PermissionGroupId] [int] NULL,
+	[GroupKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[GroupName] [nvarchar](150) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[Description] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[IsActive] [bit] NOT NULL,
 	[CreatedAt] [datetime] NOT NULL,
@@ -2222,6 +2235,59 @@ PRIMARY KEY CLUSTERED
 	[PrintingLogId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[PrintingWorkflowEvents] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PrintingWorkflowEvents](
+	[WorkflowEventId] [bigint] IDENTITY(1,1) NOT NULL,
+	[RequestId] [int] NOT NULL,
+	[EventType] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[FromStatus] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ToStatus] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ActorUserId] [int] NULL,
+	[ActorAssignmentKey] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Remarks] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[MetadataJson] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CreatedAt] [datetime] NOT NULL CONSTRAINT [DF_PrintingWorkflowEvents_CreatedAt] DEFAULT (GETDATE()),
+PRIMARY KEY CLUSTERED
+(
+	[WorkflowEventId] ASC
+) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PrintingWorkflowEvents_Request_CreatedAt]
+ON [dbo].[PrintingWorkflowEvents] ([RequestId] ASC, [CreatedAt] DESC)
+ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[PrintingJobConsumptions] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PrintingJobConsumptions](
+	[PrintingJobConsumptionId] [bigint] IDENTITY(1,1) NOT NULL,
+	[RequestId] [int] NOT NULL,
+	[PaperType] [varchar](10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[ExpectedSheets] [int] NOT NULL,
+	[ActualSheets] [int] NOT NULL,
+	[RecordedBy] [int] NOT NULL,
+	[RecordedAt] [datetime] NOT NULL CONSTRAINT [DF_PrintingJobConsumptions_RecordedAt] DEFAULT (GETDATE()),
+PRIMARY KEY CLUSTERED
+(
+	[PrintingJobConsumptionId] ASC
+) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PrintingJobConsumptions_Request_PaperType]
+ON [dbo].[PrintingJobConsumptions] ([RequestId] ASC, [PaperType] ASC)
+ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PrintingJobConsumptions_Request]
+ON [dbo].[PrintingJobConsumptions] ([RequestId] ASC)
+ON [PRIMARY]
 GO
 /****** Object:  Table [dbo].[Purposes]    Script Date: 10/07/2026 12:54:05 PM ******/
 SET ANSI_NULLS ON
@@ -2303,6 +2369,10 @@ CREATE TABLE [dbo].[RequestApprovals](
 	[ApprovalStatus] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	[Remarks] [nvarchar](max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	[ActionDate] [datetime] NOT NULL,
+	[AssignedAt] [datetime] NULL,
+	[StepOrder] [int] NULL,
+	[ScopeType] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[ScopeEntityId] [int] NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ApprovalId] ASC
@@ -2326,6 +2396,15 @@ CREATE TABLE [dbo].[RequestAttachments](
 	[PageCount] [int] NULL,
 	[Copies] [int] NOT NULL,
 	[TotalSheets] [int] NULL,
+	[DocumentName] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PaperSize] [nvarchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PrintType] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PrintColor] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[PagesPerSheet] [int] NOT NULL CONSTRAINT [DF_RequestAttachments_PagesPerSheet] DEFAULT ((1)),
+	[PageSelection] [nvarchar](30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[CustomPageRange] [nvarchar](255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[SelectedPages] [int] NULL,
+	[SheetsPerSet] [int] NULL,
 	[UploadedAt] [datetime] NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -22855,15 +22934,10 @@ INSERT [dbo].[PaperInventory] ([InventoryId], [PaperType], [CurrentStock], [Last
 INSERT [dbo].[PaperInventory] ([InventoryId], [PaperType], [CurrentStock], [LastUpdated]) VALUES (2, N'A3', 0, CAST(N'2026-06-27T09:11:42.040' AS DateTime))
 SET IDENTITY_INSERT [dbo].[PaperInventory] OFF
 GO
-SET IDENTITY_INSERT [dbo].[PermissionGroups] ON 
-
-INSERT [dbo].[PermissionGroups] ([PermissionGroupId], [GroupKey], [GroupName], [Description], [SortOrder], [CreatedAt], [UpdatedAt]) VALUES (1, N'platform', N'Platform', N'Platform foundation permissions', 1, CAST(N'2026-07-04T04:15:29.517' AS DateTime), NULL)
-SET IDENTITY_INSERT [dbo].[PermissionGroups] OFF
-GO
 SET IDENTITY_INSERT [dbo].[Permissions] ON 
 
-INSERT [dbo].[Permissions] ([PermissionId], [PermissionKey], [PermissionName], [ModuleId], [PermissionGroupId], [Description], [IsActive], [CreatedAt], [UpdatedAt]) VALUES (2, N'lookups.view', N'View Lookups', 1, NULL, N'Allows access to platform lookup/reference dropdown data.', 1, CAST(N'2026-06-30T22:52:51.193' AS DateTime), NULL)
-INSERT [dbo].[Permissions] ([PermissionId], [PermissionKey], [PermissionName], [ModuleId], [PermissionGroupId], [Description], [IsActive], [CreatedAt], [UpdatedAt]) VALUES (4, N'TEST_PERMISSION', N'Test Permission', 1, NULL, N'Testing Permission Manager', 0, CAST(N'2026-07-04T01:51:15.313' AS DateTime), CAST(N'2026-07-04T01:52:22.197' AS DateTime))
+INSERT [dbo].[Permissions] ([PermissionId], [PermissionKey], [PermissionName], [ModuleId], [GroupKey], [GroupName], [Description], [IsActive], [CreatedAt], [UpdatedAt]) VALUES (2, N'lookups.view', N'View Lookups', 1, N'platform', N'Platform', N'Allows access to platform lookup/reference dropdown data.', 1, CAST(N'2026-06-30T22:52:51.193' AS DateTime), NULL)
+INSERT [dbo].[Permissions] ([PermissionId], [PermissionKey], [PermissionName], [ModuleId], [GroupKey], [GroupName], [Description], [IsActive], [CreatedAt], [UpdatedAt]) VALUES (4, N'TEST_PERMISSION', N'Test Permission', 1, N'platform', N'Platform', N'Testing Permission Manager', 0, CAST(N'2026-07-04T01:51:15.313' AS DateTime), CAST(N'2026-07-04T01:52:22.197' AS DateTime))
 SET IDENTITY_INSERT [dbo].[Permissions] OFF
 GO
 SET IDENTITY_INSERT [dbo].[Purposes] ON 
@@ -23046,6 +23120,17 @@ INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [Set
 INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (3, 1, N'student_id.homeroom_verification_required', N'true', N'Student ID', 1, CAST(N'2026-06-27T09:11:42.290' AS DateTime))
 INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (4, 1, N'timezone', N'Asia/Dubai', N'General', 1, CAST(N'2026-06-27T09:11:42.290' AS DateTime))
 INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (5, 1, N'currency', N'AED', N'General', 1, CAST(N'2026-06-27T09:11:42.290' AS DateTime))
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (6, 1, N'printing.require_hod_approval', N'true', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (7, 1, N'printing.hod_self_approval', N'false', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (8, 1, N'printing.queue.assignment_mode', N'shared', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (9, 1, N'printing.request.allow_return', N'true', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (10, 1, N'printing.request.allow_cancel_before_printing', N'true', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (11, 1, N'printing.inventory.bundle_sheets', N'500', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (12, 1, N'printing.inventory.bundles_per_box', N'5', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (13, 1, N'printing.inventory.low_stock_a4', N'3000', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (14, 1, N'printing.inventory.low_stock_a3', N'1500', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (15, 1, N'printing.upload.max_mb', N'20', N'Printing', 1, GETDATE())
+INSERT [dbo].[SchoolSettings] ([SchoolSettingId], [SchoolId], [SettingKey], [SettingValue], [SettingGroup], [IsEditable], [UpdatedAt]) VALUES (16, 1, N'printing.upload.allowed_extensions', N'pdf,docx,pptx,jpg,jpeg,png', N'Printing', 1, GETDATE())
 SET IDENTITY_INSERT [dbo].[SchoolSettings] OFF
 GO
 SET IDENTITY_INSERT [dbo].[Sections] ON 
@@ -24338,15 +24423,7 @@ ALTER TABLE [dbo].[PasswordResetTokens] ADD UNIQUE NONCLUSTERED
 GO
 SET ANSI_PADDING ON
 GO
-/****** Object:  Index [UQ__Permissi__36BB80D241145D70]    Script Date: 10/07/2026 12:54:07 PM ******/
-ALTER TABLE [dbo].[PermissionGroups] ADD UNIQUE NONCLUSTERED 
-(
-	[GroupKey] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-GO
-SET ANSI_PADDING ON
-GO
-/****** Object:  Index [UQ__Permissi__8884ABD43CD52964]    Script Date: 10/07/2026 12:54:07 PM ******/
+/****** Object:  Index [UQ__Permissions__36BB80D241145D70]    Script Date: 10/07/2026 12:54:07 PM ******/
 ALTER TABLE [dbo].[Permissions] ADD UNIQUE NONCLUSTERED 
 (
 	[PermissionKey] ASC
@@ -24390,6 +24467,16 @@ CREATE NONCLUSTERED INDEX [IX_PhotocopyRequests_Status_SubmittedAt] ON [dbo].[Ph
 	[Status] ASC,
 	[SubmittedAt] DESC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_PhotocopyRequests_Queue] ******/
+CREATE NONCLUSTERED INDEX [IX_PhotocopyRequests_Queue] ON [dbo].[PhotocopyRequests]
+(
+	[Status] ASC,
+	[ClaimedByUserId] ASC,
+	[SubmittedAt] DESC
+)
+INCLUDE([RequestNumber],[DepartmentId],[SubjectId],[TotalSheets],[DueDate])
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 /****** Object:  Index [IX_PhotocopyRequests_Teacher_SubmittedAt]    Script Date: 10/07/2026 12:54:07 PM ******/
 CREATE NONCLUSTERED INDEX [IX_PhotocopyRequests_Teacher_SubmittedAt] ON [dbo].[PhotocopyRequests]
@@ -25292,13 +25379,13 @@ ALTER TABLE [dbo].[PaperPurchases] ADD  DEFAULT (getdate()) FOR [CreatedAt]
 GO
 ALTER TABLE [dbo].[PasswordResetTokens] ADD  DEFAULT (getdate()) FOR [CreatedAt]
 GO
-ALTER TABLE [dbo].[PermissionGroups] ADD  DEFAULT ((0)) FOR [SortOrder]
-GO
-ALTER TABLE [dbo].[PermissionGroups] ADD  DEFAULT (getdate()) FOR [CreatedAt]
-GO
 ALTER TABLE [dbo].[Permissions] ADD  DEFAULT ((1)) FOR [IsActive]
 GO
 ALTER TABLE [dbo].[Permissions] ADD  DEFAULT (getdate()) FOR [CreatedAt]
+GO
+ALTER TABLE [dbo].[Permissions] ADD  DEFAULT ('platform') FOR [GroupKey]
+GO
+ALTER TABLE [dbo].[Permissions] ADD  DEFAULT ('Platform') FOR [GroupName]
 GO
 ALTER TABLE [dbo].[PhotocopyRequests] ADD  DEFAULT ('Normal') FOR [PriorityLevel]
 GO
@@ -26495,15 +26582,15 @@ REFERENCES [dbo].[Modules] ([ModuleId])
 GO
 ALTER TABLE [dbo].[Permissions] CHECK CONSTRAINT [FK_Permissions_Modules]
 GO
-ALTER TABLE [dbo].[Permissions]  WITH CHECK ADD  CONSTRAINT [FK_Permissions_PermissionGroups] FOREIGN KEY([PermissionGroupId])
-REFERENCES [dbo].[PermissionGroups] ([PermissionGroupId])
-GO
-ALTER TABLE [dbo].[Permissions] CHECK CONSTRAINT [FK_Permissions_PermissionGroups]
-GO
 ALTER TABLE [dbo].[PhotocopyRequests]  WITH CHECK ADD  CONSTRAINT [FK_PhotocopyRequests_CurrentApprover] FOREIGN KEY([CurrentApproverId])
 REFERENCES [dbo].[Users] ([UserId])
 GO
 ALTER TABLE [dbo].[PhotocopyRequests] CHECK CONSTRAINT [FK_PhotocopyRequests_CurrentApprover]
+GO
+ALTER TABLE [dbo].[PhotocopyRequests]  WITH CHECK ADD  CONSTRAINT [FK_PhotocopyRequests_ClaimedBy] FOREIGN KEY([ClaimedByUserId])
+REFERENCES [dbo].[Users] ([UserId])
+GO
+ALTER TABLE [dbo].[PhotocopyRequests] CHECK CONSTRAINT [FK_PhotocopyRequests_ClaimedBy]
 GO
 ALTER TABLE [dbo].[PhotocopyRequests]  WITH CHECK ADD  CONSTRAINT [FK_PhotocopyRequests_DeletedBy] FOREIGN KEY([DeletedBy])
 REFERENCES [dbo].[Users] ([UserId])
@@ -26554,6 +26641,26 @@ ALTER TABLE [dbo].[PrintingLogs]  WITH CHECK ADD  CONSTRAINT [FK_PrintingLogs_Pr
 REFERENCES [dbo].[Users] ([UserId])
 GO
 ALTER TABLE [dbo].[PrintingLogs] CHECK CONSTRAINT [FK_PrintingLogs_PrintedBy]
+GO
+ALTER TABLE [dbo].[PrintingWorkflowEvents]  WITH CHECK ADD  CONSTRAINT [FK_PrintingWorkflowEvents_Request] FOREIGN KEY([RequestId])
+REFERENCES [dbo].[PhotocopyRequests] ([RequestId])
+GO
+ALTER TABLE [dbo].[PrintingWorkflowEvents] CHECK CONSTRAINT [FK_PrintingWorkflowEvents_Request]
+GO
+ALTER TABLE [dbo].[PrintingWorkflowEvents]  WITH CHECK ADD  CONSTRAINT [FK_PrintingWorkflowEvents_Actor] FOREIGN KEY([ActorUserId])
+REFERENCES [dbo].[Users] ([UserId])
+GO
+ALTER TABLE [dbo].[PrintingWorkflowEvents] CHECK CONSTRAINT [FK_PrintingWorkflowEvents_Actor]
+GO
+ALTER TABLE [dbo].[PrintingJobConsumptions]  WITH CHECK ADD  CONSTRAINT [FK_PrintingJobConsumptions_Request] FOREIGN KEY([RequestId])
+REFERENCES [dbo].[PhotocopyRequests] ([RequestId])
+GO
+ALTER TABLE [dbo].[PrintingJobConsumptions] CHECK CONSTRAINT [FK_PrintingJobConsumptions_Request]
+GO
+ALTER TABLE [dbo].[PrintingJobConsumptions]  WITH CHECK ADD  CONSTRAINT [FK_PrintingJobConsumptions_User] FOREIGN KEY([RecordedBy])
+REFERENCES [dbo].[Users] ([UserId])
+GO
+ALTER TABLE [dbo].[PrintingJobConsumptions] CHECK CONSTRAINT [FK_PrintingJobConsumptions_User]
 GO
 ALTER TABLE [dbo].[PrintingLogs]  WITH CHECK ADD  CONSTRAINT [FK_PrintingLogs_PrinterAsset] FOREIGN KEY([PrinterAssetId])
 REFERENCES [dbo].[ITAssets] ([AssetId])

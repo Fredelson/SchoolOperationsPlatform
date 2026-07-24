@@ -32,7 +32,12 @@ export default function LoginPage() {
   const theme = useTheme();
   const navigate = useNavigate();
 
-  const { login } = useAuth();
+  const {
+    login,
+    logout,
+    user,
+    completeRequiredPasswordChange,
+  } = useAuth();
   const { branding } = useBranding();
 
   const school = branding?.school || {};
@@ -40,7 +45,14 @@ export default function LoginPage() {
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordChangeUser, setPasswordChangeUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const requiresPasswordChange = Boolean(
+    passwordChangeUser || user?.mustChangePassword
+  );
 
   // ============================================
   // Redirect User Based On Role
@@ -48,10 +60,12 @@ export default function LoginPage() {
 
   const redirectToWorkspace = (defaultWorkspaceRoute) => {
     if (defaultWorkspaceRoute?.startsWith("/")) {
-      navigate(defaultWorkspaceRoute,{replace:true});
+      navigate(defaultWorkspaceRoute, { replace: true });
       return;
     }
-    throw new Error("No active workspace landing page is configured for this account.");
+
+    // Fallback to profile when workspace landing route is missing or invalid.
+    navigate("/profile", { replace: true });
   };
 
   // ============================================
@@ -61,14 +75,65 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
 
     try {
       const loggedUser = await login(identifier.trim(), password);
+      if (loggedUser.mustChangePassword) {
+        setPasswordChangeUser(loggedUser);
+        setPassword("");
+        return;
+      }
       redirectToWorkspace(loggedUser.defaultWorkspaceRoute);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message||err.message||"Unable to sign in.");
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const handleRequiredPasswordChange = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (newPassword !== confirmPassword) {
+      setError("New password confirmation does not match.");
+      return;
+    }
+
+    const validPassword = newPassword.length >= 8;
+
+    if (!validPassword) {
+      setError("Your first password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const refreshedUser = await completeRequiredPasswordChange({
+        newPassword,
+      });
+      setPasswordChangeUser(null);
+      setNewPassword("");
+      setConfirmPassword("");
+      redirectToWorkspace(refreshedUser.defaultWorkspaceRoute);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message||err.message||"Unable to change password.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUseAnotherAccount = () => {
+    logout();
+    setPasswordChangeUser(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setIdentifier("");
+    setPassword("");
+    setError("");
   };
 
   // ============================================
@@ -124,7 +189,9 @@ export default function LoginPage() {
               lineHeight: 1.15,
             }}
           >
-            {brand.loginTitle || school.schoolName || "Arab Unity School"}
+            {requiresPasswordChange
+              ? "Change Your Password"
+              : brand.loginTitle || school.schoolName || "Arab Unity School"}
           </Typography>
 
           <Typography
@@ -134,7 +201,9 @@ export default function LoginPage() {
               mb: 3,
             }}
           >
-            {brand.loginSubtitle || "Operations Platform"}
+            {requiresPasswordChange
+              ? "Required before your first workspace access"
+              : brand.loginSubtitle || "Operations Platform"}
           </Typography>
 
           {error && (
@@ -143,51 +212,110 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="ID Number or Email"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username"
-              margin="normal"
-            />
+          {requiresPasswordChange ? (
+            <Box component="form" onSubmit={handleRequiredPasswordChange}>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                You must replace your temporary password before continuing.
+              </Alert>
 
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              margin="normal"
-            />
+              <TextField
+                fullWidth
+                label="New password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                helperText="At least 8 characters."
+                margin="normal"
+              />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{
-                mt: 3,
-                height: 55,
-                fontSize: 18,
-                fontWeight: 800,
-                borderRadius: theme.shape.borderRadius,
-                bgcolor: theme.palette.primary.main,
-                color: theme.palette.primary.contrastText,
+              <TextField
+                fullWidth
+                label="Confirm new password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                margin="normal"
+              />
 
-                "&:hover": {
-                  bgcolor: theme.palette.primary.dark,
-                  boxShadow: `0 8px 20px ${alpha(
-                    theme.palette.primary.main,
-                    0.28
-                  )}`,
-                },
-              }}
-            >
-              LOGIN
-            </Button>
-          </Box>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={
+                  submitting ||
+                  !newPassword ||
+                  !confirmPassword
+                }
+                sx={{
+                  mt: 3,
+                  height: 55,
+                  fontSize: 17,
+                  fontWeight: 800,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                {submitting ? "CHANGING..." : "CHANGE PASSWORD"}
+              </Button>
+
+              <Button
+                fullWidth
+                onClick={handleUseAnotherAccount}
+                disabled={submitting}
+                sx={{ mt: 1 }}
+              >
+                Use another account
+              </Button>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                fullWidth
+                label="ID Number or Email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username"
+                margin="normal"
+              />
+
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                margin="normal"
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={submitting || !identifier.trim() || !password}
+                sx={{
+                  mt: 3,
+                  height: 55,
+                  fontSize: 18,
+                  fontWeight: 800,
+                  borderRadius: theme.shape.borderRadius,
+                  bgcolor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+
+                  "&:hover": {
+                    bgcolor: theme.palette.primary.dark,
+                    boxShadow: `0 8px 20px ${alpha(
+                      theme.palette.primary.main,
+                      0.28
+                    )}`,
+                  },
+                }}
+              >
+                {submitting ? "SIGNING IN..." : "LOGIN"}
+              </Button>
+            </Box>
+          )}
 
           <Typography
             sx={{

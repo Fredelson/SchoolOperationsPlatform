@@ -20,6 +20,9 @@ const BRANDING_DEFAULTS = {
   sidebarColor: "#0B2239",
   topbarColor: "#FFFFFF",
   loginCardColor: "#FFFFFF",
+  floatingLogoX: 1200,
+  floatingLogoY: 96,
+  floatingLogoSize: 72,
 
   loginTitle: "Arab Unity School",
   loginSubtitle: "Operations Platform",

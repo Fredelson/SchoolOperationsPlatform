@@ -1,227 +1,110 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Printing Controller
-// ============================================================
-//
-// Purpose:
-// Handles HTTP requests and responses for the Printing module.
-//
-// Architecture:
-// Controller Layer
-//
-// Rules:
-// - No SQL here
-// - No business logic here
-// - Calls service layer only
-// - Uses standardized API responses
-//
-// ============================================================
-
 const asyncHandler = require("../../../shared/helpers/asyncHandler");
-
-const {
-  sendSuccess,
-} = require("../../../shared/helpers/apiResponse");
-
+const { sendSuccess } = require("../../../shared/helpers/apiResponse");
 const printingService = require("../services/printingService");
 
-// ============================================================
-// Dashboard
-// ============================================================
-
-const getPrintingDashboard = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-
-  const dashboard = await printingService.getPrintingDashboard(
-    printingAdminId
-  );
-
-  return sendSuccess(
+const getPrintingDashboard = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    "Printing dashboard loaded successfully.",
-    dashboard
-  );
-});
+    "Printing dashboard loaded.",
+    await printingService.getPrintingDashboard(req.printingActor)
+  )
+);
 
-// ============================================================
-// Queue
-// ============================================================
-
-const getPrintingQueue = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-
-  const queue = await printingService.getPrintingQueue(printingAdminId);
-
-  return sendSuccess(
+const getPrintingQueue = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    "Printing queue loaded successfully.",
-    queue
-  );
-});
+    "Printing queue loaded.",
+    await printingService.getPrintingQueue(req.printingActor)
+  )
+);
 
-// ============================================================
-// Single Request Details
-// ============================================================
-
-const getPrintingRequestById = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-
-  const request = await printingService.getPrintingRequestById(
-    requestId,
-    printingAdminId
-  );
-
-  return sendSuccess(
+const getPrintingRequestById = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    "Printing request loaded successfully.",
-    request
-  );
-});
+    "Printing request loaded.",
+    await printingService.getPrintingRequestById(
+      req.printingActor,
+      Number(req.params.id)
+    )
+  )
+);
 
-// ============================================================
-// Start Printing
-// ============================================================
-
-const startPrinting = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-
-  const result = await printingService.startPrinting(
-    requestId,
-    printingAdminId
-  );
-
-  return sendSuccess(
+const claimPrinting = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    result.message,
-    result.request
+    "Printing request claimed.",
+    await printingService.claimPrinting(
+      req.printingActor,
+      Number(req.params.id)
+    )
+  )
+);
+
+const runTransition = (action, message) =>
+  asyncHandler(async (req, res) =>
+    sendSuccess(
+      res,
+      message,
+      await printingService.transitionPrinting(
+        req.printingActor,
+        Number(req.params.id),
+        { action, remarks: req.body?.remarks }
+      )
+    )
   );
-});
 
-// ============================================================
-// Hold Printing
-// ============================================================
+const startPrinting = runTransition("start", "Printing started.");
+const holdPrinting = runTransition("hold", "Printing request placed on hold.");
+const resumePrinting = runTransition("resume", "Printing resumed.");
+const cancelPrinting = runTransition("cancel", "Printing request cancelled.");
 
-const holdPrinting = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-  const { remarks } = req.body || {};
-
-  const result = await printingService.holdPrinting(
-    requestId,
-    printingAdminId,
-    remarks
-  );
-
-  return sendSuccess(
+const completePrinting = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    result.message,
-    result.request
-  );
-});
+    "Printing completed and inventory deducted.",
+    await printingService.completePrinting(
+      req.printingActor,
+      Number(req.params.id),
+      req.body || {}
+    )
+  )
+);
 
-// ============================================================
-// Resume Printing
-// ============================================================
-
-const resumePrinting = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-
-  const result = await printingService.resumePrinting(
-    requestId,
-    printingAdminId
-  );
-
-  return sendSuccess(
+const getPrintingHistory = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    result.message,
-    result.request
-  );
-});
+    "Printing history loaded.",
+    await printingService.getPrintingHistory(req.printingActor)
+  )
+);
 
-// ============================================================
-// Cancel Printing
-// ============================================================
-
-const cancelPrinting = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-  const { remarks } = req.body || {};
-
-  const result = await printingService.cancelPrinting(
-    requestId,
-    printingAdminId,
-    remarks
-  );
-
-  return sendSuccess(
+const listManagedRequests = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    result.message,
-    result.request
-  );
-});
+    "Printing requests loaded.",
+    await printingService.listManagedRequests(req.printingActor)
+  )
+);
 
-// ============================================================
-// Complete Printing
-// ============================================================
-
-const completePrinting = asyncHandler(async (req, res) => {
-  const printingAdminId = req.user.id;
-  const requestId = Number(req.params.id);
-
-  const {
-    remarks,
-    actualPrintedSheets,
-    printerAssetId,
-  } = req.body || {};
-
-  const result = await printingService.completePrinting(
-    requestId,
-    printingAdminId,
-    {
-      remarks,
-      actualPrintedSheets,
-      printerAssetId,
-    }
-  );
-
-  return sendSuccess(
+const getPrintingReport = asyncHandler(async (req, res) =>
+  sendSuccess(
     res,
-    result.message,
-    result
-  );
-});
-
-// ============================================================
-// History
-// ============================================================
-
-const getPrintingHistory = asyncHandler(async (req, res) => {
-  const history = await printingService.getPrintingHistory();
-
-  return sendSuccess(
-    res,
-    "Printing history loaded successfully.",
-    history
-  );
-});
-
-// ============================================================
-// Exports
-// ============================================================
+    "Printing report loaded.",
+    await printingService.getPrintingReport(req.printingActor)
+  )
+);
 
 module.exports = {
   getPrintingDashboard,
   getPrintingQueue,
   getPrintingRequestById,
-
+  claimPrinting,
   startPrinting,
   holdPrinting,
   resumePrinting,
   cancelPrinting,
   completePrinting,
-
   getPrintingHistory,
+  listManagedRequests,
+  getPrintingReport,
 };

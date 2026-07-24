@@ -16,6 +16,7 @@ import { Outlet } from "react-router-dom";
 
 import PlatformSidebar from "./PlatformSidebar";
 import PlatformTopbar from "./PlatformTopbar";
+import FloatingBrandLogo from "./FloatingBrandLogo";
 import { exitLiveMode } from "../../modules/super-admin/workspaces/services/workspaceService";
 
 // ============================================
@@ -55,6 +56,7 @@ export default function PlatformLayout() {
         height={TOPBAR_HEIGHT}
         onMenuClick={() => setMobileOpen((prev) => !prev)}
       />
+      <FloatingBrandLogo />
       {livePayload?.liveMode&&<Alert severity="error" variant="filled" action={<Button color="inherit" onClick={handleExitLive}>Exit Live Mode</Button>} sx={{position:"fixed",top:TOPBAR_HEIGHT,left:0,right:0,zIndex:1300,borderRadius:0}}>LIVE MODE · Acting as {livePayload.fullName} · Reason: {livePayload.reason}</Alert>}
 
       {isDesktop && (

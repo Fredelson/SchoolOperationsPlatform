@@ -79,8 +79,30 @@ const getAssets = async ({
       a.SerialIpMac,
 
       a.ITAssetStatusId,
-      s.StatusName,
-      s.StatusKey,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END AS StatusName,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusKey
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN 'Assigned'
+        ELSE 'Available'
+      END AS StatusKey,
 
       a.ITAssetConditionId,
       con.ConditionName,
@@ -202,6 +224,7 @@ const getAssets = async ({
 
 /**
  * Get all active assets for export (no pagination).
+ * Includes disposed assets for reporting purposes.
  */
 const getAssetsForExport = async () => {
   const pool = await poolPromise;
@@ -214,7 +237,18 @@ const getAssetsForExport = async () => {
       m.ModelName,
       a.ModelDescription,
       a.SerialIpMac,
-      s.StatusName,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END AS StatusName,
       con.ConditionName,
       u.FullName AS CurrentAssignedUserName,
       a.CurrentAssignedName,
@@ -249,7 +283,6 @@ const getAssetsForExport = async () => {
       ON a.CurrentLocationId = l.LocationId
     WHERE
       a.IsDeleted = 0
-      AND UPPER(ISNULL(s.StatusKey, '')) <> 'DISPOSED'
     ORDER BY a.AssetId DESC;
   `);
 
@@ -281,8 +314,30 @@ const getAssetById = async (assetId) => {
 
         m.ModelName,
 
-        s.StatusKey,
-        s.StatusName,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END AS StatusName,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusKey
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN 'Assigned'
+        ELSE 'Available'
+      END AS StatusKey,
 
         con.ConditionName,
 

@@ -21,6 +21,12 @@ export default function PrintingAnalyticsRow({
       moduleStatusData={jobStatus}
       systemHealthData={inventoryHealth}
       recentActivityData={recentJobs}
+      activityChartProps={{
+        title: "Printing Activity",
+        subtitle: "Requests submitted and jobs completed in the last 7 days",
+        secondaryDataKey: "completedJobs",
+        secondaryName: "Completed Jobs",
+      }}
     />
   );
 }

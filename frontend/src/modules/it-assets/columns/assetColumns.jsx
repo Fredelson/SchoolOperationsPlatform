@@ -16,7 +16,7 @@ const getStatusColor = (status = "") => {
   if (value.includes("available")) return "success";
   if (value.includes("assigned")) return "info";
   if (value.includes("borrowed")) return "warning";
-  if (value.includes("maintenance")) return "error";
+  if (value.includes("maintenance") || value.includes("repair")) return "warning";
   if (value.includes("disposed")) return "default";
   if (value.includes("lost")) return "error";
   if (value.includes("damaged")) return "warning";

@@ -60,10 +60,26 @@ async function getDashboardSummary(filters) {
       COUNT(*) AS TotalAssets,
       SUM(CASE WHEN a.IsActive = 1
         AND UPPER(ISNULL(s.StatusKey, '')) IN ('ASSIGNED', 'AVAILABLE') THEN 1 ELSE 0 END) AS ActiveAssets,
-      SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'ASSIGNED' THEN 1 ELSE 0 END) AS AssignedAssets,
-      SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE'
-        AND a.IsActive = 1
-        AND currentAssignment.AssetId IS NULL THEN 1 ELSE 0 END) AS AvailableAssets,
+      SUM(CASE WHEN a.IsActive = 1
+        AND (
+          a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL
+        )
+        AND UPPER(ISNULL(s.StatusKey, '')) NOT IN ('DISPOSED', 'UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED', 'READYFORDISPOSAL', 'LOST', 'STOLEN', 'ARCHIVED') THEN 1 ELSE 0 END) AS AssignedAssets,
+      SUM(CASE WHEN a.IsActive = 1
+        AND a.CurrentAssignedUserId IS NULL
+        AND a.CurrentAssignedName IS NULL
+        AND a.CurrentAssignedEmployeeCode IS NULL
+        AND a.CurrentAssignedEmail IS NULL
+        AND a.CurrentRoomId IS NULL
+        AND a.CurrentDepartmentId IS NULL
+        AND a.CurrentLocationId IS NULL
+        AND UPPER(ISNULL(s.StatusKey, '')) = 'AVAILABLE' THEN 1 ELSE 0 END) AS AvailableAssets,
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'BORROWED' THEN 1 ELSE 0 END) AS BorrowedAssets,
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('MAINTENANCE', 'UNDERMAINTENANCE') THEN 1 ELSE 0 END) AS UnderMaintenanceAssets,
       SUM(CASE WHEN UPPER(ISNULL(s.StatusKey, '')) = 'UNDERREPAIR' THEN 1 ELSE 0 END) AS UnderRepairAssets,
@@ -71,11 +87,6 @@ async function getDashboardSummary(filters) {
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
-    OUTER APPLY (
-      SELECT TOP 1 assignment.AssetId
-      FROM dbo.ITAssetAssignments assignment
-      WHERE assignment.AssetId = a.AssetId AND assignment.ReturnedAt IS NULL
-    ) currentAssignment
     WHERE a.IsDeleted = 0 ${filter.clause};
   `, filter.parameters);
 
@@ -99,16 +110,28 @@ async function getAssignmentOverview(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
     SELECT
-      CASE WHEN UPPER(s.StatusKey) = 'ASSIGNED'
+      CASE WHEN a.CurrentAssignedUserId IS NOT NULL
+        OR a.CurrentAssignedName IS NOT NULL
+        OR a.CurrentAssignedEmployeeCode IS NOT NULL
+        OR a.CurrentAssignedEmail IS NOT NULL
+        OR a.CurrentRoomId IS NOT NULL
+        OR a.CurrentDepartmentId IS NOT NULL
+        OR a.CurrentLocationId IS NOT NULL
         THEN 'Assigned' ELSE 'Available / Unassigned' END AS AssignmentType,
       COUNT(*) AS Total
     FROM dbo.ITAssets a
-    INNER JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+    LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
     WHERE a.IsDeleted = 0
       AND a.IsActive = 1
-      AND UPPER(s.StatusKey) IN ('ASSIGNED', 'AVAILABLE') ${filter.clause}
+      AND UPPER(ISNULL(s.StatusKey, '')) NOT IN ('DISPOSED', 'UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE') ${filter.clause}
     GROUP BY
-      CASE WHEN UPPER(s.StatusKey) = 'ASSIGNED'
+      CASE WHEN a.CurrentAssignedUserId IS NOT NULL
+        OR a.CurrentAssignedName IS NOT NULL
+        OR a.CurrentAssignedEmployeeCode IS NOT NULL
+        OR a.CurrentAssignedEmail IS NOT NULL
+        OR a.CurrentRoomId IS NOT NULL
+        OR a.CurrentDepartmentId IS NOT NULL
+        OR a.CurrentLocationId IS NOT NULL
         THEN 'Assigned' ELSE 'Available / Unassigned' END
     ORDER BY Total DESC;
   `, filter.parameters);
@@ -160,11 +183,31 @@ async function getTransferSummary(filters) {
 async function getDisposalSummary(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
-    SELECT UPPER(disposal.DisposalStatus) AS StatusName, COUNT(*) AS Total
-    FROM dbo.ITAssetDisposals disposal
-    INNER JOIN dbo.ITAssets a ON disposal.AssetId = a.AssetId
-    WHERE a.IsDeleted = 0 ${filter.clause}
-    GROUP BY UPPER(disposal.DisposalStatus)
+    WITH DisposalCounts AS (
+      SELECT UPPER(disposal.DisposalStatus) AS StatusName, COUNT(*) AS Total
+      FROM dbo.ITAssetDisposals disposal
+      INNER JOIN dbo.ITAssets a ON disposal.AssetId = a.AssetId
+      WHERE a.IsDeleted = 0 ${filter.clause}
+      GROUP BY UPPER(disposal.DisposalStatus)
+
+      UNION ALL
+
+      SELECT 'DISPOSED' AS StatusName, COUNT(*) AS Total
+      FROM dbo.ITAssets a
+      LEFT JOIN dbo.ITAssetStatuses assetStatus
+        ON a.ITAssetStatusId = assetStatus.ITAssetStatusId
+      WHERE a.IsDeleted = 0
+        AND UPPER(ISNULL(assetStatus.StatusKey, assetStatus.StatusName)) = 'DISPOSED'
+        AND NOT EXISTS (
+          SELECT 1 FROM dbo.ITAssetDisposals existingDisposal
+          WHERE existingDisposal.AssetId = a.AssetId
+            AND UPPER(existingDisposal.DisposalStatus) = 'DISPOSED'
+        )
+        ${filter.clause}
+    )
+    SELECT StatusName, SUM(Total) AS Total
+    FROM DisposalCounts
+    GROUP BY StatusName
     ORDER BY Total DESC;
   `, filter.parameters);
   return rows(result);
@@ -274,13 +317,36 @@ async function getAssetsByStatus(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
     SELECT
-      s.StatusName,
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END AS StatusName,
       COUNT(*) AS Total
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetStatuses s
       ON a.ITAssetStatusId = s.ITAssetStatusId
     WHERE a.IsDeleted = 0 ${filter.clause}
-    GROUP BY s.StatusName
+    GROUP BY
+      CASE
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
+          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED') THEN s.StatusName
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END
     ORDER BY Total DESC;
   `, filter.parameters);
 
@@ -381,7 +447,7 @@ async function getRecentTransfers(filters) {
 async function getFilteredAssets(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
-    SELECT TOP 500 a.AssetId, a.AssetTag, category.CategoryName, brand.BrandName,
+    SELECT a.AssetId, a.AssetTag, category.CategoryName, brand.BrandName,
       model.ModelName, status.StatusName, condition.ConditionName,
       department.DepartmentName, location.LocationName, room.RoomName,
       a.CurrentAssignedName, a.CreatedAt

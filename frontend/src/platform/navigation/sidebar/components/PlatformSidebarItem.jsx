@@ -52,6 +52,13 @@ export default function PlatformSidebarItem({
   const hasChildren = Boolean(item?.children?.length);
   const isOpen = Boolean(openMenus[itemKey]);
   const isComingSoon = Boolean(item?.comingSoon);
+  const isViewOnly =
+    !isComingSoon &&
+    (item?.IsEnabled === false ||
+      item?.isEnabled === false ||
+      item?.ModuleIsEnabled === false ||
+      item?.moduleIsEnabled === false);
+  const isDisabled = isComingSoon;
   const isActive = isSidebarItemActive(item, location.pathname);
 
   const isRoot = level === 0;
@@ -213,11 +220,12 @@ export default function PlatformSidebarItem({
     return (
       <Box key={itemKey} sx={hierarchyStemSx}>
         <ListItemButton
-          onClick={toggleMenu ? () => toggleMenu(item) : undefined}
+          onClick={isDisabled ? undefined : toggleMenu ? () => toggleMenu(item) : undefined}
           aria-expanded={isOpen}
+          disabled={isDisabled}
           sx={{
             ...rowLayoutSx,
-            cursor: toggleMenu ? "pointer" : "default",
+            cursor: isDisabled ? "not-allowed" : toggleMenu ? "pointer" : "default",
             color: isActive ? sidebarText : alpha(sidebarText, isRoot ? 0.96 : 0.82),
             bgcolor: isActive
               ? alpha(accent, isRoot ? 0.2 : 0.1)
@@ -265,6 +273,7 @@ export default function PlatformSidebarItem({
             }}
           />
 
+          {isViewOnly && <PlatformSidebarBadge label="View" />}
           {isComingSoon && <PlatformSidebarBadge label="Soon" />}
           {chevron}
         </ListItemButton>
@@ -292,15 +301,16 @@ export default function PlatformSidebarItem({
   return (
     <ListItemButton
       key={itemKey}
-      component={isComingSoon ? "button" : NavLink}
-      to={isComingSoon ? undefined : item.path}
-      disabled={isComingSoon}
-      onClick={isComingSoon ? undefined : onNavigate}
+      component={isDisabled ? "button" : NavLink}
+      to={isDisabled ? undefined : item.path}
+      disabled={isDisabled}
+      onClick={isDisabled ? undefined : onNavigate}
       sx={{
         ...rowLayoutSx,
+        cursor: isDisabled ? "not-allowed" : undefined,
         color: alpha(
           sidebarText,
-          isComingSoon ? 0.4 : isRoot ? 0.9 : 0.7
+          isDisabled ? 0.42 : isViewOnly ? 0.75 : isRoot ? 0.9 : 0.7
         ),
         bgcolor: isRoot
           ? alpha(sidebarText, isTopLevelGroup ? 0.06 : 0.04)
@@ -313,12 +323,18 @@ export default function PlatformSidebarItem({
           { duration: theme.transitions.duration.short }
         ),
         "&:hover": {
-          bgcolor: isComingSoon
-            ? isRoot
-              ? alpha(sidebarText, isTopLevelGroup ? 0.06 : 0.04)
-              : "transparent"
-            : alpha(sidebarText, isTopLevelGroup ? 0.11 : 0.07),
-          color: isComingSoon ? alpha(sidebarText, 0.42) : sidebarText,
+          bgcolor: isDisabled
+            ? rowLayoutSx.bgcolor
+            : isComingSoon
+              ? isRoot
+                ? alpha(sidebarText, isTopLevelGroup ? 0.06 : 0.04)
+                : "transparent"
+              : alpha(sidebarText, isViewOnly ? 0.08 : isTopLevelGroup ? 0.11 : 0.07),
+          color: isDisabled
+            ? alpha(sidebarText, 0.42)
+            : isComingSoon
+              ? alpha(sidebarText, 0.42)
+              : sidebarText,
         },
         "&.active": {
           bgcolor: isRoot ? accent : alpha(accent, 0.16),

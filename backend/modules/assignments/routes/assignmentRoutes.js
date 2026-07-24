@@ -15,60 +15,59 @@ const {
 } = require("../controllers/assignmentController");
 
 const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
+const { requireActiveWorkspace } = require("../../../middleware/permissionMiddleware");
 
 router.get("/lookups", protect, getAssignmentLookups);
 
 router.use(protect);
 
-router.get("/", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW), getAssignments);
+router.get("/", requireActiveWorkspace, getAssignments);
 
 // Assignment Types
-router.get("/types/manage",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),listAssignmentTypes);
-router.get("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),getAssignmentType);
-router.post("/types",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.CREATE),createAssignmentType);
-router.put("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),updateAssignmentType);
-router.patch("/types/:assignmentTypeId/activate",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),activateAssignmentType);
-router.patch("/types/:assignmentTypeId/deactivate",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.UPDATE),deactivateAssignmentType);
-router.delete("/types/:assignmentTypeId",requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.DELETE),deleteAssignmentType);
+router.get("/types/manage",requireActiveWorkspace,listAssignmentTypes);
+router.get("/types/:assignmentTypeId",requireActiveWorkspace,getAssignmentType);
+router.post("/types",requireActiveWorkspace,createAssignmentType);
+router.put("/types/:assignmentTypeId",requireActiveWorkspace,updateAssignmentType);
+router.patch("/types/:assignmentTypeId/activate",requireActiveWorkspace,activateAssignmentType);
+router.patch("/types/:assignmentTypeId/deactivate",requireActiveWorkspace,deactivateAssignmentType);
+router.delete("/types/:assignmentTypeId",requireActiveWorkspace,deleteAssignmentType);
 router.get(
   "/types",
-  requirePermission(PERMISSIONS.ASSIGNMENT_TYPES.VIEW),
+  requireActiveWorkspace,
   getAssignmentTypes
 );
 
 // User Assignments
 router.get(
   "/users/:userId",
-  requirePermission(PERMISSIONS.USER_ASSIGNMENTS.VIEW),
+  requireActiveWorkspace,
   getUserAssignments
 );
 
 router.post(
   "/users/:userId",
-  requirePermission(PERMISSIONS.USER_ASSIGNMENTS.CREATE),
+  requireActiveWorkspace,
   createUserAssignment
 );
 
 router.put(
   "/users/:userId/:assignmentId",
-  requirePermission(PERMISSIONS.USER_ASSIGNMENTS.UPDATE),
+  requireActiveWorkspace,
   updateUserAssignment
 );
 
 router.delete(
   "/users/:userId/:assignmentId",
-  requirePermission(PERMISSIONS.USER_ASSIGNMENTS.DELETE),
+  requireActiveWorkspace,
   deleteUserAssignment
 );
 
 router.patch(
   "/users/:userId/:assignmentId/primary",
-  requirePermission(PERMISSIONS.USER_ASSIGNMENTS.UPDATE),
+  requireActiveWorkspace,
   setPrimaryUserAssignment
 );
 
-router.patch("/users/:userId/:assignmentId/activate", requirePermission(PERMISSIONS.USER_ASSIGNMENTS.UPDATE), activateUserAssignment);
+router.patch("/users/:userId/:assignmentId/activate", requireActiveWorkspace, activateUserAssignment);
 
 module.exports = router;

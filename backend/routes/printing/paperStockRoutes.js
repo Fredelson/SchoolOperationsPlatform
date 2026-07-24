@@ -13,7 +13,7 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ const router = express.Router();
 router.get(
   "/",
   protect,
-  requirePermission("printing.inventory.view"),
+  requireActiveWorkspace,
   getPaperStock
 );
 
@@ -29,7 +29,7 @@ router.get(
 router.put(
   "/",
   protect,
-  requirePermission("printing.inventory.update"),
+  requireActiveWorkspace,
   updatePaperStock
 );
 

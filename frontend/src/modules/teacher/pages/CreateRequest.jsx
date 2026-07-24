@@ -49,6 +49,11 @@ import PageHeader from "../../../components/common/PageHeader";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { useAuth } from "../../../context/AuthContext";
+import {
+  createPrintingDraft,
+  submitPrintingRequest,
+  uploadPrintingAttachment,
+} from "../../../services/printingService";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -633,73 +638,28 @@ export default function CreateRequest() {
 
       setSubmitting(true);
 
-      const mainDocument = documents[0];
-
-      // ============================================
-      // Main request payload
-      // Note:
-      // Current backend PhotocopyRequests table stores one request-level
-      // copies value. Since copies can now differ per document card,
-      // the request-level copies uses the first document only.
-      // The real per-file/per-card copies are uploaded with attachments.
-      // ============================================
-
       const payload = {
         departmentId: Number(departmentId),
         subjectId: Number(subjectId),
         purposeId: Number(purposeId),
-        copies: Number(mainDocument.copies) || 1,
-        totalPages: summary.totalPages,
-        totalSheets: summary.totalSheets,
         priorityLevel: priority,
+        dueDate: requiredDate || null,
+        remarks: remarks || null,
       };
 
-      console.log("REQUEST PAYLOAD:", payload);
-
-      // ============================================
-      // Step 1: Create photocopy request
-      // POST /api/requests
-      // ============================================
-
-      const response = await axios.post(`${API_URL}/requests`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Request Created:", response.data);
-
-      const createdRequestId = response.data.requestId;
+      const draft = await createPrintingDraft(payload);
+      const createdRequestId = draft.RequestId;
 
       if (!createdRequestId) {
         throw new Error("Request was created but no requestId was returned.");
       }
 
-      // ============================================
-      // Step 2: Upload every file inside every document card
-      // Saves into RequestAttachments.
-      // This keeps your current backend upload endpoint working.
-      // ============================================
-
       for (const doc of documents) {
-        const docTotals = getDocumentTotals(doc);
-
         for (const uploadedFile of doc.files) {
-          const fileSheetsPerSet = getSheetsPerFile(uploadedFile, doc);
-          const fileTotalSheets = getFileTotalSheets(uploadedFile, doc);
-
           const formData = new FormData();
 
-          formData.append("requestId", createdRequestId);
           formData.append("copies", Number(doc.copies) || 1);
           formData.append("file", uploadedFile.file);
-
-          // ============================================
-          // Extra metadata for future backend support.
-          // If backend ignores these fields now, upload still works.
-          // Later we can save them into RequestAttachments.
-          // ============================================
-
           formData.append("documentName", doc.documentName || "");
           formData.append("paperSize", doc.paperSize);
           formData.append("printType", doc.printType);
@@ -707,40 +667,11 @@ export default function CreateRequest() {
           formData.append("pagesPerSheet", Number(doc.pagesPerSheet) || 1);
           formData.append("pageSelection", doc.pageSelection);
           formData.append("customPageRange", doc.customPageRange || "");
-          formData.append("detectedPages", Number(uploadedFile.pages) || 1);
-          formData.append(
-            "selectedPages",
-            getSelectedPagesForFile(uploadedFile, doc)
-          );
-          formData.append("sheetsPerSet", fileSheetsPerSet);
-          formData.append("totalSheets", fileTotalSheets);
-          formData.append("documentTotalSheets", docTotals.totalSheets);
-
-          console.log("Uploading attachment:", {
-            requestId: createdRequestId,
-            fileName: uploadedFile.fileName,
-            copies: Number(doc.copies) || 1,
-            sheetsPerSet: fileSheetsPerSet,
-            totalSheets: fileTotalSheets,
-          });
-
-          const uploadResponse = await axios.post(
-            `${API_URL}/uploads/request-attachment`,
-            formData,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          console.log("UPLOAD RESPONSE:", uploadResponse.data);
+          await uploadPrintingAttachment(createdRequestId, formData);
         }
       }
 
-      // ============================================
-      // Navigate after successful request + upload
-      // ============================================
+      await submitPrintingRequest(createdRequestId);
 
       if (userRole === "HOD") {
         navigate("/hod/my-requests");

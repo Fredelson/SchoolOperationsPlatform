@@ -10,13 +10,12 @@ const {
   getDashboard,
 } = require("../../controllers/superadmin/dashboardController");
 
-const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
 
 router.get(
   "/",
   protect,
-  requirePermission("platform_admin.dashboard.view"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   getDashboard
 );
 

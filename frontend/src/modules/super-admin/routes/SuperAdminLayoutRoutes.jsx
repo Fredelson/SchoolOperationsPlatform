@@ -37,49 +37,36 @@ import PlatformLayout from "@layouts/PlatformLayout";
 
 import SuperAdminDashboard from "../dashboard/pages/SuperAdminDashboard";
 
-// ============================================
+// ============================================================
 // Platform Administration Pages
-// ============================================
+// ============================================================
 
 import ModuleManager from "../modules/pages/ModuleManager";
 import MenuManager from "../menus/pages/MenuManager";
-import ButtonManager from "../buttons/pages/ButtonManager";
-import WidgetManager from "../widgets/pages/WidgetManager";
-import FeatureFlagManager from "../features/featureFlags/pages/FeatureFlagManager";
 import { UserManagement } from "../../admin/pages";
-import AccessLevelsPage from "../user-access/pages/AccessLevelsPage";
-import UserAssignmentsPage from "../user-access/pages/UserAssignmentsPage";
-import UserPermissionOverridesPage from "../user-access/pages/UserPermissionOverridesPage";
-import AssignmentTypesPage from "../user-access/pages/AssignmentTypesPage";
 import WorkspaceManagerPage from "../workspaces/pages/WorkspaceManagerPage";
-import WorkspacePreviewPage from "../workspaces/pages/WorkspacePreviewPage";
 import SchoolConfigPage from "../school-config/pages/SchoolConfigPage";
 
-
-// ============================================
+// ============================================================
 // Security & Access Pages
-// ============================================
+// ============================================================
 
-import {
-  PermissionGroupsPage,
-  PermissionManagerPage,
-  RolesManagerPage,
-} from "../enterprise/pages/EnterpriseDataManager";
+import { RolesManagerPage } from "../enterprise/pages/EnterpriseDataManager";
+import AssignmentTypesPage from "../user-access/pages/AssignmentTypesPage";
+import UserAssignmentsPage from "../user-access/pages/UserAssignmentsPage";
+import UserPermissionOverridesPage from "../user-access/pages/UserPermissionOverridesPage";
 
-import NavigationManagerPage from "../navigation-manager/pages/NavigationManagerPage";
-import RolePermissionsPage from "../enterprise/pages/RolePermissionsPage";
-
-// ============================================
+// ============================================================
 // Monitoring & System Pages
-// ============================================
+// ============================================================
 
 import AuditLogs from "../audit-logs/pages/AuditLogs";
 import SystemSettings from "../settings/pages/SystemSettings";
 import Profile from "../../shared/pages/Profile";
 
-// ============================================
+// ============================================================
 // Super Admin Nested Layout Routes
-// ============================================
+// ============================================================
 
 const superAdminLayoutRoutes = [
   {
@@ -109,28 +96,8 @@ const superAdminLayoutRoutes = [
         element: <WorkspaceManagerPage />,
       },
       {
-        path: "workspace-preview",
-        element: <WorkspacePreviewPage />,
-      },
-      {
         path: "menus",
         element: <MenuManager />,
-      },
-      {
-        path: "navigation-manager",
-        element: <NavigationManagerPage />,
-      },
-      {
-        path: "buttons",
-        element: <ButtonManager />,
-      },
-      {
-        path: "widgets",
-        element: <WidgetManager />,
-      },
-      {
-        path: "feature-flags",
-        element: <FeatureFlagManager />,
       },
 
       // Security & Access
@@ -143,28 +110,12 @@ const superAdminLayoutRoutes = [
         element: <RolesManagerPage />,
       },
       {
-        path: "access-levels",
-        element: <Navigate to="/super-admin/school-configuration/access-levels" replace />,
-      },
-      {
-        path: "user-assignments",
-        element: <UserAssignmentsPage />,
-      },
-      {
         path: "assignment-types",
         element: <AssignmentTypesPage />,
       },
       {
-        path: "permissions",
-        element: <PermissionManagerPage />,
-      },
-      {
-        path: "permission-groups",
-        element: <PermissionGroupsPage />,
-      },
-      {
-        path: "role-permissions",
-        element: <RolePermissionsPage />,
+        path: "user-assignments",
+        element: <UserAssignmentsPage />,
       },
       {
         path: "user-permission-overrides",
@@ -187,10 +138,6 @@ const superAdminLayoutRoutes = [
         element: <SchoolConfigPage section="sections" />,
       },
       {
-        path: "school-configuration/access-levels",
-        element: <SchoolConfigPage section="access-levels" />,
-      },
-      {
         path: "school-config",
         element: <Navigate to="/super-admin/school-configuration/subjects" replace />,
       },
@@ -205,16 +152,6 @@ const superAdminLayoutRoutes = [
       {
         path: "settings/sections",
         element: <Navigate to="/super-admin/school-configuration/sections" replace />,
-      },
-
-      // Operations Modules
-      {
-        path: "printing",
-        element: <Navigate to="/printing/dashboard" replace />,
-      },
-      {
-        path: "assets",
-        element: <Navigate to="/it-assets/assets" replace />,
       },
 
       // Monitoring
@@ -234,3 +171,7 @@ const superAdminLayoutRoutes = [
 ];
 
 export default superAdminLayoutRoutes;
+
+
+
+

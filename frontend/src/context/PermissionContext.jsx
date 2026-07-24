@@ -22,12 +22,18 @@ import api from "../services/api";
 const PermissionContext = createContext(null);
 
 export function PermissionProvider({ children }) {
-  const { user, token } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState({ permissions: [], allowedPermissionKeys: [] });
   const [loading, setLoading] = useState(Boolean(token));
 
   const loadPermissions = useCallback(async () => {
     if (!token) {
+      setProfile({ permissions: [], allowedPermissionKeys: [] });
+      setLoading(false);
+      return;
+    }
+    if (authLoading) return;
+    if (user?.mustChangePassword) {
       setProfile({ permissions: [], allowedPermissionKeys: [] });
       setLoading(false);
       return;
@@ -42,7 +48,7 @@ export function PermissionProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [authLoading, token, user?.mustChangePassword]);
 
   useEffect(() => {
      
@@ -51,23 +57,13 @@ export function PermissionProvider({ children }) {
 
   const value = useMemo(() => {
     const allowed = new Set(profile.allowedPermissionKeys || []);
-    const normalizedRole=String(user?.roleKey||user?.role||profile.user?.roleKey||"").replace(/[\s_-]/g,"").toLowerCase();
+    const normalizedRole=String(user?.roleKey||user?.role||user?.Role||profile.user?.roleKey||profile.user?.Role||"").replace(/[\s_-]/g,"").toLowerCase();
     const isSuperAdmin=normalizedRole==="superadmin";
+    const isPlatformAdmin=normalizedRole==="platformadmin";
+    const hasWorkspaceView=allowed.has("workspace.view");
     const allowedButtons=new Set((profile.runtimeControls?.buttons||[]).map(item=>item.ButtonKey));
     const allowedWidgets=new Set((profile.runtimeControls?.widgets||[]).map(item=>item.WidgetKey));
     const visibleRoutes=new Set();const collect=items=>(items||[]).forEach(item=>{if(item.path||item.route)visibleRoutes.add(item.path||item.route);collect(item.children)});(profile.sidebar||[]).forEach(section=>collect(section.items));
-    const actionKeys = {
-      View: "it_assets.assets.view", Assign: "it_assets.assignment.manage",
-      Borrow: "it_assets.borrow.manage",
-      Transfer: "it_assets.transfer.manage", ViewIssues: "it_assets.issues.manage",
-      PrintTags: "asset_tags.rectangular.print",
-      PrintRoundedTags: "asset_tags.rounded.print",
-      PrintRectangularTags: "asset_tags.rectangular.print",
-      Maintenance: "it_assets.maintenance.manage",
-      Disposal: "it_assets.disposal.manage", Reports: "it_assets.reports.view",
-      Import: "it_assets.import.manage",
-    };
-
     const modulePermissionMap = new Map();
     (profile.permissions || []).forEach((permission) => {
       const rawKey = permission.permissionKey || "";
@@ -96,22 +92,10 @@ export function PermissionProvider({ children }) {
         .replace(/[\s-]/g, "_")
         .replace(/[^a-z0-9_]/g, "");
 
-    const moduleAliases = new Set([
-      normalizeModuleName("ITAssets"),
-      normalizeModuleName("IT Operations"),
-      normalizeModuleName("it_assets"),
-      "itassets",
-      "itoperations",
-    ]);
-
     const canAccessModule = (moduleName = "") => {
-      if (isSuperAdmin) return true;
+      if (isSuperAdmin || isPlatformAdmin || hasWorkspaceView) return true;
       const normalized = normalizeModuleName(moduleName);
       const candidates = new Set([normalized, normalized.replace(/_/g, "")]);
-      moduleAliases.forEach((alias) => candidates.add(alias));
-      if (normalized === "printing" || normalized === "printing_management") {
-        candidates.add("printing");
-      }
       for (const [moduleKey, permissions] of modulePermissionMap.entries()) {
         if (permissions.size === 0) continue;
         if (candidates.has(moduleKey) || candidates.has(moduleKey.replace(/_/g, ""))) {
@@ -131,14 +115,15 @@ export function PermissionProvider({ children }) {
       permissions: profile.permissions || [], modules: [], actions: profile.allowedPermissionKeys || [],
       buttons: profile.runtimeControls?.buttons||[], widgets: profile.runtimeControls?.widgets||[], featureFlags: {},
       hasRole: (role) => [user?.Role, user?.role, profile.user?.roleKey].includes(role),
-      hasPermission: (key) => isSuperAdmin || allowed.has(key),
+      hasPermission: (key) => isSuperAdmin || isPlatformAdmin || hasWorkspaceView || allowed.has(key),
       canAccessModule,
       hasModuleAccess: canAccessModule,
-      hasActionAccess: (moduleName, actionName) => moduleName === "ITAssets"
-        ? allowed.has(actionKeys[actionName])
-        : allowed.has(`${moduleName}.${actionName}`),
-      hasButtonAccess: (key) => allowedButtons.has(key),
-      hasWidgetAccess: (key) => allowedWidgets.has(key),
+      hasActionAccess: (moduleName, actionName) => {
+        if (isSuperAdmin || isPlatformAdmin || hasWorkspaceView) return true;
+        return false;
+      },
+      hasButtonAccess: (key) => isSuperAdmin || isPlatformAdmin || allowedButtons.has(key),
+      hasWidgetAccess: (key) => isSuperAdmin || isPlatformAdmin || allowedWidgets.has(key),
       isRouteVisible: (route) => visibleRoutes.has(route),
       isFeatureEnabled: () => true,
       reloadPermissions: loadPermissions,

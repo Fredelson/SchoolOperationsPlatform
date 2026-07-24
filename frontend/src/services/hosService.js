@@ -1,109 +1,37 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// HOS Service
-// Frontend API Calls
-// Used by HOS Dashboard, Pending Requests,
-// Approval History, Approve & Reject Actions
-// ============================================
-
 import api from "./api";
 
-// ============================================
-// Dashboard KPI Statistics
-// GET /api/hos/dashboard
-// ============================================
-export const getHosDashboard = async () => {
-  const response = await api.get("/hos/dashboard");
+const unwrap = (response) => response.data?.data ?? response.data;
 
-  return response.data;
-};
+export const getHosDashboard = async () =>
+  unwrap(await api.get("/printing/approvals/hos/summary"));
 
-// ============================================
-// Get All Requests Assigned To HOS
-// GET /api/hos/requests
-// ============================================
 export const getHosRequests = async () => {
-  const response = await api.get("/hos/requests");
-
-  return response.data;
+  const [inbox, history] = await Promise.all([
+    api.get("/printing/approvals/hos"),
+    api.get("/printing/approvals/hos/history"),
+  ]);
+  return [...(unwrap(inbox) || []), ...(unwrap(history) || [])];
 };
 
-// ============================================
-// Get Single Request Details
-// GET /api/hos/requests/:id
-// Optional for future Request Details page
-// ============================================
-export const getHosRequestById = async (requestId) => {
-  const response = await api.get(
-    `/hos/requests/${requestId}`
-  );
+export const getHosRequestById = async (requestId) =>
+  unwrap(await api.get(`/printing/requests/${requestId}`));
 
-  return response.data;
-};
+export const getHosApprovalHistory = async () =>
+  unwrap(await api.get("/printing/approvals/hos/history"));
 
-// ============================================
-// Get HOS Approval History
-// GET /api/hos/approval-history
-// ============================================
-export const getHosApprovalHistory = async () => {
-  const response = await api.get(
-    "/hos/approval-history"
-  );
-
-  return response.data;
-};
-
-// ============================================
-// Approve Request
-// PUT /api/hos/requests/:id/approve
-// ============================================
-export const approveHosRequest = async (
-  requestId,
-  remarks = "Approved by HOS"
-) => {
-  const response = await api.put(
-    `/hos/requests/${requestId}/approve`,
-    {
+const decide = async (requestId, decision, remarks) =>
+  unwrap(
+    await api.put(`/printing/approvals/hos/${requestId}`, {
+      decision,
       remarks,
-    }
+    })
   );
 
-  return response.data;
-};
+export const approveHosRequest = (requestId, remarks = "Approved by HOS") =>
+  decide(requestId, "approve", remarks);
 
-// ============================================
-// Reject Request
-// PUT /api/hos/requests/:id/reject
-// ============================================
-export const rejectHosRequest = async (
-  requestId,
-  remarks
-) => {
-  const response = await api.put(
-    `/hos/requests/${requestId}/reject`,
-    {
-      remarks,
-    }
-  );
+export const rejectHosRequest = (requestId, remarks) =>
+  decide(requestId, "reject", remarks);
 
-  return response.data;
-};
-
-// ============================================
-// Future Feature
-// Return For Revision
-// Currently not implemented in backend
-// ============================================
-export const returnHosRequest = async (
-  requestId,
-  remarks
-) => {
-  const response = await api.put(
-    `/hos/requests/${requestId}/return`,
-    {
-      remarks,
-    }
-  );
-
-  return response.data;
-};
+export const returnHosRequest = (requestId, remarks) =>
+  decide(requestId, "return", remarks);

@@ -1,0 +1,331 @@
+==============================================================
+ULTRA-SIMPLE PERMISSION MODEL
+Generated: 2026-07-21
+==============================================================
+
+USER REQUEST
+------------
+"On the navigation bar, there's a role permission with active/view/
+disable. That should serve as the WHOLE platform permission.
+We only use permission override for individuals."
+
+==============================================================
+NEW ARCHITECTURE
+==============================================================
+
+┌──────────────────────────────────────────────────────────┐
+│                    GLOBAL LAYER                           │
+│  (SuperAdmin / PlatformAdmin only)                       │
+│                                                           │
+│  dbo.Permissions: ~10 core permissions                   │
+│  dbo.RolePermissions: assigned to RoleId 3 and 4         │
+│  Purpose: Protect /api/super-admin/*, /api/platform-admin/*│
+└──────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────┐
+│                 WORKSPACE LAYER                           │
+│                                                           │
+│  UserAssignments → AssignmentTypeWorkspaces → Workspaces │
+│                                                           │
+│  Per workspace, per role:                                 │
+│    WorkspaceRoles (role is assigned to workspace)         │
+│    WorkspaceMenus (IsVisible, IsEnabled)                  │
+│    WorkspaceModules (IsVisible, IsEnabled)                │
+│    WorkspaceButtons (IsVisible, IsEnabled)                │
+│    WorkspaceWidgets (IsVisible, IsEnabled)                │
+│                                                           │
+│  3-state model per child:                                 │
+│    ACTIVE  = IsVisible=1, IsEnabled=1                     │
+│    VIEW    = IsVisible=1, IsEnabled=0                     │
+│    DISABLE = IsVisible=0, IsEnabled=0                     │
+└──────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────┐
+│               INDIVIDUAL OVERRIDE LAYER                   │
+│                                                           │
+│  UserPermissionOverrides:                                 │
+│    Can override any workspace child's IsVisible/IsEnabled │
+│    For a single user                                      │
+└──────────────────────────────────────────────────────────┘
+
+==============================================================
+WHAT GETS REMOVED ENTIRELY
+==============================================================
+
+1. ALL module-specific permission keys from route protection:
+   - printing.dashboard.view
+   - library.loans.issue
+   - it_assets.assets.view
+   - etc. (40+ keys)
+
+2. ALL module-specific entries in dbo.Permissions (IsActive=0)
+
+3. ALL module-specific entries in dbo.RolePermissions for workspace roles
+
+4. permissionResolverService.js workspace module layer
+
+5. permissionResolverRepository.js getWorkspaceModulePermissions
+
+6. WorkspaceManager auto-grant of module permissions
+
+==============================================================
+WHAT STAYS
+==============================================================
+
+1. Global admin permissions (~10 keys) for SuperAdmin/PlatformAdmin:
+   - platform_admin.dashboard.view
+   - super_admin.dashboard.view  
+   - workspace.configure
+   - users.view
+   - users.create/update/delete
+   - roles.view
+   - modules.view
+   - menus.view
+   - system_settings.view
+   - audit_logs.view
+
+2. dbo.Permissions table (minimal, ~15 rows)
+
+3. dbo.RolePermissions (only for admin roles + global perms)
+
+4. dbo.UserPermissionOverrides (individual exceptions)
+
+5. Workspace* tables (menus, modules, buttons, widgets with IsVisible/IsEnabled)
+
+6. dbo.UserAssignments + AssignmentTypes + AssignmentTypeWorkspaces
+
+==============================================================
+HOW ROUTE PROTECTION WORKS AFTER CHANGE
+==============================================================
+
+CURRENT:
+  Route: GET /api/printing/queue
+  Middleware: requirePermission("printing.queue.view")
+  → checks user's resolved permission keys
+  → returns 403 if missing
+
+NEW:
+  Route: GET /api/printing/queue  
+  Middleware: requireWorkspaceAccess("printing", "queue")
+  → checks if user has active assignment to a workspace
+  → checks if that workspace has Printing module IsVisible=1, IsEnabled=1
+  → checks if user's role in that workspace allows it
+  → checks for individual overrides
+  → returns 403 if not allowed
+
+ALTERNATIVELY, even simpler:
+  Route: GET /api/printing/queue
+  Middleware: requireActiveWorkspace()
+  → user must have active workspace assignment
+  → workspace must have the feature enabled
+  → no per-route permission key check needed
+  → feature visibility controlled by WorkspaceModules.IsEnabled
+
+==============================================================
+HOW NAVIGATION WORKS AFTER CHANGE
+==============================================================
+
+CURRENT:
+  getAllowedPermissions() → filters menus by permission keys
+  → Complex permission resolution
+
+NEW:
+  getMySidebar() → 
+    1. Get user's active workspace
+    2. Get WorkspaceMenus for that workspace
+    3. Filter by IsVisible=1 AND user's workspace role allows it
+    4. Apply individual UserPermissionOverrides
+    5. Return visible menus
+
+No permission key filtering needed for navigation.
+
+==============================================================
+DATABASE CHANGES
+==============================================================
+
+-- 1. Fix schema
+ALTER TABLE dbo.Permissions ADD 
+  GroupKey nvarchar(100) NOT NULL DEFAULT 'platform',
+  GroupName nvarchar(150) NOT NULL DEFAULT 'Platform';
+
+-- 2. Deactivate ALL module-specific permissions
+UPDATE dbo.Permissions 
+SET IsActive = 0 
+WHERE PermissionId NOT IN (
+  SELECT PermissionId FROM dbo.Permissions
+  WHERE PermissionKey IN (
+    'platform_admin.dashboard.view',
+    'super_admin.dashboard.view',
+    'workspace.configure',
+    'workspace.view',
+    'workspace.activate', 
+    'workspace.disable',
+    'users.view',
+    'users.create',
+    'users.update',
+    'users.delete',
+    'roles.view',
+    'roles.create',
+    'roles.update',
+    'roles.delete',
+    'modules.view',
+    'modules.create',
+    'modules.update',
+    'modules.delete',
+    'menus.view',
+    'menus.create',
+    'menus.update',
+    'menus.delete',
+    'system_settings.view',
+    'system_settings.update',
+    'audit_logs.view'
+  )
+);
+
+-- 3. Clean up RolePermissions for workspace roles
+-- (remove all module permission grants for non-admin roles)
+DELETE rp FROM dbo.RolePermissions rp
+INNER JOIN dbo.Roles r ON rp.RoleId = r.RoleId
+INNER JOIN dbo.Permissions p ON rp.PermissionId = p.PermissionId
+WHERE r.RoleKey NOT IN ('SuperAdmin', 'PlatformAdmin')
+  AND p.ModuleId NOT IN (1)  -- only keep workspace module if needed
+  AND p.IsActive = 0;
+
+-- 4. Grant only 3 workspace permissions to all workspace roles
+INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+SELECT r.RoleId, p.PermissionId, 1, GETDATE()
+FROM dbo.Roles r
+CROSS JOIN (
+  SELECT PermissionId FROM dbo.Permissions
+  WHERE PermissionKey IN ('workspace.view', 'workspace.activate', 'workspace.disable')
+) p
+WHERE r.RoleKey NOT IN ('SuperAdmin', 'PlatformAdmin')
+  AND NOT EXISTS (
+    SELECT 1 FROM dbo.RolePermissions rp 
+    WHERE rp.RoleId = r.RoleId AND rp.PermissionId = p.PermissionId
+  );
+
+==============================================================
+NEW MIDDLEWARE: requireWorkspaceAccess
+==============================================================
+
+Replace requirePermission with this for all non-admin routes:
+
+async function requireWorkspaceAccess(req, res, next) {
+  const userId = req.user.id;
+  
+  // 1. Get user's active workspace assignment
+  const workspace = await getUserActiveWorkspace(userId);
+  if (!workspace) {
+    return res.status(403).json({
+      success: false,
+      message: "No active workspace assigned."
+    });
+  }
+
+  // 2. Check if the feature/module is enabled in this workspace
+  const moduleKey = req.params.module || req.body.moduleKey;
+  const isModuleEnabled = await isWorkspaceModuleEnabled(workspace.WorkspaceId, moduleKey);
+  
+  if (!isModuleEnabled) {
+    return res.status(403).json({
+      success: false,
+      message: "Feature not available in your workspace."
+    });
+  }
+
+  // 3. Apply individual overrides
+  const override = await getUserPermissionOverride(userId, moduleKey);
+  if (override && !override.IsAllowed) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied by administrator."
+    });
+  }
+
+  req.workspace = workspace;
+  next();
+}
+
+==============================================================
+SIMPLIFIED FRONTEND WORKSPACE MANAGER
+==============================================================
+
+When editing a workspace, the UI shows:
+
+WORKSPACE: [Super Admin] [Platform Admin] [Teacher] [HOD] ...
+
+For each role, each child item shows 3 radio buttons:
+
+  Module: Printing
+    [•] Active    (visible + enabled)
+    [ ] View      (visible + disabled/greyed)
+    [ ] Disable   (hidden)
+
+  Menu: Printing Queue
+    [•] Active
+    [ ] View
+    [ ] Disable
+
+  Button: Start Printing
+    [•] Active
+    [ ] View
+    [ ] Disable
+
+No permission tree. No checkboxes. 3 simple states.
+
+==============================================================
+MIGRATION FILES TO CHANGE
+==============================================================
+
+1. backend/modules/workspaceManager/repositories/workspaceManagerRepository.js
+   - Remove auto-grant module permissions
+   - syncWorkspaceRolePermissions → grants only 3 workspace perms
+
+2. backend/modules/permissionResolver/services/permissionResolverService.js
+   - Remove applyWorkspaceModulePermissions
+   - Remove workspaceModulePermissions from resolve
+
+3. backend/modules/permissionResolver/repositories/permissionResolverRepository.js
+   - Remove getWorkspaceModulePermissions
+
+4. backend/middleware/permissionMiddleware.js
+   - Add requireWorkspaceAccess middleware
+   - Keep requirePermission ONLY for admin routes
+
+5. backend/routes/printing/printingRoutes.js
+   - Replace requirePermission with requireWorkspaceAccess
+
+6. backend/routes/library/libraryRoutes.js
+   - Replace requirePermission with requireWorkspaceAccess
+
+7. backend/modules/itAssets/index.js
+   - Replace requirePermission with requireWorkspaceAccess
+
+8. All other module routes → same replacement
+
+9. backend/modules/navigation/services/navigationService.js
+   - Simplify getMySidebar to use WorkspaceMenus only
+
+==============================================================
+SUMMARY
+==============================================================
+
+BEFORE:
+  - 95 active permissions
+  - Complex matrix of role × permission × workspace
+  - Auto-granting on workspace save
+  - Confusing to manage
+
+AFTER:
+  - ~15 global admin permissions
+  - 3 workspace permissions (view/activate/disable)
+  - Access controlled by workspace assignment + IsVisible/IsEnabled
+  - Individual overrides for exceptions
+  - Simple 3-state radio buttons in UI
+
+==============================================================
+END OF PLAN
+==============================================================

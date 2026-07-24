@@ -77,7 +77,7 @@ const partsToOrderColumns = [
 
 const QuickActions = () => {
   const navigate = useNavigate();
-  const { hasActionAccess } = usePermissions();
+  const { hasActionAccess, loading } = usePermissions();
 
   const actions = [
     { label: "Asset Explorer", icon: <Inventory2OutlinedIcon />, path: "/it-assets/assets", permission: "View" },
@@ -90,11 +90,13 @@ const QuickActions = () => {
     { label: "Disposal", icon: <DeleteOutlineOutlinedIcon />, path: "/it-assets/disposals", permission: "Disposal" },
     { label: "Reports", icon: <SummarizeOutlinedIcon />, path: "/it-assets/reports", permission: "Reports" },
     { label: "Import Assets", icon: <FileUploadOutlinedIcon />, path: "/it-assets/assets", permission: "Import" },
-  ].filter((action) => hasActionAccess("ITAssets", action.permission));
+  ];
+
+  const visibleActions = loading ? actions : actions.filter((action) => hasActionAccess("ITAssets", action.permission));
 
   return (
     <Grid container spacing={1.25}>
-      {actions.map((action) => (
+      {visibleActions.map((action) => (
         <Grid key={action.label} size={{ xs: 12, sm: 6 }}>
           <AppButton
             fullWidth

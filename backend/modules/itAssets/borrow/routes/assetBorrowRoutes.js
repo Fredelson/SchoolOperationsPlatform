@@ -7,9 +7,10 @@ const router = express.Router();
 
 const controller = require("../controllers/assetBorrowController");
 const validator = require("../validators/assetBorrowValidator");
-const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+const { protect } = require("../../../../middleware/authMiddleware");
+const { requireActiveWorkspace } = require("../../../../middleware/permissionMiddleware");
 
-router.use(requirePermission("it_assets.borrow.manage"));
+router.use(protect, requireActiveWorkspace);
 
 router.post("/", validator.validateBorrowAsset, controller.borrowAsset);
 router.post("/return", validator.validateReturnBorrowedAsset, controller.returnBorrowedAsset);

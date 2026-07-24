@@ -3,6 +3,8 @@
 // Arab Unity School Operations Platform
 // ============================================
 
+import api from "../../../services/api";
+
 import {
   getItAssetsApi,
   getItAssetByIdApi,
@@ -164,6 +166,16 @@ export const getItAssetMaintenanceDueService = async () => {
 
 export const completeItAssetMaintenanceService = async (maintenanceLogId) => {
   const response = await completeItAssetMaintenanceApi(maintenanceLogId);
+  return response?.data || null;
+};
+
+export const reopenItAssetMaintenanceService = async (maintenanceLogId) => {
+  const response = await api.post(`/it-assets/maintenance/${maintenanceLogId}/reopen`);
+  return response?.data || null;
+};
+
+export const receiveItAssetMaintenancePartsService = async (assetId) => {
+  const response = await api.post(`/it-assets/maintenance/${assetId}/parts/receive`);
   return response?.data || null;
 };
 

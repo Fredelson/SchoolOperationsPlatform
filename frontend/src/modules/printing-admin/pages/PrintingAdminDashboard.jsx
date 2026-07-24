@@ -20,7 +20,7 @@
 // ============================================
 
 import { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
 
 import PageHeader from "../../../components/common/PageHeader";
 import KpiGrid from "../../../components/common/KpiGrid";
@@ -32,57 +32,59 @@ import {
 
 import { getPrintingDashboard } from "../../../services/printingService";
 
-import {
-  defaultPrintingDashboardData,
-  printingDashboardStats,
-  printActivityData,
-  printJobStatus,
-  inventoryHealth,
-  recentPrintJobs,
-  topPrintingDepartments,
-  paperUsageStatus,
-  printingPendingActions,
-  paperInventorySummary,
-} from "../data/printingDashboardData";
+const emptyDashboardData = {
+  stats: [],
+  printActivity: [],
+  jobStatus: [],
+  inventoryHealth: [],
+  recentJobs: [],
+  topDepartments: [],
+  paperUsage: [],
+  pendingActions: [],
+  inventorySummary: [],
+};
 
 // ============================================
 // Component
 // ============================================
 
 export default function PrintingAdminDashboard() {
-  const [dashboardData, setDashboardData] = useState(
-    defaultPrintingDashboardData
-  );
+  const [dashboardData, setDashboardData] = useState(emptyDashboardData);
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // ============================================
   // Load Dashboard Data
-  // Uses backend data when available.
-  // Falls back to static demo data if backend fails.
+  // Uses live Printing Management data only.
   // ============================================
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
         setLoading(true);
+        setError("");
 
         const data = await getPrintingDashboard();
 
         setDashboardData({
-          stats: data?.stats || printingDashboardStats,
-          printActivity: data?.printActivity || printActivityData,
-          jobStatus: data?.jobStatus || printJobStatus,
-          inventoryHealth: data?.inventoryHealth || inventoryHealth,
-          recentJobs: data?.recentJobs || recentPrintJobs,
-          topDepartments: data?.topDepartments || topPrintingDepartments,
-          paperUsage: data?.paperUsage || paperUsageStatus,
-          pendingActions: data?.pendingActions || printingPendingActions,
-          inventorySummary: data?.inventorySummary || paperInventorySummary,
+          stats: data?.stats ?? [],
+          printActivity: data?.printActivity ?? [],
+          jobStatus: data?.jobStatus ?? [],
+          inventoryHealth: data?.inventoryHealth ?? [],
+          recentJobs: data?.recentJobs ?? [],
+          topDepartments: data?.topDepartments ?? [],
+          paperUsage: data?.paperUsage ?? [],
+          pendingActions: data?.pendingActions ?? [],
+          inventorySummary: data?.inventorySummary ?? [],
         });
       } catch (error) {
         console.error("Failed to load printing dashboard:", error);
-        setDashboardData(defaultPrintingDashboardData);
+        setDashboardData(emptyDashboardData);
+        setError(
+          error?.response?.data?.message ||
+            "Printing Management data could not be loaded."
+        );
       } finally {
         setLoading(false);
       }
@@ -108,6 +110,12 @@ export default function PrintingAdminDashboard() {
             : "Manage print jobs, paper inventory, usage, and operational alerts"
         }
       />
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {/* KPI Cards */}
       <KpiGrid stats={dashboardData.stats} />

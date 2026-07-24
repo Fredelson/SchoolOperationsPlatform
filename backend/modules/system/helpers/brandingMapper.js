@@ -44,6 +44,10 @@ const mapBrandingResponse = (row) => {
       topbarGradientEnd: row.TopbarGradientEnd || null,
       topbarGradientDirection: row.TopbarGradientDirection || "90deg",
       topbarGradientPosition: row.TopbarGradientPosition || "center",
+      floatingLogoX: row.TopbarLogoX ?? BRANDING_DEFAULTS.floatingLogoX,
+      floatingLogoY: row.TopbarLogoY ?? BRANDING_DEFAULTS.floatingLogoY,
+      floatingLogoSize:
+        row.TopbarLogoWidth ?? BRANDING_DEFAULTS.floatingLogoSize,
 
       loginTitle: row.LoginTitle || row.SchoolName || BRANDING_DEFAULTS.loginTitle,
       loginSubtitle: row.LoginSubtitle || BRANDING_DEFAULTS.loginSubtitle,

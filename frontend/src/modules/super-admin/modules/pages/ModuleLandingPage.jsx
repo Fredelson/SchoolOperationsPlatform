@@ -1,6 +1,6 @@
-import { Alert, Button, Stack } from "@mui/material";
+import { Alert, Stack } from "@mui/material";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { AppBreadcrumbs, AppPageHeader, AppSection } from "@ui";
 
@@ -12,7 +12,6 @@ function formatModuleKey(value = "") {
 
 export default function ModuleLandingPage() {
   const { moduleKey } = useParams();
-  const navigate = useNavigate();
   const moduleName = formatModuleKey(moduleKey);
 
   return (
@@ -34,11 +33,8 @@ export default function ModuleLandingPage() {
       <AppSection title="Module navigation">
         <Stack spacing={2} alignItems="flex-start">
           <Alert severity="info">
-            This module does not have a dedicated menu route yet. Configure its menus in Navigation Manager to replace this landing page.
+            This module does not have a dedicated menu route yet. Configure its menus in the workspace settings to replace this landing page.
           </Alert>
-          <Button variant="contained" onClick={() => navigate("/super-admin/navigation-manager")}>
-            Open Navigation Manager
-          </Button>
         </Stack>
       </AppSection>
     </>

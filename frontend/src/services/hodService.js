@@ -1,70 +1,34 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// HOD Service
-// Handles all frontend API calls for HOD module
-// ============================================
-
 import api from "./api";
 
-/**
- * Get HOD dashboard KPI data
- * GET /api/hod/dashboard
- */
-export const getHodDashboard = async () => {
-  const response = await api.get("/hod/dashboard");
-  return response.data;
-};
+const unwrap = (response) => response.data?.data ?? response.data;
 
-/**
- * Get requests assigned to HOD
- * GET /api/hod/requests
- */
+export const getHodDashboard = async () =>
+  unwrap(await api.get("/printing/approvals/hod/summary"));
+
 export const getHodRequests = async () => {
-  const response = await api.get("/hod/requests");
-  return response.data;
+  const [inbox, history] = await Promise.all([
+    api.get("/printing/approvals/hod"),
+    api.get("/printing/approvals/hod/history"),
+  ]);
+  return [...(unwrap(inbox) || []), ...(unwrap(history) || [])];
 };
 
-/**
- * Get real HOD approval history
- * GET /api/hod/approval-history
- */
-export const getHodApprovalHistory = async () => {
-  const response = await api.get("/hod/approval-history");
-  return response.data;
-};
+export const getHodApprovalHistory = async () =>
+  unwrap(await api.get("/printing/approvals/hod/history"));
 
-/**
- * Approve request
- * PUT /api/hod/requests/:id/approve
- */
-export const approveHodRequest = async (
-  requestId,
-  remarks = "Approved by HOD"
-) => {
-  const response = await api.put(
-    `/hod/requests/${requestId}/approve`,
-    {
+const decide = async (requestId, decision, remarks) =>
+  unwrap(
+    await api.put(`/printing/approvals/hod/${requestId}`, {
+      decision,
       remarks,
-    }
+    })
   );
 
-  return response.data;
-};
+export const approveHodRequest = (requestId, remarks = "Approved by HOD") =>
+  decide(requestId, "approve", remarks);
 
-/**
- * Reject request
- * PUT /api/hod/requests/:id/reject
- */
-export const rejectHodRequest = async (
-  requestId,
-  remarks = "Rejected by HOD"
-) => {
-  const response = await api.put(
-    `/hod/requests/${requestId}/reject`,
-    {
-      remarks,
-    }
-  );
+export const rejectHodRequest = (requestId, remarks) =>
+  decide(requestId, "reject", remarks);
 
-  return response.data;
-};
+export const returnHodRequest = (requestId, remarks) =>
+  decide(requestId, "return", remarks);

@@ -26,6 +26,10 @@ const jwt = require("jsonwebtoken");
 
 const authRepository = require("../repositories/authRepository");
 const permissionResolver = require("../../permissionResolver/services/permissionResolverService");
+const {
+  meetsPasswordPolicy,
+  PASSWORD_POLICY_MESSAGE,
+} = require("../../../shared/security/password");
 
 function groupAssignments(scopes) {
   const grouped = new Map();
@@ -95,6 +99,12 @@ function buildUserPayload(user) {
     primaryAssignment,
     assignments,
     scopes: assignments.flatMap((assignment) => assignment.scopes.map((scope) => ({ ...scope, userAssignmentId: assignment.userAssignmentId, assignmentKey: assignment.assignmentKey }))),
+    accessibleWorkspaces: (user.AccessibleWorkspaces || []).map((workspace) => ({
+      id: workspace.WorkspaceId,
+      key: workspace.WorkspaceKey,
+      name: workspace.WorkspaceName,
+      defaultRoute: workspace.DefaultRoute,
+    })),
     permissions: user.EffectivePermissions || [],
     defaultRoute: user.DefaultWorkspaceRoute,
   };
@@ -122,6 +132,7 @@ function generateToken(user) {
       sectionId: user.SectionId,
       defaultWorkspaceId: user.DefaultWorkspaceId,
       isProtectedRole: user.IsProtectedRole,
+      mustChangePassword: Boolean(user.MustChangePassword),
       assignmentScopes: user.AssignmentScopes || [],
     },
     process.env.JWT_SECRET,
@@ -174,8 +185,15 @@ async function login(identifier, password) {
   }
 
   await authRepository.markLoginSuccess(user.UserId);
-  user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
-  user.EffectivePermissions=(await permissionResolver.resolveUserPermissions(user.UserId)).allowedPermissionKeys;
+  const [assignmentScopes, permissionProfile, accessibleWorkspaces] =
+    await Promise.all([
+      authRepository.getActiveAssignmentScopes(user.UserId),
+      permissionResolver.resolveUserPermissions(user.UserId),
+      authRepository.getAccessibleWorkspaces(user.UserId),
+    ]);
+  user.AssignmentScopes = assignmentScopes;
+  user.EffectivePermissions = permissionProfile.allowedPermissionKeys;
+  user.AccessibleWorkspaces = accessibleWorkspaces;
   if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return {
@@ -201,18 +219,31 @@ async function getMe(userId) {
     error.statusCode = 404;
     throw error;
   }
-  user.AssignmentScopes=await authRepository.getActiveAssignmentScopes(user.UserId);
-  user.EffectivePermissions=(await permissionResolver.resolveUserPermissions(user.UserId)).allowedPermissionKeys;
+  const [assignmentScopes, permissionProfile, accessibleWorkspaces] =
+    await Promise.all([
+      authRepository.getActiveAssignmentScopes(user.UserId),
+      permissionResolver.resolveUserPermissions(user.UserId),
+      authRepository.getAccessibleWorkspaces(user.UserId),
+    ]);
+  user.AssignmentScopes = assignmentScopes;
+  user.EffectivePermissions = permissionProfile.allowedPermissionKeys;
+  user.AccessibleWorkspaces = accessibleWorkspaces;
   if(!user.DefaultWorkspaceId||!user.DefaultWorkspaceRoute)throw Object.assign(new Error("No active workspace is configured for this account."),{statusCode:409});
 
   return buildUserPayload(user);
 }
-async function changePassword(userId,currentPassword,newPassword){
-  if(!currentPassword||!newPassword)throw Object.assign(new Error("Current and new passwords are required."),{statusCode:400});
-  if(String(newPassword).length<10||!/[A-Z]/.test(newPassword)||!/[a-z]/.test(newPassword)||!/\d/.test(newPassword))throw Object.assign(new Error("New password must be at least 10 characters and include uppercase, lowercase, and a number."),{statusCode:400});
-  const currentHash=await authRepository.getPasswordHash(userId);if(!currentHash||!await bcrypt.compare(currentPassword,currentHash))throw Object.assign(new Error("Current password is incorrect."),{statusCode:400});
+async function changePassword(userId,currentPassword,newPassword,{isRequiredChange=false}={}){
+  if(!newPassword)throw Object.assign(new Error("New password is required."),{statusCode:400});
+  if(!isRequiredChange&&!currentPassword)throw Object.assign(new Error("Current and new passwords are required."),{statusCode:400});
+  if(!meetsPasswordPolicy(newPassword))throw Object.assign(new Error(PASSWORD_POLICY_MESSAGE),{statusCode:400});
+  const currentHash=await authRepository.getPasswordHash(userId);
+  if(!currentHash)throw Object.assign(new Error("Password is not configured for this account."),{statusCode:400});
+  if(!isRequiredChange&&!await bcrypt.compare(currentPassword,currentHash))throw Object.assign(new Error("Current password is incorrect."),{statusCode:400});
   if(await bcrypt.compare(newPassword,currentHash))throw Object.assign(new Error("New password must be different from the current password."),{statusCode:400});
-  await authRepository.updatePassword(userId,await bcrypt.hash(newPassword,12));return{changed:true};
+  await authRepository.updatePassword(userId,await bcrypt.hash(newPassword,12));
+  const updatedUser=await authRepository.findActiveUserById(userId);
+  if(!updatedUser)throw Object.assign(new Error("User not found or inactive."),{statusCode:404});
+  return{changed:true,token:generateToken(updatedUser)};
 }
 
 module.exports = {

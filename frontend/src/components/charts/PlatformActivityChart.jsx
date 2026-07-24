@@ -30,11 +30,17 @@ import { dashboardColors } from "../../theme/dashboardColors";
 
 export default function PlatformActivityChart({
   data = [],
+  title = "Platform Activity",
+  subtitle = "Print requests and IT tickets activity",
+  primaryDataKey = "printRequests",
+  primaryName = "Print Requests",
+  secondaryDataKey = "tickets",
+  secondaryName = "Tickets",
 }) {
   return (
     <DashboardCard
-      title="Platform Activity"
-      subtitle="Print requests and IT tickets activity"
+      title={title}
+      subtitle={subtitle}
     >
       <Box
         sx={{
@@ -84,8 +90,8 @@ export default function PlatformActivityChart({
             {/* Print Requests */}
             <Line
               type="monotone"
-              dataKey="printRequests"
-              name="Print Requests"
+              dataKey={primaryDataKey}
+              name={primaryName}
               stroke={dashboardColors.success}
               strokeWidth={3}
               dot={{
@@ -100,8 +106,8 @@ export default function PlatformActivityChart({
             {/* Tickets */}
             <Line
               type="monotone"
-              dataKey="tickets"
-              name="Tickets"
+              dataKey={secondaryDataKey}
+              name={secondaryName}
               stroke={dashboardColors.info}
               strokeWidth={3}
               dot={{

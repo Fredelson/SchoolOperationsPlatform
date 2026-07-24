@@ -33,13 +33,11 @@ import {
   updateMasterData,
   updateMasterStatus,
 } from "../../../../services/masterService";
-import AccessLevelsPage from "../../user-access/pages/AccessLevelsPage";
 
 const sections = [
   { label: "Subjects", value: "subjects" },
   { label: "Departments", value: "departments" },
   { label: "Sections", value: "sections" },
-  { label: "Access Levels", value: "access-levels" },
 ];
 
 export default function SchoolConfigPage({ section = "subjects" }) {
@@ -70,11 +68,7 @@ export default function SchoolConfigPage({ section = "subjects" }) {
         </Tabs>
       </Paper>
 
-      {current.value === "access-levels" ? (
-        <AccessLevelsPage />
-      ) : (
-        <SchoolMasterData type={current.value} label={current.label} />
-      )}
+      <SchoolMasterData type={current.value} label={current.label} />
     </Stack>
   );
 }

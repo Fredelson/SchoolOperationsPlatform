@@ -19,6 +19,7 @@ import {
   getHodRequests,
   approveHodRequest,
   rejectHodRequest,
+  returnHodRequest,
 } from "../../../services/hodService";
 
 export default function HodRequestsPage({ type = "pending" }) {
@@ -37,7 +38,7 @@ export default function HodRequestsPage({ type = "pending" }) {
     id: item.RequestId,
     requestNumber: item.RequestNumber,
     teacher: item.TeacherName,
-    employeeId: item.EmployeeId,
+    employeeId: item.EmployeeId || item.TeacherEmployeeId,
     department: item.DepartmentName,
     subject: item.SubjectName,
     purpose: item.PurposeName,
@@ -103,7 +104,9 @@ export default function HodRequestsPage({ type = "pending" }) {
 
   const filteredRequests = useMemo(() => {
     if (type === "pending") {
-      return requests.filter((request) => request.status === "Pending");
+      return requests.filter((request) =>
+        ["Pending", "Pending HOD Approval"].includes(request.status)
+      );
     }
 
     if (type === "approved") {
@@ -199,8 +202,24 @@ export default function HodRequestsPage({ type = "pending" }) {
     }
   };
 
-  const handleReturn = () => {
-    alert("Return request API is not created yet.");
+  const handleReturn = async () => {
+    if (!selectedRequest || actionLoading) return;
+    if (!comment.trim()) {
+      alert("Comment is required when returning a request.");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await returnHodRequest(selectedRequest.id, comment);
+      alert("Request returned to the requester.");
+      handleClose();
+      await loadRequests();
+    } catch (err) {
+      alert(err.response?.data?.message || "Unable to return request.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (

@@ -27,7 +27,7 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 // ============================================================
 // Routes
@@ -37,7 +37,7 @@ const requirePermission = require("../../modules/permissionResolver/middleware/r
 router.get(
   "/",
   protect,
-  requirePermission("printing.purchases.view"),
+  requireActiveWorkspace,
   getPurchases
 );
 
@@ -45,7 +45,7 @@ router.get(
 router.post(
   "/",
   protect,
-  requirePermission("printing.purchases.create"),
+  requireActiveWorkspace,
   addPurchase
 );
 

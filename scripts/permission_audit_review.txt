@@ -1,0 +1,313 @@
+==============================================================
+OPERATIONS PLATFORM - PERMISSION AUDIT REPORT
+Generated: 2026-07-21
+==============================================================
+
+SUMMARY
+-------
+Total permissions in dbo.Permissions: 101
+Active permissions (IsActive = 1): 95
+Inactive permissions (IsActive = 0):  1
+Permissions used in route protection: 58
+Unused active permissions:            37
+
+RECOMMENDATION: Deactivate the 37 unused permissions to reduce
+the permission count from 95 to 58.
+
+==============================================================
+DATABASE PERMISSIONS (Active = 1)
+==============================================================
+
+ID  | Permission Key                              | ModuleId | Status     | Used In Routes
+----|---------------------------------------------|----------|------------|---------------
+2   | lookups.view                                | 1        | Active     | NO
+5   | it_assets.dashboard.view                    | 6        | Active     | YES
+6   | it_assets.assets.view                       | 6        | Active     | YES
+7   | it_assets.assignment.manage                 | 6        | Active     | YES
+8   | it_assets.transfer.manage                   | 6        | Active     | YES
+9   | it_assets.issues.manage                     | 6        | Active     | YES
+10  | it_assets.maintenance.manage                | 6        | Active     | YES
+11  | it_assets.disposal.manage                   | 6        | Active     | YES
+12  | it_assets.reports.view                      | 6        | Active     | NO
+13  | it_assets.tags.print                        | 6        | Active     | NO (legacy key)
+14  | it_assets.import.manage                     | 6        | Active     | NO
+15  | it_assets.borrow.manage                     | 6        | Active     | YES
+16  | access-levels.view                          | 2        | Active     | YES
+17  | access-levels.create                        | 2        | Active     | NO
+18  | access-levels.update                        | 2        | Active     | NO
+19  | access-levels.delete                        | 2        | Active     | NO
+20  | assignment-types.view                       | 2        | Active     | YES
+21  | user-assignments.view                       | 2        | Active     | YES
+22  | user-assignments.create                     | 2        | Active     | NO
+23  | user-assignments.update                     | 2        | Active     | NO
+24  | user-assignments.delete                     | 2        | Active     | NO
+25  | user-permission-overrides.view              | 2        | Active     | NO
+26  | user-permission-overrides.create            | 2        | Active     | NO
+27  | user-permission-overrides.update            | 2        | Active     | NO
+28  | user-permission-overrides.delete            | 2        | Active     | NO
+29  | assignment-types.create                     | 2        | Active     | NO
+30  | assignment-types.update                     | 2        | Active     | NO
+31  | assignment-types.delete                     | 2        | Active     | NO
+32  | users.view                                  | 2        | Active     | YES
+33  | roles.view                                  | 2        | Active     | YES
+34  | permissions.view                            | 2        | Active     | NO
+35  | permission-groups.view                      | 2        | Active     | NO
+36  | role-permissions.view                       | 2        | Active     | NO
+37  | printing.dashboard.view                     | 4        | Active     | YES
+38  | printing.queue.view                         | 4        | Active     | YES
+39  | printing.inventory.view                     | 4        | Active     | YES
+40  | printing.purchases.view                     | 4        | Active     | YES
+41  | printing.distributions.view                 | 4        | Active     | NO
+42  | printing.master-data.view                   | 4        | Active     | NO
+43  | printing.access-levels.view                 | 4        | Active     | NO
+44  | workspace.configure                         | 1        | Active     | YES
+45  | workspace.live_as_user                      | 1        | Active     | NO (SuperAdmin only legacy)
+46  | workspace.live_mode                         | 1        | Active     | YES
+47  | workspace.preview                           | 1        | Active     | NO (legacy key)
+48  | workspace.preview_user                      | 1        | Active     | YES
+49  | workspace.hod.use                           | 3        | Active     | NO
+50  | workspace.hos.use                           | 3        | Active     | NO
+51  | workspace.teacher.use                       | 3        | Active     | NO
+52  | printing.limits.view                       | 4        | Active     | YES
+71  | library.dashboard.view                      | 25       | Active     | YES
+72  | library.books.view                          | 25       | Active     | YES
+73  | library.books.create                        | 25       | Active     | NO
+74  | library.books.update                        | 25       | Active     | NO
+75  | library.books.delete                        | 25       | Active     | NO
+76  | library.categories.manage                   | 25       | Active     | YES
+77  | library.members.view                        | 25       | Active     | YES
+78  | library.members.manage                      | 25       | Active     | NO
+79  | library.loans.view                          | 25       | Active     | YES
+80  | library.loans.issue                         | 25       | Active     | YES
+81  | library.loans.return                        | 25       | Active     | YES
+82  | library.loans.renew                         | 25       | Active     | YES
+83  | library.reservations.view                   | 25       | Active     | YES
+84  | library.reservations.manage                 | 25       | Active     | YES
+85  | library.overdue.view                        | 25       | Active     | NO
+86  | library.inventory.manage                    | 25       | Active     | NO
+87  | library.reports.view                        | 25       | Active     | NO
+88  | library.settings.manage                     | 25       | Active     | NO
+89  | platform_admin.dashboard.view               | 1        | Active     | YES
+90  | AuditLog.View                               | 1        | Active     | NO
+91  | Branding.View                               | 1        | Active     | NO
+92  | Button.View                                 | 1        | Active     | NO
+93  | SuperAdmin.Dashboard.View                   | 1        | Active     | NO
+94  | FeatureFlag.View                            | 1        | Active     | NO
+95  | Menu.View                                   | 1        | Active     | NO
+96  | Module.View                                 | 1        | Active     | NO
+97  | Navigation.View                             | 1        | Active     | NO
+98  | SystemSettings.View                         | 1        | Active     | NO
+99  | Widget.View                                 | 1        | Active     | NO
+100 | workspace.admin.use                         | 1        | Active     | NO
+101 | workspace.clinic.use                        | 1        | Active     | NO
+102 | workspace.deputy_head.use                   | 1        | Active     | NO
+103 | workspace.homeroom.use                      | 1        | Active     | NO
+104 | workspace.operations.use                    | 1        | Active     | NO
+105 | workspace.year_leader.use                   | 1        | Active     | NO
+112 | asset_tag_branding.manage                   | 1        | Active     | NO
+113 | asset_tag_branding.view                     | 1        | Active     | NO
+114 | asset_tags.rectangular.print                | 6        | Active     | NO
+115 | asset_tags.rectangular.view                 | 6        | Active     | NO
+116 | asset_tags.rounded.print                    | 6        | Active     | NO
+117 | asset_tags.rounded.view                     | 6        | Active     | NO
+130 | asset_tag_branding.rectangular.manage       | 1        | Active     | NO
+131 | asset_tag_branding.rectangular.view         | 1        | Active     | NO
+132 | asset_tag_branding.rounded.manage           | 1        | Active     | NO
+133 | asset_tag_branding.rounded.view             | 1        | Active     | NO
+
+==============================================================
+PERMISSIONS USED IN ROUTE PROTECTION (requirePermission)
+==============================================================
+
+The following 58 permission keys are referenced in backend route
+definitions and are required for the application to function:
+
+IT ASSETS MODULE (ModuleId: 6)
+  - it_assets.dashboard.view
+  - it_assets.assets.view
+  - it_assets.assignment.manage
+  - it_assets.transfer.manage
+  - it_assets.issues.manage
+  - it_assets.maintenance.manage
+  - it_assets.disposal.manage
+  - it_assets.borrow.manage
+
+USER ACCESS MODULE (ModuleId: 2)
+  - access-levels.view
+  - assignment-types.view
+  - user-assignments.view
+  - users.view
+  - roles.view
+
+PRINTING MODULE (ModuleId: 4)
+  - printing.dashboard.view
+  - printing.queue.view
+  - printing.inventory.view
+  - printing.purchases.view
+  - printing.limits.view
+  - printing.request.view
+  - printing.request.start
+  - printing.request.complete
+  - printing.history.view
+  - printing.inventory.update
+  - printing.purchases.create
+  - printing.distribution.view
+  - printing.distribution.create
+  - printing.limits.update
+
+WORKSPACE MODULE (ModuleId: 1)
+  - workspace.configure
+  - workspace.live_mode
+  - workspace.preview_user
+  - workspace.view
+  - workspace.create
+  - workspace.update
+  - workspace.delete
+
+PLATFORM ADMIN (ModuleId: 1)
+  - platform_admin.dashboard.view
+
+LIBRARY MODULE (ModuleId: 25)
+  - library.dashboard.view
+  - library.books.view
+  - library.categories.manage
+  - library.members.view
+  - library.loans.view
+  - library.loans.issue
+  - library.loans.return
+  - library.loans.renew
+  - library.reservations.view
+  - library.reservations.manage
+
+OTHER ROUTES
+  - requests.view
+  - requests.approve
+  - requests.reject
+  - reports.view
+  - users.view (legacy)
+
+==============================================================
+UNUSED ACTIVE PERMISSIONS (37 can be deactivated)
+==============================================================
+
+Category A: Legacy / Duplicate Keys (safe to deactivate)
+  - it_assets.tags.print                    (legacy, replaced by asset_tags.*)
+  - workspace.preview                       (legacy, replaced by workspace.preview_user)
+  - workspace.live_as_user                  (legacy, SuperAdmin only hardcoded bypass)
+  - workspace.hod.use                       (no route protection uses this)
+  - workspace.hos.use                       (no route protection uses this)
+  - workspace.teacher.use                   (no route protection uses this)
+  - workspace.admin.use                     (no route protection uses this)
+  - workspace.clinic.use                    (no route protection uses this)
+  - workspace.deputy_head.use               (no route protection uses this)
+  - workspace.homeroom.use                  (no route protection uses this)
+  - workspace.operations.use                (no route protection uses this)
+  - workspace.year_leader.use               (no route protection uses this)
+
+Category B: Create/Update/Delete Without Route Protection (14)
+  These CRUD permissions exist in the database but no backend
+  route currently requires them. They may be frontend-only
+  or planned for future use.
+
+  - access-levels.create
+  - access-levels.update
+  - access-levels.delete
+  - assignment-types.create
+  - assignment-types.update
+  - assignment-types.delete
+  - user-assignments.create
+  - user-assignments.update
+  - user-assignments.delete
+  - user-permission-overrides.view
+  - user-permission-overrides.create
+  - user-permission-overrides.update
+  - user-permission-overrides.delete
+
+Category C: Printing Sub-Permissions (3)
+  - printing.distributions.view
+  - printing.master-data.view
+  - printing.access-levels.view
+
+Category D: IT Assets Sub-Permissions (3)
+  - it_assets.reports.view
+  - it_assets.import.manage
+  - it_assets.tags.print (also in Category A)
+
+Category E: Library Sub-Permissions (6)
+  - library.books.create
+  - library.books.update
+  - library.books.delete
+  - library.members.manage
+  - library.overdue.view
+  - library.inventory.manage
+  - library.reports.view
+  - library.settings.manage
+
+Category F: Super Admin Management UI (9)
+  These permissions are referenced in the SuperAdmin module
+  controllers but not enforced by requirePermission middleware
+  on the routes themselves.
+
+  - AuditLog.View
+  - Branding.View
+  - Button.View
+  - SuperAdmin.Dashboard.View
+  - FeatureFlag.View
+  - Menu.View
+  - Module.View
+  - Navigation.View
+  - SystemSettings.View
+  - Widget.View
+
+Category G: Asset Tag Branding (6)
+  - asset_tag_branding.manage
+  - asset_tag_branding.view
+  - asset_tags.rectangular.print
+  - asset_tags.rectangular.view
+  - asset_tags.rounded.print
+  - asset_tags.rounded.view
+  - asset_tag_branding.rectangular.manage
+  - asset_tag_branding.rectangular.view
+  - asset_tag_branding.rounded.manage
+  - asset_tag_branding.rounded.view
+
+==============================================================
+SCHEMA ISSUE IDENTIFIED
+==============================================================
+
+The live database was created/altered using scripts/july20.sql
+which defines dbo.Permissions WITHOUT GroupKey/GroupName columns
+(only PermissionGroupId). However, the backend code selects
+p.GroupKey and p.GroupName in many queries.
+
+FIX: Run this SQL to add the missing columns:
+
+  ALTER TABLE dbo.Permissions ADD 
+    GroupKey nvarchar(100) NOT NULL DEFAULT 'platform',
+    GroupName nvarchar(150) NOT NULL DEFAULT 'Platform';
+
+This will resolve the  Invalid column name GroupKey  error
+occurring during permission resolution (login/logout).
+
+==============================================================
+RECOMMENDED ACTIONS
+==============================================================
+
+1. IMMEDIATE: Fix the schema error by adding GroupKey/GroupName
+   columns to dbo.Permissions (see SQL above).
+
+2. SHORT-TERM: Deactivate the 37 unused permissions by setting
+   IsActive = 0. This reduces the active permission count from
+   95 to 58 and simplifies the permission management UI.
+
+3. MEDIUM-TERM: Review whether the  Category B CRUD permissions
+   should have route protection added, or if they should be
+   deactivated permanently.
+
+4. OPTIONAL: Consider consolidating Category F SuperAdmin UI
+   permissions if they are not needed for fine-grained access
+   control.
+
+==============================================================
+END OF REPORT
+==============================================================

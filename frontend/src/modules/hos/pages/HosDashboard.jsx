@@ -47,6 +47,7 @@ import {
   getHosApprovalHistory,
   approveHosRequest,
   rejectHosRequest,
+  returnHosRequest,
 } from "../../../services/hosService";
 
 export default function HosDashboard() {
@@ -78,7 +79,7 @@ export default function HosDashboard() {
     requestNumber: item.RequestNumber,
 
     teacher: item.TeacherName,
-    employeeId: item.EmployeeId,
+    employeeId: item.EmployeeId || item.TeacherEmployeeId,
 
     department: item.DepartmentName,
     subject: item.SubjectName,
@@ -338,8 +339,21 @@ export default function HosDashboard() {
     }
   };
 
-  const handleReturn = () => {
-    alert("Return request API is not created yet.");
+  const handleReturn = async () => {
+    if (!selectedRequest) return;
+    if (!comment.trim()) {
+      alert("Comment is required when returning a request.");
+      return;
+    }
+
+    try {
+      await returnHosRequest(selectedRequest.id, comment);
+      alert("Request returned to the requester.");
+      handleClose();
+      await fetchHosData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Unable to return HOS request.");
+    }
   };
 
   return (

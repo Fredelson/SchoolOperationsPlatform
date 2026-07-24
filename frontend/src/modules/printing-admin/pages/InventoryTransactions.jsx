@@ -27,7 +27,7 @@ import {
 
 import PageHeader from "../../../components/common/PageHeader";
 
-import api from "../../../services/api";
+import { getPrintingInventoryTransactions } from "../../../services/printingService";
 
 const InventoryTransactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -48,10 +48,9 @@ const InventoryTransactions = () => {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/printing/inventory-transactions");
-
-      setTransactions(response.data || []);
-      setFiltered(response.data || []);
+      const data = await getPrintingInventoryTransactions();
+      setTransactions(data || []);
+      setFiltered(data || []);
     } catch (err) {
       console.error("Fetch Inventory Transactions Error:", err);
 

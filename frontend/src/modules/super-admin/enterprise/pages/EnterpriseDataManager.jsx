@@ -20,38 +20,17 @@ const CONFIG = {
     required: ["menuKey", "menuName", "moduleId", "visibilityStatusId"],
     columns: ["menuName", "menuKey", "moduleName", "parentMenuName", "route", "groupName", "visibilityStatusName"],
   },
-  permissionGroups: {
-    title: "Permission Groups", endpoint: "/permission-groups", id: "permissionGroupId",
-    fields: ["groupKey", "groupName", "description", "sortOrder"], required: ["groupKey", "groupName"],
-    columns: ["groupName", "groupKey", "description", "sortOrder"],
-  },
-  permissions: {
-    title: "Permission Manager", endpoint: "/permissions", id: "permissionId",
-    fields: ["permissionKey", "permissionName", "moduleId", "permissionGroupId", "description", "isActive"],
-    required: ["permissionKey", "permissionName", "moduleId"],
-    columns: ["permissionName", "permissionKey", "moduleName", "permissionGroupName", "isActive"],
-  },
   roles: {
     title: "Roles Manager", endpoint: "/roles", id: "roleId",
     fields: ["roleKey", "roleName", "displayName", "accessLevelId", "description", "isSystemRole", "isProtected"],
     required: ["roleKey", "roleName", "displayName", "accessLevelId"],
     columns: ["displayName", "roleKey", "accessLevelDisplayName", "description", "isSystemRole", "isProtected"],
   },
-  rolePermissions: {
-    title: "Role Permissions", endpoint: "/role-permissions", id: "rolePermissionId",
-    fields: ["roleId", "permissionId", "isAllowed"], required: ["roleId", "permissionId"],
-    columns: ["roleName", "permissionName", "permissionKey", "permissionGroupName", "isAllowed"],
-  },
-  userOverrides: {
-    title: "User Permission Overrides", endpoint: "/user-permission-overrides", id: "userPermissionOverrideId",
-    fields: ["userId", "permissionId", "isAllowed", "reason"], required: ["userId", "permissionId"],
-    columns: ["userName", "permissionName", "permissionKey", "isAllowed", "reason"],
-  },
 };
 
 const labelFor = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
 const booleanFields = new Set(["isActive", "isAllowed", "isPinned", "isCollapsible", "isSystemRole", "isProtected"]);
-const numericFields = new Set(["moduleId", "parentMenuId", "permissionId", "permissionGroupId", "featureFlagId", "visibilityStatusId", "menuGroupId", "sortOrder", "accessLevelId", "roleId", "userId"]);
+const numericFields = new Set(["moduleId", "parentMenuId", "permissionId", "featureFlagId", "visibilityStatusId", "menuGroupId", "sortOrder", "accessLevelId", "roleId", "userId"]);
 
 export default function EnterpriseDataManager({ type }) {
   const config = CONFIG[type];
@@ -124,9 +103,4 @@ export default function EnterpriseDataManager({ type }) {
   </Stack>;
 }
 
-export const NavigationManagerPage = () => <EnterpriseDataManager type="navigation" />;
-export const PermissionGroupsPage = () => <EnterpriseDataManager type="permissionGroups" />;
-export const PermissionManagerPage = () => <EnterpriseDataManager type="permissions" />;
 export const RolesManagerPage = () => <EnterpriseDataManager type="roles" />;
-export const RolePermissionsPage = () => <EnterpriseDataManager type="rolePermissions" />;
-export const UserPermissionOverridesPage = () => <EnterpriseDataManager type="userOverrides" />;

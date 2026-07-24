@@ -442,27 +442,6 @@ const replaceAssignments = async (workspaceId, assignmentType, items) => {
       }
       await request.query(`INSERT dbo.${definition.table}(WorkspaceId,${definition.id}${definition.extra}) VALUES(@WorkspaceId,@ItemId${definition.values})`);
     }
-    if (assignmentType === "modules" || assignmentType === "profiles") {
-      await transaction.request().input("WorkspaceId",sql.Int,workspaceId).query(`
-        INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
-        SELECT 
-          wr.RoleId,
-          p.PermissionId,
-          1,
-          GETDATE()
-        FROM dbo.WorkspaceRoles wr
-        CROSS JOIN dbo.WorkspaceModules wm
-        INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
-        WHERE wr.WorkspaceId = @WorkspaceId
-          AND wm.WorkspaceId = @WorkspaceId
-          AND wm.IsVisible = 1
-          AND wm.IsEnabled = 1
-          AND NOT EXISTS (
-            SELECT 1 FROM dbo.RolePermissions rp 
-            WHERE rp.RoleId = wr.RoleId AND rp.PermissionId = p.PermissionId
-          );
-      `);
-    }
     await transaction.commit(); return getWorkspaceConfiguration(workspaceId);
   } catch(error) { await transaction.rollback(); throw error; }
 };
@@ -476,12 +455,17 @@ const syncWorkspaceRolePermissions = async (workspaceId) => {
       1,
       GETDATE()
     FROM dbo.WorkspaceRoles wr
-    CROSS JOIN dbo.WorkspaceModules wm
-    INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
+    CROSS JOIN (
+      SELECT PermissionId FROM dbo.Permissions
+      WHERE PermissionKey IN (
+        'workspace.view',
+        'workspace.activate',
+        'workspace.disable',
+        'workspace.configure'
+      )
+      AND IsActive = 1
+    ) p
     WHERE wr.WorkspaceId = @WorkspaceId
-      AND wm.WorkspaceId = @WorkspaceId
-      AND wm.IsVisible = 1
-      AND wm.IsEnabled = 1
       AND NOT EXISTS (
         SELECT 1 FROM dbo.RolePermissions rp 
         WHERE rp.RoleId = wr.RoleId AND rp.PermissionId = p.PermissionId
@@ -570,16 +554,17 @@ const updateWorkspaceButton = async (workspaceId, buttonId, payload) => {
   const result=await pool.request()
     .input("WorkspaceId",sql.Int,workspaceId)
     .input("ButtonId",sql.Int,buttonId)
+    .input("IsVisible",sql.Bit,payload.isVisible?1:0)
     .input("IsEnabled",sql.Bit,payload.isEnabled?1:0)
     .query(`
       MERGE dbo.WorkspaceButtons AS target
       USING (SELECT @WorkspaceId AS WorkspaceId, @ButtonId AS ButtonId) AS source
       ON target.WorkspaceId = source.WorkspaceId AND target.ButtonId = source.ButtonId
       WHEN MATCHED THEN
-        UPDATE SET IsEnabled = @IsEnabled
+        UPDATE SET IsVisible = @IsVisible, IsEnabled = @IsEnabled
       WHEN NOT MATCHED THEN
         INSERT (WorkspaceId, ButtonId, IsVisible, IsEnabled, SortOrder)
-        VALUES (@WorkspaceId, @ButtonId, 1, @IsEnabled, 0)
+        VALUES (@WorkspaceId, @ButtonId, @IsVisible, @IsEnabled, 0)
       OUTPUT INSERTED.*;
     `);
   return result.recordset[0];

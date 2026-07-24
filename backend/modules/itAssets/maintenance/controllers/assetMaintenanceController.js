@@ -59,9 +59,35 @@ const completeMaintenance = async (req, res) => {
   }
 };
 
+const reopenMaintenance = async (req, res) => {
+  try {
+    const data = await service.reopenMaintenance({
+      maintenanceLogId: req.params.maintenanceLogId,
+      user: req.user,
+    });
+    return res.status(200).json({ success: true, message: "Maintenance reopened.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
+const receiveMaintenanceParts = async (req, res) => {
+  try {
+    const data = await service.receiveMaintenanceParts({
+      assetId: req.params.assetId,
+      user: req.user,
+    });
+    return res.status(200).json({ success: true, message: "Parts marked as received.", data });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createMaintenanceLog,
   getMaintenanceLogs,
   getMaintenanceDue,
   completeMaintenance,
+  reopenMaintenance,
+  receiveMaintenanceParts,
 };

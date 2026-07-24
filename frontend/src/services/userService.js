@@ -41,6 +41,11 @@ export const activateUser = async (userId) => {
   return response.data;
 };
 
+export const resetUserPassword = async (userId, resetData) => {
+  const response = await api.post(`/users/${userId}/reset-password`, resetData);
+  return response.data;
+};
+
 // ============================================
 // User Import - New Enterprise Import Flow
 // ============================================

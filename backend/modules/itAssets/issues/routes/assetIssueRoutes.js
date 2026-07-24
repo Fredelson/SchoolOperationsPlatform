@@ -3,9 +3,10 @@ const router = express.Router();
 
 const controller = require("../controllers/assetIssueController");
 const validator = require("../validators/assetIssueValidator");
-const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+const { protect } = require("../../../../middleware/authMiddleware");
+const { requireActiveWorkspace } = require("../../../../middleware/permissionMiddleware");
 
-router.use(requirePermission("it_assets.issues.manage"));
+router.use(protect, requireActiveWorkspace);
 
 router.get("/", controller.getIssues);
 router.get("/open", controller.getOpenIssues);

@@ -1,0 +1,1 @@
+const fs=require('fs');const p='frontend/src/modules/super-admin/workspaces/pages/WorkspaceManagerPage.jsx';const c=fs.readFileSync(p,'utf8');const bad='\';console.log('count',c.split(bad).length-1);const idx=c.indexOf(bad);console.log('idx',idx);console.log(c.slice(idx-10,idx+10));

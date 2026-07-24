@@ -42,6 +42,23 @@ const protect = async (req, res, next) => {
     // Store decoded user data for controllers/routes
     req.user = decoded;
 
+    const requestPath = String(req.originalUrl || "").split("?")[0];
+    const passwordChangeAllowedRoutes = new Set([
+      "/api/auth/me",
+      "/api/auth/change-password",
+    ]);
+
+    if (
+      decoded.mustChangePassword &&
+      !passwordChangeAllowedRoutes.has(requestPath)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "You must change your password before continuing.",
+      });
+    }
+
     if (decoded.liveMode && decoded.liveSessionId) {
       const workspaceRepository=require("../modules/workspaceManager/repositories/workspaceManagerRepository");
       const activeSession=await workspaceRepository.getActiveLiveSession(decoded.liveSessionId,decoded.actorUserId,decoded.id);
@@ -70,7 +87,6 @@ const protect = async (req, res, next) => {
 
 const authorizeRoles = (...roles) => {
   return async (req, res, next) => {
-    // Safety check: protect middleware must run first
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -78,10 +94,18 @@ const authorizeRoles = (...roles) => {
       });
     }
 
-    // Check user role against allowed roles
-    const mainRole = req.user.roleKey || req.user.role;
+    const normalize = (value = "") =>
+      String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-/g, "")
+        .replace(/_/g, "");
 
-    if (roles.includes(mainRole)) {
+    const mainRole = normalize(req.user.roleKey || req.user.role);
+    const allowed = roles.map(normalize);
+
+    if (allowed.includes(mainRole)) {
       return next();
     }
 

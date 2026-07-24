@@ -102,9 +102,13 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
   const brandingData = useMemo(() => branding?.branding || {}, [branding?.branding]);
 
   const [selectedFiles, setSelectedFiles] = useState({});
-  const [uploadingKey, setUploadingKey] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const selectedEntries = useMemo(
+    () => Object.entries(selectedFiles).filter(([, file]) => Boolean(file)),
+    [selectedFiles]
+  );
 
   const previews = useMemo(() => {
     const result = {};
@@ -135,28 +139,49 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
     }));
   };
 
-  const handleUpload = async (fileType) => {
-    const file = selectedFiles[fileType];
-
-    if (!file) {
-      setError("Please choose a file before uploading.");
+  const handleUploadSelected = async () => {
+    if (selectedEntries.length === 0) {
+      setError("Please choose at least one file before uploading.");
       return;
     }
 
     try {
-      setUploadingKey(fileType);
+      setUploading(true);
       setError("");
       setMessage("");
 
-      await uploadBrandingFile(fileType, file);
-      await refreshBranding();
+      const results = await Promise.allSettled(
+        selectedEntries.map(([fileType, file]) =>
+          uploadBrandingFile(fileType, file)
+        )
+      );
+      const successfulKeys = selectedEntries
+        .filter((_, index) => results[index].status === "fulfilled")
+        .map(([fileType]) => fileType);
+      const failedCount = results.length - successfulKeys.length;
 
-      setSelectedFiles((prev) => ({
-        ...prev,
-        [fileType]: null,
-      }));
+      if (successfulKeys.length > 0) {
+        await refreshBranding();
+        setSelectedFiles((prev) => {
+          const next = { ...prev };
+          successfulKeys.forEach((key) => {
+            next[key] = null;
+          });
+          return next;
+        });
+      }
 
-      setMessage("Branding media uploaded successfully.");
+      if (failedCount > 0) {
+        setError(
+          `${failedCount} branding file${failedCount === 1 ? "" : "s"} failed to upload.`
+        );
+      }
+
+      if (successfulKeys.length > 0) {
+        setMessage(
+          `${successfulKeys.length} branding file${successfulKeys.length === 1 ? "" : "s"} uploaded successfully.`
+        );
+      }
     } catch (err) {
       console.error(err);
       setError(
@@ -164,7 +189,7 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
           "Failed to upload branding media. Please try again."
       );
     } finally {
-      setUploadingKey("");
+      setUploading(false);
     }
   };
 
@@ -172,6 +197,21 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
     <AppSection
       title="Branding Media"
       subtitle="Upload logos, favicon, and login background used across the platform."
+      actions={
+        <AppButton
+          startIcon={
+            uploading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <UploadIcon />
+            )
+          }
+          disabled={selectedEntries.length === 0 || uploading}
+          onClick={handleUploadSelected}
+        >
+          {uploading ? "Uploading..." : "Upload Selected"}
+        </AppButton>
+      }
     >
       <Stack spacing={2}>
         {message && <Alert severity="success">{message}</Alert>}
@@ -190,7 +230,6 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
           {MEDIA_ITEMS.map((item) => {
             const previewUrl = previews[item.key];
             const selectedFile = selectedFiles[item.key];
-            const isUploading = uploadingKey === item.key;
 
             return (
               <Box
@@ -279,20 +318,6 @@ export default function BrandingMediaCard({ branding, refreshBranding }) {
                           handleFileChange(item.key, event.target.files?.[0])
                         }
                       />
-                    </AppButton>
-
-                    <AppButton
-                      startIcon={
-                        isUploading ? (
-                          <CircularProgress size={16} color="inherit" />
-                        ) : (
-                          <UploadIcon />
-                        )
-                      }
-                      disabled={!selectedFile || isUploading}
-                      onClick={() => handleUpload(item.key)}
-                    >
-                      {isUploading ? "Uploading..." : "Upload"}
                     </AppButton>
                   </Stack>
                 </Stack>

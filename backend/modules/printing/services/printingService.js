@@ -1,179 +1,235 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Printing Service
-// ============================================================
-//
-// Purpose:
-// Owns all Printing business logic and workflow rules.
-//
-// Architecture:
-// Service Layer
-//
-// Rules:
-// - Business logic lives here
-// - Controllers stay thin
-// - Repository handles SQL only
-// - Printing workflow is fully backend-controlled
-//
-// ============================================================
-
-const { sql, poolPromise } = require("../../../shared/database");
-
 const printingRepository = require("../repositories/printingRepository");
-
+const printingRequestRepository = require("../repositories/printingRequestRepository");
+const settingsService = require("./printingSettingsService");
+const accessService = require("./printingAccessService");
 const {
   PRINTING_STATUSES,
+  PRINTING_START_ALLOWED_STATUSES,
 } = require("../constants/printingStatuses");
-
 const {
-  buildPrintCalculationSummary,
-} = require("../helpers/printCalculationEngine");
-
-const {
-  canStartPrinting,
   canHoldPrinting,
   canResumePrinting,
   canCompletePrinting,
   canCancelPrinting,
-  assertWorkflowAllowed,
 } = require("../helpers/printingWorkflow");
 
-// ============================================================
-// Error Helper
-// ============================================================
-
-const createServiceError = (message, statusCode = 400, details = null) => {
+const serviceError = (message, statusCode = 400, details = null) => {
   const error = new Error(message);
   error.statusCode = statusCode;
-
-  if (details) {
-    error.details = details;
-  }
-
+  if (details) error.details = details;
   return error;
 };
 
-// ============================================================
-// Dashboard
-// ============================================================
+const assertQueueAccess = (actor) =>
+  accessService.assertCapability(actor, accessService.CAPABILITIES.MANAGE_QUEUE);
 
-const getPrintingDashboard = async (printingAdminId) => {
+const canOperateRequest = (printingRequest, actor, assignmentMode) => {
+  if (Number(printingRequest.ClaimedByUserId) === actor.userId) return true;
+  if (Number(printingRequest.CurrentApproverId) === actor.userId) return true;
+
+  return (
+    assignmentMode === "shared" &&
+    !printingRequest.ClaimedByUserId &&
+    !printingRequest.CurrentApproverId
+  );
+};
+
+const withTransaction = async (callback) => {
+  const transaction = await printingRepository.beginTransaction();
+  try {
+    const result = await callback(transaction);
+    await transaction.commit();
+    return result;
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch {
+      // Preserve the original workflow error.
+    }
+    throw error;
+  }
+};
+
+const getPrintingDashboard = async (actor) => {
+  assertQueueAccess(actor);
+  const settings = await settingsService.getSettings(actor.schoolId);
   const [
     kpis,
     inventory,
     jobStatus,
+    activity,
+    paperUsageRows,
     topDepartments,
     recentJobs,
-  ] = await Promise.all([
-    printingRepository.getDashboardKpis(printingAdminId),
-    printingRepository.getDashboardInventory(),
-    printingRepository.getDashboardJobStatus(printingAdminId),
-    printingRepository.getTopDepartmentsThisMonth(),
-    printingRepository.getRecentPrintJobs(),
-  ]);
+  ] =
+    await Promise.all([
+      printingRepository.getDashboardKpis(actor.schoolId, actor.userId),
+      printingRepository.getDashboardInventory(),
+      printingRepository.getDashboardJobStatus(actor.schoolId),
+      printingRepository.getDashboardActivity(actor.schoolId),
+      printingRepository.getDashboardPaperUsage(actor.schoolId),
+      printingRepository.getTopDepartmentsThisMonth(actor.schoolId),
+      printingRepository.getRecentPrintJobs(actor.schoolId),
+    ]);
 
-  const a4 = inventory.find((item) => item.PaperType === "A4");
-  const a3 = inventory.find((item) => item.PaperType === "A3");
+  const stockByType = Object.fromEntries(
+    inventory.map((item) => [item.PaperType, Number(item.CurrentStock || 0)])
+  );
+  const a4Stock = stockByType.A4 || 0;
+  const a3Stock = stockByType.A3 || 0;
+  const usedByType = Object.fromEntries(
+    paperUsageRows.map((item) => [
+      String(item.PaperType || "").toUpperCase(),
+      Number(item.UsedSheets || 0),
+    ])
+  );
+  const a4Used = usedByType.A4 || 0;
+  const a3Used = usedByType.A3 || 0;
+  const formatActivityDate = new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  });
+  const pendingActions = [];
 
-  const a4Stock = Number(a4?.CurrentStock || 0);
-  const a3Stock = Number(a3?.CurrentStock || 0);
+  if (a4Stock <= settings.lowStockA4) {
+    pendingActions.push({
+      title: "A4 stock is below its configured threshold",
+      module: "Paper Inventory",
+      requestedBy: "Printing Management",
+      time: `${a4Stock.toLocaleString()} sheets available`,
+      status: "Pending",
+    });
+  }
+  if (a3Stock <= settings.lowStockA3) {
+    pendingActions.push({
+      title: "A3 stock is below its configured threshold",
+      module: "Paper Inventory",
+      requestedBy: "Printing Management",
+      time: `${a3Stock.toLocaleString()} sheets available`,
+      status: "Pending",
+    });
+  }
+  if (Number(kpis.PendingJobs || 0) > 0) {
+    pendingActions.push({
+      title: `${Number(kpis.PendingJobs)} print jobs are waiting`,
+      module: "Print Queue",
+      requestedBy: "Request workflow",
+      time: "Current queue",
+      status: "Pending",
+    });
+  }
+  if (Number(kpis.OverdueJobs || 0) > 0) {
+    pendingActions.push({
+      title: `${Number(kpis.OverdueJobs)} print jobs are overdue`,
+      module: "Print Queue",
+      requestedBy: "Due date monitor",
+      time: "Requires attention",
+      status: "Pending",
+    });
+  }
 
   return {
     stats: [
       {
         title: "Pending Jobs",
-        value: Number(kpis?.PendingJobs || 0),
-        subtitle: "Awaiting printing",
+        value: Number(kpis.PendingJobs || 0),
+        subtitle: "Available in the printing queue",
         color: "warning",
         icon: "pending",
       },
       {
         title: "Printing Now",
-        value: Number(kpis?.PrintingNow || 0),
-        subtitle: "Currently printing",
+        value: Number(kpis.PrintingNow || 0),
+        subtitle: "Claimed by you",
         color: "info",
         icon: "printing",
       },
       {
         title: "On Hold",
-        value: Number(kpis?.OnHoldJobs || 0),
-        subtitle: "Paused jobs",
+        value: Number(kpis.OnHoldJobs || 0),
+        subtitle: "Paused by you",
         color: "warning",
         icon: "pause",
       },
       {
         title: "Completed Today",
-        value: Number(kpis?.CompletedToday || 0),
-        subtitle: "Completed today",
+        value: Number(kpis.CompletedToday || 0),
+        subtitle: "All operators",
         color: "success",
         icon: "completed",
-      },
-      {
-        title: "Completed Month",
-        value: Number(kpis?.CompletedMonth || 0),
-        subtitle: "This month",
-        color: "info",
-        icon: "calendar",
-      },
-      {
-        title: "Overdue Jobs",
-        value: Number(kpis?.OverdueJobs || 0),
-        subtitle: "Past due date",
-        color: "danger",
-        icon: "warning",
       },
       {
         title: "A4 Stock",
         value: a4Stock.toLocaleString(),
         subtitle: "Sheets available",
-        color: a4Stock <= 3000 ? "danger" : "success",
+        color: a4Stock <= settings.lowStockA4 ? "danger" : "success",
         icon: "inventory",
       },
       {
         title: "A3 Stock",
         value: a3Stock.toLocaleString(),
         subtitle: "Sheets available",
-        color: a3Stock <= 1500 ? "danger" : "success",
+        color: a3Stock <= settings.lowStockA3 ? "danger" : "success",
         icon: "inventory",
       },
     ],
-
+    printActivity: activity.map((item) => ({
+      month: formatActivityDate.format(new Date(item.ActivityDate)),
+      printRequests: Number(item.PrintRequests || 0),
+      completedJobs: Number(item.CompletedJobs || 0),
+    })),
     jobStatus: [
-      {
-        key: "pending",
-        label: "Pending",
-        value: Number(jobStatus?.Pending || 0),
-      },
+      { key: "pending", label: "Pending", value: Number(jobStatus.Pending || 0) },
       {
         key: "printing",
         label: "Printing",
-        value: Number(jobStatus?.Printing || 0),
+        value: Number(jobStatus.Printing || 0),
       },
-      {
-        key: "onHold",
-        label: "On Hold",
-        value: Number(jobStatus?.OnHold || 0),
-      },
+      { key: "onHold", label: "On Hold", value: Number(jobStatus.OnHold || 0) },
       {
         key: "completed",
         label: "Completed",
-        value: Number(jobStatus?.Completed || 0),
+        value: Number(jobStatus.Completed || 0),
       },
       {
         key: "rejected",
         label: "Rejected",
-        value: Number(jobStatus?.Rejected || 0),
+        value: Number(jobStatus.Rejected || 0),
       },
       {
         key: "cancelled",
         label: "Cancelled",
-        value: Number(jobStatus?.Cancelled || 0),
+        value: Number(jobStatus.Cancelled || 0),
       },
     ],
-
+    inventoryHealth: [
+      {
+        label: "A4 Paper",
+        status: a4Stock <= settings.lowStockA4 ? "Low" : "Healthy",
+        value: a4Stock,
+      },
+      {
+        label: "A3 Paper",
+        status: a3Stock <= settings.lowStockA3 ? "Low" : "Healthy",
+        value: a3Stock,
+      },
+      {
+        label: "Inventory Deduction",
+        status: "Active",
+        value: 100,
+      },
+      {
+        label: "Queue Assignment",
+        status:
+          settings.queueAssignmentMode === "shared"
+            ? "Shared"
+            : "Direct",
+        value: 100,
+      },
+    ],
     topDepartments,
-
     recentJobs: recentJobs.map((job) => ({
+      requestId: job.RequestId,
       title: `${job.RequestNumber} ${job.Status}`,
       description: `${Number(job.TotalSheets || 0)} sheets`,
       time: job.ActivityDate,
@@ -184,331 +240,411 @@ const getPrintingDashboard = async (printingAdminId) => {
           ? "warning"
           : "info",
     })),
-
     inventorySummary: [
       {
         paperType: "A4 Paper",
         current: a4Stock,
-        total: 15000,
-        minimum: 3000,
+        total: a4Stock + a4Used,
+        minimum: settings.lowStockA4,
       },
       {
         paperType: "A3 Paper",
         current: a3Stock,
-        total: 6000,
-        minimum: 1500,
+        total: a3Stock + a3Used,
+        minimum: settings.lowStockA3,
       },
     ],
+    paperUsage: [
+      { key: "active", label: "A4 Used", value: a4Used },
+      { key: "inProgress", label: "A4 Available", value: a4Stock },
+      { key: "comingSoon", label: "A3 Used", value: a3Used },
+      { key: "disabled", label: "A3 Available", value: a3Stock },
+    ],
+    pendingActions,
+    configuration: {
+      queueAssignmentMode: settings.queueAssignmentMode,
+      approvalThresholdSheets: settings.approvalThresholdSheets,
+    },
   };
 };
 
-// ============================================================
-// Queue / Details
-// ============================================================
+const getPrintingQueue = async (actor) => {
+  assertQueueAccess(actor);
+  const settings = await settingsService.getSettings(actor.schoolId);
+  return printingRepository.getPrintingQueue({
+    schoolId: actor.schoolId,
+    operatorId: actor.userId,
+    assignmentMode: settings.queueAssignmentMode,
+  });
+};
 
-const getPrintingQueue = async (printingAdminId) => {
-  const queue = await printingRepository.getPrintingQueue(printingAdminId);
+const getPrintingRequestById = async (actor, requestId) => {
+  assertQueueAccess(actor);
+  const settings = await settingsService.getSettings(actor.schoolId);
+  const visibleRequest = await printingRepository.getPrintingRequestById({
+    requestId,
+    schoolId: actor.schoolId,
+    operatorId: actor.userId,
+    assignmentMode: settings.queueAssignmentMode,
+  });
 
-  return queue.map((request) => ({
-    ...request,
-    printSummary: buildPrintCalculationSummary({
-      totalPages: request.TotalPages,
-      copies: request.Copies,
-      printSide: request.PrintSide,
-      paperSize: request.PaperSize,
-      printType: request.PrintType,
-    }),
+  if (!visibleRequest) {
+    throw serviceError("Printing request is not available in your queue.", 404);
+  }
+
+  return printingRequestRepository.getRequestBundle(requestId);
+};
+
+const claimPrinting = async (actor, requestId) => {
+  assertQueueAccess(actor);
+  const settings = await settingsService.getSettings(actor.schoolId);
+
+  return withTransaction(async (transaction) => {
+    const printingRequest =
+      await printingRepository.getQueueRequestForUpdate(
+        transaction,
+        requestId,
+        actor.schoolId
+      );
+
+    if (!printingRequest) throw serviceError("Printing request not found.", 404);
+    if (!PRINTING_START_ALLOWED_STATUSES.includes(printingRequest.Status)) {
+      throw serviceError(
+        `Request cannot be claimed while status is '${printingRequest.Status}'.`,
+        409
+      );
+    }
+    if (!canOperateRequest(printingRequest, actor, settings.queueAssignmentMode)) {
+      throw serviceError("This printing request is assigned to another operator.", 409);
+    }
+
+    const updatedRequest = await printingRepository.updateQueueState(
+      transaction,
+      {
+        requestId,
+        status: printingRequest.Status,
+        operatorId: actor.userId,
+      }
+    );
+    await printingRepository.insertWorkflowEvent(transaction, {
+      requestId,
+      eventType: "QUEUE_CLAIMED",
+      fromStatus: printingRequest.Status,
+      toStatus: printingRequest.Status,
+      actorUserId: actor.userId,
+      metadata: { queueAssignmentMode: settings.queueAssignmentMode },
+    });
+    return updatedRequest;
+  });
+};
+
+const transitionPrinting = async (
+  actor,
+  requestId,
+  { action, remarks = null }
+) => {
+  assertQueueAccess(actor);
+  const settings = await settingsService.getSettings(actor.schoolId);
+
+  return withTransaction(async (transaction) => {
+    const printingRequest =
+      await printingRepository.getQueueRequestForUpdate(
+        transaction,
+        requestId,
+        actor.schoolId
+      );
+
+    if (!printingRequest) throw serviceError("Printing request not found.", 404);
+    if (!canOperateRequest(printingRequest, actor, settings.queueAssignmentMode)) {
+      throw serviceError("This printing request is assigned to another operator.", 409);
+    }
+
+    const transition = {
+      start: {
+        allowed: PRINTING_START_ALLOWED_STATUSES.includes(printingRequest.Status),
+        status: PRINTING_STATUSES.PRINTING,
+        eventType: "PRINTING_STARTED",
+      },
+      hold: {
+        allowed: canHoldPrinting(printingRequest.Status),
+        status: PRINTING_STATUSES.ON_HOLD,
+        eventType: "PRINTING_HELD",
+      },
+      resume: {
+        allowed: canResumePrinting(printingRequest.Status),
+        status: PRINTING_STATUSES.PRINTING,
+        eventType: "PRINTING_RESUMED",
+      },
+      cancel: {
+        allowed: canCancelPrinting(printingRequest.Status),
+        status: PRINTING_STATUSES.CANCELLED,
+        eventType: "PRINTING_CANCELLED",
+        clearClaim: true,
+      },
+    }[action];
+
+    if (!transition) throw serviceError("Unsupported printing action.");
+    if (!transition.allowed) {
+      throw serviceError(
+        `Request cannot ${action} while status is '${printingRequest.Status}'.`,
+        409
+      );
+    }
+    if (["hold", "cancel"].includes(action) && !String(remarks || "").trim()) {
+      throw serviceError(`Remarks are required to ${action} a printing request.`);
+    }
+
+    const updatedRequest = await printingRepository.updateQueueState(
+      transaction,
+      {
+        requestId,
+        status: transition.status,
+        operatorId: actor.userId,
+        remarks,
+        clearClaim: Boolean(transition.clearClaim),
+      }
+    );
+    await printingRepository.insertWorkflowEvent(transaction, {
+      requestId,
+      eventType: transition.eventType,
+      fromStatus: printingRequest.Status,
+      toStatus: transition.status,
+      actorUserId: actor.userId,
+      remarks,
+    });
+    return updatedRequest;
+  });
+};
+
+const normalizeActualConsumptions = (
+  expectedConsumptions,
+  actualConsumptions,
+  actualPrintedSheets
+) => {
+  const expected = expectedConsumptions.map((item) => ({
+    paperType: String(item.PaperType || "A4").toUpperCase(),
+    expectedSheets: Number(item.ExpectedSheets || 0),
   }));
-};
+  const provided = actualConsumptions || {};
 
-const getPrintingRequestById = async (requestId, printingAdminId) => {
-  const request = await printingRepository.getPrintingRequestById(
-    requestId,
-    printingAdminId
-  );
-
-  if (!request) {
-    throw createServiceError(
-      "Printing request not found or not assigned to this Printing Admin.",
-      404
-    );
+  if (
+    actualPrintedSheets !== null &&
+    actualPrintedSheets !== undefined &&
+    expected.length === 1
+  ) {
+    provided[expected[0].paperType] = Number(actualPrintedSheets);
   }
 
-  return {
-    ...request,
-    printSummary: buildPrintCalculationSummary({
-      totalPages: request.TotalPages,
-      copies: request.Copies,
-      printSide: request.PrintSide,
-      paperSize: request.PaperSize,
-      printType: request.PrintType,
-    }),
-  };
-};
+  return expected.map((item) => {
+    const actualValue =
+      provided[item.paperType] ?? provided[item.paperType.toLowerCase()];
+    const actualSheets =
+      actualValue === undefined ? item.expectedSheets : Number(actualValue);
 
-// ============================================================
-// Workflow Actions
-// ============================================================
+    if (!Number.isInteger(actualSheets) || actualSheets <= 0) {
+      throw serviceError(
+        `Actual ${item.paperType} sheet consumption must be a positive whole number.`
+      );
+    }
 
-const startPrinting = async (requestId, printingAdminId) => {
-  const request = await printingRepository.getRequestForWorkflow(
-    requestId,
-    printingAdminId
-  );
-
-  if (!request) {
-    throw createServiceError(
-      "Request not found or not assigned to this Printing Admin.",
-      404
-    );
-  }
-
-  assertWorkflowAllowed(
-    canStartPrinting(request.Status),
-    `Request cannot start printing while status is '${request.Status}'.`
-  );
-
-  const updatedRequest = await printingRepository.markAsPrinting(
-    requestId,
-    printingAdminId
-  );
-
-  return {
-    message: "Printing started successfully.",
-    request: updatedRequest,
-  };
-};
-
-const holdPrinting = async (requestId, printingAdminId, remarks = null) => {
-  const request = await printingRepository.getRequestForWorkflow(
-    requestId,
-    printingAdminId
-  );
-
-  if (!request) {
-    throw createServiceError(
-      "Request not found or not assigned to this Printing Admin.",
-      404
-    );
-  }
-
-  assertWorkflowAllowed(
-    canHoldPrinting(request.Status),
-    `Request cannot be placed on hold while status is '${request.Status}'.`
-  );
-
-  const updatedRequest = await printingRepository.markAsOnHold(
-    requestId,
-    printingAdminId,
-    remarks
-  );
-
-  return {
-    message: "Printing request placed on hold.",
-    request: updatedRequest,
-  };
-};
-
-const resumePrinting = async (requestId, printingAdminId) => {
-  const request = await printingRepository.getRequestForWorkflow(
-    requestId,
-    printingAdminId
-  );
-
-  if (!request) {
-    throw createServiceError(
-      "Request not found or not assigned to this Printing Admin.",
-      404
-    );
-  }
-
-  assertWorkflowAllowed(
-    canResumePrinting(request.Status),
-    `Request cannot resume while status is '${request.Status}'.`
-  );
-
-  const updatedRequest = await printingRepository.markAsPrinting(
-    requestId,
-    printingAdminId
-  );
-
-  return {
-    message: "Printing resumed successfully.",
-    request: updatedRequest,
-  };
-};
-
-const cancelPrinting = async (requestId, printingAdminId, remarks = null) => {
-  const request = await printingRepository.getRequestForWorkflow(
-    requestId,
-    printingAdminId
-  );
-
-  if (!request) {
-    throw createServiceError(
-      "Request not found or not assigned to this Printing Admin.",
-      404
-    );
-  }
-
-  assertWorkflowAllowed(
-    canCancelPrinting(request.Status),
-    `Request cannot be cancelled while status is '${request.Status}'.`
-  );
-
-  const updatedRequest = await printingRepository.markAsCancelled(
-    requestId,
-    printingAdminId,
-    remarks || "Cancelled by Printing Admin"
-  );
-
-  return {
-    message: "Printing request cancelled successfully.",
-    request: updatedRequest,
-  };
+    return { ...item, actualSheets };
+  });
 };
 
 const completePrinting = async (
+  actor,
   requestId,
-  printingAdminId,
-  { remarks = null, actualPrintedSheets = null, printerAssetId = null } = {}
+  {
+    remarks = null,
+    actualPrintedSheets = null,
+    actualConsumptions = null,
+    printerAssetId = null,
+  } = {}
 ) => {
-  const pool = await poolPromise;
-  const transaction = new sql.Transaction(pool);
+  assertQueueAccess(actor);
 
-  try {
-    await transaction.begin();
+  return withTransaction(async (transaction) => {
+    const printingRequest =
+      await printingRepository.getQueueRequestForUpdate(
+        transaction,
+        requestId,
+        actor.schoolId
+      );
 
-    const request = await printingRepository.getRequestForWorkflow(
-      requestId,
-      printingAdminId,
-      transaction
-    );
-
-    if (!request) {
-      throw createServiceError(
-        "Request not found, not printing, or not assigned to this Printing Admin.",
-        404
+    if (!printingRequest) throw serviceError("Printing request not found.", 404);
+    if (
+      Number(printingRequest.ClaimedByUserId) !== actor.userId &&
+      Number(printingRequest.CurrentApproverId) !== actor.userId
+    ) {
+      throw serviceError("Only the operator handling this job can complete it.", 409);
+    }
+    if (!canCompletePrinting(printingRequest.Status)) {
+      throw serviceError(
+        `Request cannot be completed while status is '${printingRequest.Status}'.`,
+        409
       );
     }
 
-    assertWorkflowAllowed(
-      canCompletePrinting(request.Status),
-      `Request cannot be completed while status is '${request.Status}'.`
-    );
-
-    const paperType = request.PaperSize || "A4";
-    const expectedSheets = Number(request.TotalSheets || 0);
-    const printedSheets =
-      actualPrintedSheets !== null && actualPrintedSheets !== undefined
-        ? Number(actualPrintedSheets)
-        : expectedSheets;
-
-    if (!printedSheets || printedSheets <= 0) {
-      throw createServiceError(
-        "Printed sheets must be greater than zero.",
-        400
+    const expectedConsumptions =
+      await printingRepository.getExpectedConsumptions(
+        transaction,
+        requestId,
+        printingRequest.PaperSize,
+        printingRequest.TotalSheets
       );
+    const consumptions = normalizeActualConsumptions(
+      expectedConsumptions,
+      actualConsumptions,
+      actualPrintedSheets
+    ).sort((left, right) => left.paperType.localeCompare(right.paperType));
+
+    const inventoryResults = [];
+    for (const consumption of consumptions) {
+      if (!["A4", "A3"].includes(consumption.paperType)) {
+        throw serviceError(
+          `Unsupported paper type '${consumption.paperType}' in this request.`
+        );
+      }
+
+      const inventory = await printingRepository.getPaperInventoryForUpdate(
+        transaction,
+        consumption.paperType
+      );
+      if (!inventory) {
+        throw serviceError(
+          `No inventory record exists for ${consumption.paperType}.`,
+          404
+        );
+      }
+
+      const previousStock = Number(inventory.CurrentStock || 0);
+      if (previousStock < consumption.actualSheets) {
+        throw serviceError(
+          `Not enough ${consumption.paperType} stock. Available: ${previousStock}, required: ${consumption.actualSheets}.`,
+          409,
+          {
+            paperType: consumption.paperType,
+            availableStock: previousStock,
+            requiredSheets: consumption.actualSheets,
+          }
+        );
+      }
+
+      const newStock = previousStock - consumption.actualSheets;
+      await printingRepository.deductPaperInventory(
+        transaction,
+        inventory.InventoryId,
+        consumption.actualSheets
+      );
+      await printingRepository.insertInventoryTransaction(transaction, {
+        paperType: consumption.paperType,
+        transactionType: "DEDUCTION",
+        quantity: consumption.actualSheets,
+        previousStock,
+        newStock,
+        referenceId: requestId,
+        remarks:
+          remarks ||
+          `Completed printing request ${printingRequest.RequestNumber}`,
+        createdBy: actor.userId,
+      });
+      await printingRepository.insertJobConsumption(transaction, {
+        requestId,
+        paperType: consumption.paperType,
+        expectedSheets: consumption.expectedSheets,
+        actualSheets: consumption.actualSheets,
+        recordedBy: actor.userId,
+      });
+      inventoryResults.push({
+        ...consumption,
+        previousStock,
+        newStock,
+      });
     }
 
-    const inventory = await printingRepository.getPaperInventoryForUpdate(
+    const totalActualSheets = consumptions.reduce(
+      (sum, item) => sum + item.actualSheets,
+      0
+    );
+    const updatedRequest = await printingRepository.updateQueueState(
       transaction,
-      paperType
+      {
+        requestId,
+        status: PRINTING_STATUSES.COMPLETED,
+        operatorId: actor.userId,
+        remarks,
+        clearClaim: true,
+        completed: true,
+      }
     );
-
-    if (!inventory) {
-      throw createServiceError(
-        `No inventory record found for ${paperType}.`,
-        404
-      );
-    }
-
-    const previousStock = Number(inventory.CurrentStock || 0);
-    const newStock = previousStock - printedSheets;
-
-    if (previousStock < printedSheets) {
-      throw createServiceError(
-        `Not enough ${paperType} stock. Available: ${previousStock}, Required: ${printedSheets}.`,
-        400,
-        {
-          paperType,
-          availableStock: previousStock,
-          requiredSheets: printedSheets,
-        }
-      );
-    }
-
-    await printingRepository.deductPaperInventory(
-      transaction,
-      inventory.InventoryId,
-      printedSheets
-    );
-
-    await printingRepository.insertInventoryTransaction(transaction, {
-      paperType,
-      transactionType: "DEDUCTION",
-      quantity: printedSheets,
-      previousStock,
-      newStock,
-      referenceId: requestId,
-      remarks:
-        remarks ||
-        `Deducted ${printedSheets} sheets of ${paperType} for completed print request ${request.RequestNumber}`,
-      createdBy: printingAdminId,
-    });
-
-    await printingRepository.markRequestCompleted(transaction, requestId);
-
     await printingRepository.insertPrintingLog(transaction, {
       requestId,
-      printedBy: printingAdminId,
+      printedBy: actor.userId,
       printerAssetId,
-      printedPages: Number(request.TotalPages || 0),
-      printedSheets,
+      printedPages: Number(printingRequest.TotalPages || 0),
+      printedSheets: totalActualSheets,
       remarks: remarks || "Printing completed",
     });
-
-    await transaction.commit();
+    await printingRepository.insertWorkflowEvent(transaction, {
+      requestId,
+      eventType: "PRINTING_COMPLETED",
+      fromStatus: printingRequest.Status,
+      toStatus: PRINTING_STATUSES.COMPLETED,
+      actorUserId: actor.userId,
+      remarks,
+      metadata: { consumptions: inventoryResults },
+    });
 
     return {
-      message:
-        "Printing completed successfully, inventory deducted, and logs saved.",
-      requestId,
-      requestNumber: request.RequestNumber,
-      paperType,
-      printedSheets,
-      previousStock,
-      newStock,
+      request: updatedRequest,
+      consumptions: inventoryResults,
+      totalActualSheets,
     };
-  } catch (error) {
-    try {
-      await transaction.rollback();
-    } catch (rollbackError) {
-      console.error("Complete printing rollback error:", rollbackError);
-    }
-
-    throw error;
-  }
+  });
 };
 
-// ============================================================
-// History
-// ============================================================
+const getPrintingHistory = (actor) => {
+  accessService.assertCapability(
+    actor,
+    accessService.CAPABILITIES.VIEW_REPORTS
+  );
+  return printingRepository.getPrintingHistory(actor.schoolId);
+};
 
-const getPrintingHistory = async () => {
-  return printingRepository.getPrintingHistory();
+const listManagedRequests = (actor) => {
+  assertQueueAccess(actor);
+  return printingRepository.listManagedRequests(actor.schoolId);
+};
+
+const getPrintingReport = async (actor) => {
+  accessService.assertCapability(
+    actor,
+    accessService.CAPABILITIES.VIEW_REPORTS
+  );
+  const [dashboard, history, requests] = await Promise.all([
+    getPrintingDashboard(actor),
+    printingRepository.getPrintingHistory(actor.schoolId),
+    printingRepository.listManagedRequests(actor.schoolId),
+  ]);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    stats: dashboard.stats,
+    jobStatus: dashboard.jobStatus,
+    topDepartments: dashboard.topDepartments,
+    recentCompletions: history.slice(0, 25),
+    totalRequests: requests.length,
+  };
 };
 
 module.exports = {
   getPrintingDashboard,
   getPrintingQueue,
   getPrintingRequestById,
-
-  startPrinting,
-  holdPrinting,
-  resumePrinting,
-  cancelPrinting,
+  claimPrinting,
+  transitionPrinting,
   completePrinting,
-
   getPrintingHistory,
+  listManagedRequests,
+  getPrintingReport,
 };

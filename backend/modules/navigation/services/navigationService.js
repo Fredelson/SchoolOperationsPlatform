@@ -183,6 +183,8 @@ function buildMenuTree(menus) {
         String(menu.VisibilityStatusKey || "").toLowerCase() === "hidden",
       backendReady:
         String(menu.VisibilityStatusKey || "").toLowerCase() === "enabled",
+      isEnabled: menu.IsEnabled !== false,
+      moduleIsEnabled: menu.ModuleIsEnabled !== false,
       children: [],
       _menu: menu,
       _sortOrder: numericSortOrder(
@@ -232,6 +234,7 @@ function getModuleMetadata(menu) {
     sortOrder: numericSortOrder(
       !groupIsMain ? menu.GroupSortOrder : menu.ModuleSortOrder
     ),
+    isEnabled: menu.ModuleIsEnabled !== false,
   };
 }
 
@@ -245,6 +248,7 @@ function mergeModuleMetadata(current, menu) {
     name: current.name || incoming.name,
     iconKey: current.iconKey || incoming.iconKey,
     sortOrder: Math.min(current.sortOrder, incoming.sortOrder),
+    isEnabled: current.isEnabled !== false && incoming.isEnabled !== false,
   };
 }
 
@@ -285,6 +289,8 @@ function toPublicNode(node) {
     iconKey: node.iconKey,
     comingSoon: node.comingSoon,
     backendReady: node.backendReady,
+    isEnabled: node.isEnabled !== false,
+    moduleIsEnabled: node.moduleIsEnabled !== false,
   };
 
   if (node.children?.length) {

@@ -30,6 +30,7 @@ const {
   updateUser,
   deactivateUser,
   activateUser,
+  resetUserPassword,
   exportUsers,
 } = require("../controllers/userController");
 
@@ -92,17 +93,10 @@ router.get("/export", requirePermission(PERMISSIONS.USERS.VIEW), exportUsers);
 router.get("/:id", requirePermission(PERMISSIONS.USERS.VIEW), getUserById);
 router.post("/", requirePermission(PERMISSIONS.USERS.CREATE), createUser);
 router.put("/:id", requirePermission(PERMISSIONS.USERS.UPDATE), updateUser);
-
-router.put(
-  "/:id/deactivate",
-  requirePermission(PERMISSIONS.USERS.DEACTIVATE),
-  deactivateUser
-);
-
-router.put(
-  "/:id/activate",
-  requirePermission(PERMISSIONS.USERS.ACTIVATE),
-  activateUser
+router.post(
+  "/:id/reset-password",
+  requirePermission(PERMISSIONS.USERS.UPDATE),
+  resetUserPassword
 );
 
 module.exports = router;

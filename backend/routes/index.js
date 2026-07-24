@@ -28,29 +28,15 @@ const router = express.Router();
 router.use("/auth", require("../modules/auth"));
 router.use("/users", require("../modules/users"));
 router.use("/lookups", require("../modules/lookups"));
-router.use("/assignments", require("../modules/assignments"));
 
 router.use("/it-assets", require("../modules/itAssets"));
+
 router.use("/library", require("../modules/library"));
-router.use("/asset-tag-branding", require("../modules/assetTagBranding/routes"));
 
 router.use("/roles", require("../modules/roles"));
-router.use("/permissions", require("../modules/permissions"));
-router.use("/permission-groups", require("../modules/permissionGroups"));
-router.use("/role-permissions", require("../modules/rolePermissions"));
-router.use(
-  "/user-permission-overrides",
-  require("../modules/userPermissionOverrides")
-);
-router.use(
-  "/permission-resolver",
-  require("../modules/permissionResolver")
-);
-
-router.use(
-  "/navigation-manager",
-  require("../modules/navigationManager")
-);
+router.use("/assignments", require("../modules/assignments"));
+router.use("/permission-resolver", require("../modules/permissionResolver"));
+router.use("/user-permission-overrides", require("../modules/userPermissionOverrides"));
 
 router.use(
   "/workspace-manager",
@@ -64,24 +50,12 @@ router.use(
 router.use("/navigation", require("../modules/navigation"));
 router.use("/modules", require("../modules/modules"));
 router.use("/menus", require("../modules/menus"));
-router.use("/buttons", require("../modules/buttons"));
-router.use("/widgets", require("../modules/widgets"));
-router.use(
-  "/feature-flags",
-  require("../modules/featureFlags/routes/featureFlagRoutes")
-);
 
 // ============================================================
 // PLATFORM FOUNDATION
 // ============================================================
 
 router.use("/system", require("../modules/system"));
-
-// ============================================================
-// SECURITY MODULES
-// ============================================================
-
-router.use("/access-levels", require("../modules/accessLevels"));
 
 // ============================================================
 // USER IMPORT
@@ -99,20 +73,16 @@ router.use("/hos", require("./requests/hosRoutes"));
 router.use("/limits", require("./requests/limitRoutes"));
 router.use("/distributions", require("./requests/distributionRoutes"));
 
+// Printing Management owns request creation, approvals, queue, configuration,
+// inventory, limits, purchases, distributions, and reporting.
+router.use("/printing", require("../modules/printing"));
+
 // ============================================================
 // TEACHER MODULE
 // ============================================================
 
 router.use("/teacher/dashboard", require("./teacher/teacherDashboardRoutes"));
 router.use("/teacher/reports", require("./teacher/teacherReportRoutes"));
-
-// ============================================================
-// PRINTING MODULE
-// ============================================================
-
-router.use("/printing", require("../modules/printing/routes/printingRoutes"));
-router.use("/paper-stock", require("./printing/paperStockRoutes"));
-router.use("/purchases", require("./printing/purchaseRoutes"));
 
 // ============================================================
 // FILE UPLOADS
@@ -132,18 +102,7 @@ router.use("/master", require("./master/masterRoutes"));
 
 router.use("/superadmin/dashboard", require("./superadmin/dashboardRoutes"));
 router.use("/superadmin/modules", require("./superadmin/moduleRoutes"));
-router.use("/superadmin/permissions", require("./superadmin/permissionRoutes"));
-router.use(
-  "/superadmin/user-overrides",
-  require("./superadmin/userPermissionOverrideRoutes")
-);
 router.use("/superadmin/roles", require("./superadmin/roleRoutes"));
-router.use("/superadmin/buttons", require("./superadmin/buttonRoutes"));
-router.use("/superadmin/widgets", require("./superadmin/widgetRoutes"));
-router.use(
-  "/superadmin/feature-flags",
-  require("./superadmin/featureFlagRoutes")
-);
 router.use(
   "/superadmin/system-settings",
   require("./superadmin/systemSettingsRoutes")

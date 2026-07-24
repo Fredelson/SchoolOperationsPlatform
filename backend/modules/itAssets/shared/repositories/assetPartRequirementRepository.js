@@ -1,4 +1,34 @@
 const sql = require("mssql");
+const { poolPromise } = require("../../../../config/db");
+
+const ensurePartRequirementsConstraint = async () => {
+  try {
+    const pool = await poolPromise;
+    await pool.request().query(`
+      IF EXISTS (
+        SELECT 1 FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID('dbo.ITAssetPartRequirements')
+          AND name = 'CK_ITAssetPartRequirements_OneSource'
+      )
+      BEGIN
+        ALTER TABLE dbo.ITAssetPartRequirements
+        DROP CONSTRAINT CK_ITAssetPartRequirements_OneSource;
+      END
+    `);
+
+    await pool.request().query(`
+      ALTER TABLE dbo.ITAssetPartRequirements
+      ADD CONSTRAINT CK_ITAssetPartRequirements_OneSource CHECK
+      (
+        (CASE WHEN [AssetAssignmentId] IS NULL THEN 0 ELSE 1 END) +
+        (CASE WHEN [AssetBorrowId] IS NULL THEN 0 ELSE 1 END) +
+        (CASE WHEN [AssetId] IS NULL THEN 0 ELSE 1 END) >= 1
+      );
+    `);
+  } catch (error) {
+    console.error("Failed to ensure ITAssetPartRequirements constraint:", error.message);
+  }
+};
 
 const insertPartRequirements = async ({
   transaction,
@@ -9,15 +39,6 @@ const insertPartRequirements = async ({
   requestedByUserId = null,
   notes = null,
 }) => {
-  const sourceCount =
-    Number(assetAssignmentId !== null) + Number(assetBorrowId !== null);
-
-  if (sourceCount !== 1) {
-    throw new Error(
-      "Part requirements must reference one assignment or one borrow."
-    );
-  }
-
   if (!parts.length) {
     return [];
   }
@@ -72,5 +93,6 @@ const insertPartRequirements = async ({
 };
 
 module.exports = {
+  ensurePartRequirementsConstraint,
   insertPartRequirements,
 };

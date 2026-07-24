@@ -28,6 +28,7 @@ export default function DashboardMiddleRow({
   moduleStatusData = [],
   systemHealthData = [],
   recentActivityData = [],
+  activityChartProps = {},
 }) {
   const hasCustomContent = Boolean(children);
 
@@ -50,7 +51,10 @@ export default function DashboardMiddleRow({
         children
       ) : (
         <>
-          <PlatformActivityChart data={platformActivityData} />
+          <PlatformActivityChart
+            data={platformActivityData}
+            {...activityChartProps}
+          />
           <ModuleStatusChart data={moduleStatusData} />
           <SystemHealth items={systemHealthData} />
           <RecentActivity items={recentActivityData} />

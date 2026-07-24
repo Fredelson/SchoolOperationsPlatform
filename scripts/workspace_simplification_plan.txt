@@ -1,0 +1,246 @@
+==============================================================
+WORKSPACE MANAGER PERMISSION SIMPLIFICATION PLAN
+Generated: 2026-07-21
+==============================================================
+
+GOAL
+----
+In the Workspace Manager, every child item (module, menu, button,
+widget) should have only 3 possible states controlled by role:
+
+  ACTIVE  = fully enabled and visible (IsVisible=1, IsEnabled=1)
+  VIEW    = visible but disabled    (IsVisible=1, IsEnabled=0)
+  DISABLE = hidden                  (IsVisible=0, IsEnabled=0)
+
+No more matrix of 58+ permission checkboxes per role per child.
+No more auto-granting all module permissions to workspace roles.
+
+==============================================================
+CURRENT BEHAVIOR (PROBLEM)
+==============================================================
+
+When you assign modules/roles to a workspace and save, the system
+auto-grants ALL module permissions to ALL workspace roles:
+
+  INSERT INTO dbo.RolePermissions
+  SELECT wr.RoleId, p.PermissionId, 1, GETDATE()
+  FROM dbo.WorkspaceRoles wr
+  CROSS JOIN dbo.WorkspaceModules wm
+  INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId
+
+This creates hundreds of RolePermission rows and bloats the
+permission resolver to 58+ keys per workspace user.
+
+==============================================================
+NEW BEHAVIOR (SIMPLIFIED)
+==============================================================
+
+1. GLOBAL ROUTE PERMISSIONS (UNCHANGED)
+   --------------------------------------
+   The ~58 permissions used in requirePermission() middleware
+   remain active. These protect API routes globally.
+
+   Users get these permissions through their ASSIGNMENT
+   compatibility role (e.g., Teacher -> Teacher role -> library
+   permissions). This is handled by getActiveAssignmentPermissions()
+   in permissionResolverRepository.js.
+
+2. WORKSPACE PERMISSIONS (REDUCED TO 3)
+   --------------------------------------
+   Only 3 workspace-level permission keys exist:
+   
+     workspace.view     - can access the workspace
+     workspace.activate - can enable/activate features
+     workspace.disable  - can disable/hide features
+
+   These are granted per workspace role (in WorkspaceRoles).
+
+3. WORKSPACE CHILD STATES (EXISTING COLUMNS)
+   ------------------------------------------
+   Each workspace child table already has IsVisible and IsEnabled:
+   
+     WorkspaceModules  (IsVisible, IsEnabled)
+     WorkspaceMenus    (IsVisible, IsEnabled)
+     WorkspaceButtons  (IsVisible, IsEnabled)
+     WorkspaceWidgets  (IsVisible, IsEnabled)
+
+   These columns CONTROL what the user sees and can use.
+   No additional permission lookup needed.
+
+4. PERMISSION RESOLVER (SIMPLIFIED)
+   ----------------------------------
+   Remove the workspace module permission auto-grant layer.
+   
+   Current layers:
+     Layer 1: RolePermissions (global, from assignment compatibility)
+     Layer 2: UserPermissionOverrides (individual exceptions)
+     Layer 3: WorkspaceModulePermissions (auto-granted, TO BE REMOVED)
+   
+   New layers:
+     Layer 1: RolePermissions (global, from assignment compatibility)
+     Layer 2: UserPermissionOverrides (individual exceptions)
+     Layer 3: Workspace view/activate/disable (workspace access only)
+
+==============================================================
+DATABASE CHANGES
+==============================================================
+
+-- 1. Fix schema (add missing columns)
+ALTER TABLE dbo.Permissions ADD 
+  GroupKey nvarchar(100) NOT NULL DEFAULT 'platform',
+  GroupName nvarchar(150) NOT NULL DEFAULT 'Platform';
+
+-- 2. Deactivate 37 unused permissions (see previous report)
+UPDATE dbo.Permissions SET IsActive = 0 WHERE PermissionId IN (...);
+
+-- 3. Keep only 3 workspace permissions active
+-- (workspace.view, workspace.activate, workspace.disable already exist)
+-- No new inserts needed.
+
+==============================================================
+CODE CHANGES
+==============================================================
+
+FILE: backend/modules/workspaceManager/repositories/workspaceManagerRepository.js
+
+1. REMOVE lines 445-464 (auto-grant in replaceAssignments):
+   
+   DELETE THIS BLOCK:
+   `
+   if (assignmentType ===  modules || assignmentType === profiles) {
+     await transaction.request().input(WorkspaceId,sql.Int,workspaceId).query(
+       INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+       SELECT wr.RoleId, p.PermissionId, 1, GETDATE()
+       FROM dbo.WorkspaceRoles wr
+       CROSS JOIN dbo.WorkspaceModules wm
+       INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
+       WHERE wr.WorkspaceId = @WorkspaceId
+         AND wm.WorkspaceId = @WorkspaceId
+         AND wm.IsVisible = 1
+         AND wm.IsEnabled = 1
+         AND NOT EXISTS (...);
+     );
+   }
+   `
+
+2. REPLACE syncWorkspaceRolePermissions (lines 470-497):
+   
+   CURRENT:
+   `
+   INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+   SELECT wr.RoleId, p.PermissionId, 1, GETDATE()
+   FROM dbo.WorkspaceRoles wr
+   CROSS JOIN dbo.WorkspaceModules wm
+   INNER JOIN dbo.Permissions p ON p.ModuleId = wm.ModuleId AND p.IsActive = 1
+   WHERE ...
+   `
+   
+   REPLACE WITH:
+   `
+   INSERT INTO dbo.RolePermissions (RoleId, PermissionId, IsAllowed, CreatedAt)
+   SELECT wr.RoleId, p.PermissionId, 1, GETDATE()
+   FROM dbo.WorkspaceRoles wr
+   CROSS JOIN (
+     SELECT PermissionId FROM dbo.Permissions
+     WHERE PermissionKey IN (
+       'workspace.view',
+       'workspace.activate', 
+       'workspace.disable'
+     )
+     AND IsActive = 1
+   ) p
+   WHERE wr.WorkspaceId = @WorkspaceId
+     AND NOT EXISTS (
+       SELECT 1 FROM dbo.RolePermissions rp
+       WHERE rp.RoleId = wr.RoleId AND rp.PermissionId = p.PermissionId
+     );
+   `
+
+FILE: backend/modules/permissionResolver/services/permissionResolverService.js
+
+3. REMOVE lines 106-127 (applyWorkspaceModulePermissions function)
+4. REMOVE line 170 (applyWorkspaceModulePermissions call)
+5. REMOVE line 165 (getWorkspaceModulePermissions from Promise.all)
+
+FILE: backend/modules/permissionResolver/repositories/permissionResolverRepository.js
+
+6. REMOVE lines 224-268 (getWorkspaceModulePermissions function)
+7. REMOVE line 285 (export getWorkspaceModulePermissions)
+
+FILE: backend/modules/permissionResolver/middleware/requirePermission.js
+
+8. ADD workspace role bypass for module permissions:
+
+   Current:
+   `
+   const resolved = await permissionResolver.resolveUserPermissions(req.user.id);
+   if (!resolved.allowedPermissionKeys.includes(permissionKey)) {
+     return res.status(403).json(...);
+   }
+   `
+
+   New:
+   `
+   const resolved = await permissionResolver.resolveUserPermissions(req.user.id);
+   
+   // Workspace users access features via workspace assignment,
+   // not global RolePermissions for module actions
+   const roleKey = normalizeRoleKey(resolved.user?.roleKey);
+   const isWorkspaceRole = ['"teacher"','"hod"','"hos"','"library_admin"','"printing_admin"','"it_admin"'].includes(roleKey);
+   
+   if (!isWorkspaceRole && !resolved.allowedPermissionKeys.includes(permissionKey)) {
+     return res.status(403).json(...);
+   }
+   `
+
+   OR better: add a workspace bypass that checks if the user has
+   an active workspace assignment for the relevant module.
+
+==============================================================
+FRONTEND / WORKSPACE MANAGER UI
+==============================================================
+
+The Workspace Manager configuration page (when editing a workspace)
+should show each child item (module, menu, button, widget) with
+3 radio buttons or a dropdown:
+
+  [ ] Active    (IsVisible=1, IsEnabled=1)
+  [ ] View      (IsVisible=1, IsEnabled=0)  
+  [ ] Disable   (IsVisible=0, IsEnabled=0)
+
+No more permission tree/checkboxes.
+
+==============================================================
+MIGRATION STEPS
+==============================================================
+
+1. Run schema fix SQL
+2. Run deactivate unused permissions SQL
+3. Update workspaceManagerRepository.js
+4. Update permissionResolverService.js
+5. Update permissionResolverRepository.js
+6. Update requirePermission middleware
+7. Test with a teacher/user login:
+   - Should land in correct workspace
+   - Should see menus based on WorkspaceMenus.IsVisible
+   - Should NOT have 95 permissions in resolved list
+   - Should have ~10-15 permissions from assignment role + 3 workspace perms
+8. Update grant_all_permissions_to_platform_superadmin.sql if needed
+
+==============================================================
+RISKS
+==============================================================
+
+1. Some routes may break if they rely on workspace-granted module
+   permissions instead of assignment compatibility role permissions.
+
+2. The frontend permission management UI in SuperAdmin will still
+   show the 58 active permissions. You may want to hide the
+   workspace module permissions from that UI.
+
+3. If any role depends on workspace module permissions instead of
+   global RolePermissions, they will lose access.
+
+==============================================================
+END OF PLAN
+==============================================================

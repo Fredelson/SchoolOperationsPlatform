@@ -68,8 +68,7 @@ export default function RoundedAssetTagPrinter() {
   usePageTitle("Rounded Asset Tag Printer");
   const theme = useTheme();
 
-  const { hasPermission } = usePermissions();
-  const canPrint = hasPermission("asset_tags.rounded.print");
+  const canPrint = true;
 
   const [assets, setAssets] = useState([]);
   const [assetId, setAssetId] = useState("");
@@ -278,46 +277,46 @@ export default function RoundedAssetTagPrinter() {
             </Stack>
           </AppCard>
         )}
-      </Box>
 
-      {loading && !selectedAsset ? (
-        <AppLoadingState title="Loading rounded asset tag preview..." />
-      ) : (
-        <div className="rounded-a4-preview-wrap">
-          <div
-            className="rounded-a4-page"
-            style={{
-              "--rounded-diameter": `${diameter}mm`,
-              "--rounded-diameter-percent": diameterPercent,
-              "--rounded-margin-top": `${Number(print.marginTop || 0)}mm`,
-              "--rounded-margin-bottom": `${Number(print.marginBottom || 0)}mm`,
-              "--rounded-margin-left": `${Number(print.marginLeft || 0)}mm`,
-              "--rounded-margin-right": `${Number(print.marginRight || 0)}mm`,
-              "--rounded-offset-x": `${Number(print.horizontalOffset || 0)}mm`,
-              "--rounded-offset-y": `${Number(print.verticalOffset || 0)}mm`,
-              "--rounded-offset-x-screen": `${Number(print.horizontalOffset || 0) / 2}px`,
-              "--rounded-offset-y-screen": `${Number(print.verticalOffset || 0) / 2}px`,
-              "--rounded-print-scale": Number(print.printScale || 1),
-            }}
-          >
-            <div className="rounded-a4-safe-area">
-              {selectedAsset && branding ? (
-                <div className="rounded-a4-label-frame">
-                  <RoundedAssetLabel
-                    asset={selectedAsset}
-                    branding={branding}
-                    showWarnings
-                  />
-                </div>
-              ) : (
-                <div className="rounded-a4-empty">
-                  Select an asset to preview the full-A4 rounded label.
-                </div>
-              )}
+        {loading && !selectedAsset ? (
+          <AppLoadingState title="Loading rounded asset tag preview..." />
+        ) : (
+          <div className="rounded-a4-preview-wrap">
+            <div
+              className="rounded-a4-page"
+              style={{
+                "--rounded-diameter": `${diameter}mm`,
+                "--rounded-diameter-percent": diameterPercent,
+                "--rounded-margin-top": `${Number(print.marginTop || 0)}mm`,
+                "--rounded-margin-bottom": `${Number(print.marginBottom || 0)}mm`,
+                "--rounded-margin-left": `${Number(print.marginLeft || 0)}mm`,
+                "--rounded-margin-right": `${Number(print.marginRight || 0)}mm`,
+                "--rounded-offset-x": `${Number(print.horizontalOffset || 0)}mm`,
+                "--rounded-offset-y": `${Number(print.verticalOffset || 0)}mm`,
+                "--rounded-offset-x-screen": `${Number(print.horizontalOffset || 0) / 2}px`,
+                "--rounded-offset-y-screen": `${Number(print.verticalOffset || 0) / 2}px`,
+                "--rounded-print-scale": Number(print.printScale || 1),
+              }}
+            >
+              <div className="rounded-a4-safe-area">
+                {selectedAsset && branding ? (
+                  <div className="rounded-a4-label-frame">
+                    <RoundedAssetLabel
+                      asset={selectedAsset}
+                      branding={branding}
+                      showWarnings
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-a4-empty">
+                    Select an asset to preview the full-A4 rounded label.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Box>
     </Box>
   );
 }

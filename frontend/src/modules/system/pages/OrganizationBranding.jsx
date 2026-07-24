@@ -5,7 +5,16 @@
 // ============================================
 
 import { useEffect, useState } from "react";
-import { Alert, Box, Card, CardContent, Stack } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  Slider,
+  Stack,
+  Typography,
+} from "@mui/material";
 
 import useBranding from "../hooks/useBranding";
 import { updateSystemBranding } from "../services/brandingService";
@@ -20,7 +29,7 @@ import BrandingMediaCard from "../components/branding/BrandingMediaCard";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 export default function OrganizationBranding() {
-  const { branding, refreshBranding } = useBranding();
+  const { branding, refreshBranding, setBranding } = useBranding();
   usePageTitle("Organization & Branding");
 
   const [form, setForm] = useState({
@@ -54,6 +63,9 @@ export default function OrganizationBranding() {
       topbarGradientEnd: "#002B5B",
       topbarGradientDirection: "90deg",
       topbarGradientPosition: "center",
+      floatingLogoX: 1200,
+      floatingLogoY: 96,
+      floatingLogoSize: 72,
 
       loginTitle: "",
       loginSubtitle: "",
@@ -113,6 +125,9 @@ export default function OrganizationBranding() {
           branding.branding?.topbarGradientDirection || "90deg",
         topbarGradientPosition:
           branding.branding?.topbarGradientPosition || "center",
+        floatingLogoX: branding.branding?.floatingLogoX ?? 1200,
+        floatingLogoY: branding.branding?.floatingLogoY ?? 96,
+        floatingLogoSize: branding.branding?.floatingLogoSize ?? 72,
 
         loginTitle: branding.branding?.loginTitle || "",
         loginSubtitle: branding.branding?.loginSubtitle || "",
@@ -135,6 +150,21 @@ export default function OrganizationBranding() {
 
   const updateBrandingField = (field, value) => {
     updateField("branding", field, value);
+  };
+
+  const updateFloatingLogoSize = (value) => {
+    updateBrandingField("floatingLogoSize", value);
+    setBranding((current) =>
+      current
+        ? {
+            ...current,
+            branding: {
+              ...current.branding,
+              floatingLogoSize: value,
+            },
+          }
+        : current
+    );
   };
 
   const handleSave = async () => {
@@ -244,6 +274,31 @@ export default function OrganizationBranding() {
           branding={branding}
           refreshBranding={refreshBranding}
         />
+
+        <Card>
+          <CardContent>
+            <Typography variant="h6" fontWeight={900}>
+              Floating Logo
+            </Typography>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ maxWidth: 480 }}>
+              <Typography fontSize={14} fontWeight={700} sx={{ mb: 1 }}>
+                Logo Size
+              </Typography>
+              <Slider
+                min={40}
+                max={180}
+                step={2}
+                value={form.branding.floatingLogoSize}
+                valueLabelDisplay="auto"
+                color="secondary"
+                onChange={(_, value) => updateFloatingLogoSize(Number(value))}
+              />
+            </Box>
+          </CardContent>
+        </Card>
 
         <LoginBrandingCard
           form={form}

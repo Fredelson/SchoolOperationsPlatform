@@ -40,6 +40,14 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
 
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED" &&
+      window.location.pathname !== "/login"
+    ) {
+      window.location.href = "/login";
+    }
+
     return Promise.reject(error);
   }
 );

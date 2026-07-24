@@ -29,49 +29,49 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 const HOS_ACCESS = ["HOS", "Secretary", "SuperAdmin"];
 
 router.get(
   "/dashboard",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosDashboard
 );
 
 router.get(
   "/approval-history",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosApprovalHistory
 );
 
 router.get(
   "/requests",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosRequests
 );
 
 router.get(
   "/requests/:id",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosRequestById
 );
 
 router.put(
   "/requests/:id/approve",
   protect,
-  requirePermission("requests.approve"),
+  requireActiveWorkspace,
   approveHosRequest
 );
 
 router.put(
   "/requests/:id/reject",
   protect,
-  requirePermission("requests.reject"),
+  requireActiveWorkspace,
   rejectHosRequest
 );
 

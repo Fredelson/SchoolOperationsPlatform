@@ -12,7 +12,7 @@ const { createAuditLog } = require("../../shared/services/auditLogger");
 // ============================================
 // @desc    Get all modules
 // @route   GET /api/superadmin/modules
-// @access  SuperAdmin / Module.View
+// @access  SuperAdmin / modules.view
 // ============================================
 
 const getAllModules = async (req, res) => {

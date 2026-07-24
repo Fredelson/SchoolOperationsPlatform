@@ -21,15 +21,15 @@ const {
 
 // Middleware imports
 const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 // GET /api/distributions
-router.get("/", protect, requirePermission("printing.distribution.view"), getDistributions);
+router.get("/", protect, requireActiveWorkspace, getDistributions);
 
 // GET /api/distributions/users/search?query=
-router.get("/users/search", protect, requirePermission("printing.distribution.view"), searchDistributionUsers);
+router.get("/users/search", protect, requireActiveWorkspace, searchDistributionUsers);
 
 // POST /api/distributions
-router.post("/", protect, requirePermission("printing.distribution.create"), addDistribution);
+router.post("/", protect, requireActiveWorkspace, addDistribution);
 
 module.exports = router;

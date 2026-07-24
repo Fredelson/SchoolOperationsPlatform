@@ -49,7 +49,9 @@ export default function PlatformSidebar({
         const sections = await getMySidebar();
 
         if (mounted) {
-          setSidebarSections(Array.isArray(sections) ? sections : []);
+      const list = Array.isArray(sections) ? [...sections] : [];
+
+      setSidebarSections(list);
         }
       } catch (error) {
         console.error("Failed to load sidebar:", error);

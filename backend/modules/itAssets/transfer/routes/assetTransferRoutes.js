@@ -4,9 +4,9 @@ const router = express.Router();
 const controller = require("../controllers/assetTransferController");
 const validator = require("../validators/assetTransferValidator");
 const { protect } = require("../../../../middleware/authMiddleware");
-const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../../../middleware/permissionMiddleware");
 
-router.use(protect, requirePermission("it_assets.transfer.manage"));
+router.use(protect, requireActiveWorkspace);
 
 router.get("/", controller.getTransfers);
 router.get("/asset/:assetId", controller.getTransfersByAssetId);

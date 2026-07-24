@@ -15,22 +15,63 @@ const hasAssignmentTarget = (payload = {}) =>
   Boolean(
     payload.currentAssignedUserId ||
       payload.currentAssignedName ||
-      payload.currentRoomId
+      payload.currentRoomId ||
+      payload.currentDepartmentId ||
+      payload.currentLocationId ||
+      payload.currentAssignedEmployeeCode ||
+      payload.currentAssignedEmail
   );
 
-const applyAssignedStatus = async (payload) => {
-  if (!hasAssignmentTarget(payload)) return payload;
+const isRepairStatus = (statusKey = "") => {
+  const normalized = String(statusKey).toUpperCase().replace(/[\s_-]/g, "");
+  return ["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE"].includes(normalized);
+};
 
+const isSpecialStatus = (statusKey = "") => {
+  const normalized = String(statusKey).toUpperCase().replace(/[\s_-]/g, "");
+  return ["UNDERREPAIR", "UNDERMAINTENANCE", "MAINTENANCE", "BORROWED", "READYFORDISPOSAL", "DISPOSED", "LOST", "STOLEN", "ARCHIVED"].includes(normalized);
+};
+
+const resolveAssignedStatus = async () => {
   const assignedStatus = await itAssetRepository.getStatusByKey("Assigned");
   if (!assignedStatus) {
     const error = new Error("Assigned status is missing.");
     error.statusCode = 400;
     throw error;
   }
+  return assignedStatus.ITAssetStatusId;
+};
+
+const resolveAvailableStatus = async () => {
+  const availableStatus = await itAssetRepository.getStatusByKey("Available");
+  if (!availableStatus) {
+    const error = new Error("Available status is missing.");
+    error.statusCode = 500;
+    throw error;
+  }
+  return availableStatus.ITAssetStatusId;
+};
+
+const applyAssignedStatus = async (payload, existingAsset = null) => {
+  const currentStatusKey = existingAsset?.StatusKey || payload.itAssetStatusId;
+
+  if (hasAssignmentTarget(payload)) {
+    if (isSpecialStatus(currentStatusKey)) {
+      return payload;
+    }
+    return {
+      ...payload,
+      itAssetStatusId: await resolveAssignedStatus(),
+    };
+  }
+
+  if (isSpecialStatus(currentStatusKey)) {
+    return payload;
+  }
 
   return {
     ...payload,
-    itAssetStatusId: assignedStatus.ITAssetStatusId,
+    itAssetStatusId: await resolveAvailableStatus(),
   };
 };
 
@@ -81,7 +122,7 @@ const updateAsset = async (assetId, payload, currentUser, ipAddress = null) => {
     throw error;
   }
 
-  const normalizedPayload = await applyAssignedStatus(payload);
+  const normalizedPayload = await applyAssignedStatus(payload, existingAsset);
 
   const updatedAsset = await itAssetRepository.updateAsset(assetId, {
     ...normalizedPayload,

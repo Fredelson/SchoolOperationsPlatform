@@ -21,31 +21,31 @@ const requirePermission = require("../../../modules/permissionResolver/middlewar
 
 router.use(protect);
 
-router.get("/", requirePermission("Menu.View"), menuController.getMenus);
-router.get("/:id", requirePermission("Menu.View"), menuController.getMenuById);
+router.get("/", requirePermission("menus.view"), menuController.getMenus);
+router.get("/:id", requirePermission("menus.view"), menuController.getMenuById);
 router.post(
   "/",
-  requirePermission("Menu.View"),
+  requirePermission("menus.view"),
   menuController.createMenu
 );
 router.put(
   "/:id",
-  requirePermission("Menu.View"),
+  requirePermission("menus.view"),
   menuController.updateMenu
 );
 router.put(
   "/:id/show",
-  requirePermission("Menu.View"),
+  requirePermission("menus.view"),
   menuController.showMenu
 );
 router.put(
   "/:id/hide",
-  requirePermission("Menu.View"),
+  requirePermission("menus.view"),
   menuController.hideMenu
 );
 router.delete(
   "/:id",
-  requirePermission("Menu.View"),
+  requirePermission("menus.view"),
   menuController.deleteMenu
 );
 

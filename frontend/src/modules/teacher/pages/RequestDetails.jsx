@@ -46,13 +46,13 @@ import HeadsetMicIcon from "@mui/icons-material/HeadsetMic";
 import InfoIcon from "@mui/icons-material/Info";
 
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { useAuth } from "../../../context/AuthContext";
+import { getPrintingRequestById } from "../../../services/printingService";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Theme colors
 const NAVY = "#071E46";
@@ -85,20 +85,10 @@ export default function RequestDetails() {
         setLoading(true);
         setError("");
 
-        const response = await axios.get(`${API_URL}/requests/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log("REQUEST DETAILS RESPONSE:", response.data);
-
-        const data = response.data;
-
-        // Supports different response structures safely
-        setRequest(data.request || data.data?.request || null);
-        setApprovals(data.approvals || data.data?.approvals || []);
-        setAttachments(data.attachments || data.data?.attachments || []);
+        const data = await getPrintingRequestById(id);
+        setRequest(data.request || null);
+        setApprovals(data.approvals || []);
+        setAttachments(data.attachments || []);
       } catch (err) {
         console.error("Fetch Request Details Error:", err);
         setError("Unable to load request details.");

@@ -4,55 +4,21 @@
 // ============================================================
 
 const express = require("express");
-const controller = require("../controllers/userPermissionOverrideController");
-const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
-
 const router = express.Router();
 
-router.get(
-  "/lookups",
-  protect,
-  controller.getLookups
-);
+const controller = require("../controllers/userPermissionOverrideController");
+const { protect } = require("../../../middleware/authMiddleware");
+const { requireActiveWorkspace } = require("../../../middleware/permissionMiddleware");
+
+router.get("/lookups", protect, controller.getLookups);
 
 router.use(protect);
 
-router.get(
-  "/",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
-  controller.getAllOverrides
-);
-
-router.get(
-  "/user/:userId",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
-  controller.getOverridesByUserId
-);
-
-router.get(
-  "/:id",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.VIEW),
-  controller.getOverrideById
-);
-
-router.post(
-  "/",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.CREATE),
-  controller.createOverride
-);
-
-router.put(
-  "/:id",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.UPDATE),
-  controller.updateOverride
-);
-
-router.delete(
-  "/:id",
-  requirePermission(PERMISSIONS.USER_PERMISSION_OVERRIDES.DELETE),
-  controller.deleteOverride
-);
+router.get("/", requireActiveWorkspace, controller.getAllOverrides);
+router.get("/user/:userId", requireActiveWorkspace, controller.getOverridesByUserId);
+router.get("/:id", requireActiveWorkspace, controller.getOverrideById);
+router.post("/", requireActiveWorkspace, controller.createOverride);
+router.put("/:id", requireActiveWorkspace, controller.updateOverride);
+router.delete("/:id", requireActiveWorkspace, controller.deleteOverride);
 
 module.exports = router;

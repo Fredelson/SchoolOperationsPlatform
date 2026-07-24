@@ -13,14 +13,14 @@ const {
 } = require("../validators/assetAssignmentValidator");
 
 const { protect } = require("../../../../middleware/authMiddleware");
-const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../../../middleware/permissionMiddleware");
 
 router.get("/:assetId/history", protect, controller.getAssignmentHistory);
 
 router.post(
   "/assign",
   protect,
-  requirePermission("it_assets.assignment.manage"),
+  requireActiveWorkspace,
   validateAssignPayload,
   controller.assignAsset
 );
@@ -28,7 +28,7 @@ router.post(
 router.put(
   "/:assetId/return",
   protect,
-  requirePermission("it_assets.assignment.manage"),
+  requireActiveWorkspace,
   validateReturnPayload,
   controller.returnAsset
 );

@@ -46,7 +46,8 @@ function buildPermissionMap(rolePermissions = []) {
       permissionKey: permission.PermissionKey,
       permissionName: permission.PermissionName,
       moduleId: permission.ModuleId,
-      permissionGroupId: permission.PermissionGroupId,
+      groupKey: permission.GroupKey,
+      groupName: permission.GroupName,
       isAllowed: Boolean(permission.IsAllowed),
       source: "role",
     });
@@ -66,7 +67,8 @@ function applyUserOverrides(permissionMap, userOverrides = []) {
       permissionKey: override.PermissionKey,
       permissionName: override.PermissionName,
       moduleId: override.ModuleId,
-      permissionGroupId: override.PermissionGroupId,
+      groupKey: override.GroupKey,
+      groupName: override.GroupName,
       isAllowed: Boolean(override.IsAllowed),
       source: "userOverride",
       reason: override.Reason || null,
@@ -89,33 +91,12 @@ function applyAssignmentPermissions(permissionMap, assignmentPermissions = []) {
       permissionKey: permission.PermissionKey,
       permissionName: permission.PermissionName,
       moduleId: permission.ModuleId,
-      permissionGroupId: permission.PermissionGroupId,
+      groupKey: permission.GroupKey,
+      groupName: permission.GroupName,
       isAllowed: true,
       source: "assignment",
       assignmentKey: permission.AssignmentKey,
       compatibilityRoleKey: permission.CompatibilityRoleKey,
-    });
-  });
-
-  return permissionMap;
-}
-
-function applyWorkspaceModulePermissions(permissionMap, workspaceModulePermissions = []) {
-  workspaceModulePermissions.forEach((permission) => {
-    const current = permissionMap.get(permission.PermissionKey);
-
-    if (current?.isAllowed) {
-      return;
-    }
-
-    permissionMap.set(permission.PermissionKey, {
-      permissionId: permission.PermissionId,
-      permissionKey: permission.PermissionKey,
-      permissionName: permission.PermissionName,
-      moduleId: permission.ModuleId,
-      permissionGroupId: permission.PermissionGroupId,
-      isAllowed: true,
-      source: "workspaceModule",
     });
   });
 
@@ -152,18 +133,15 @@ async function resolveUserPermissions(userId) {
     assignmentPermissions,
     userOverrides,
     assignmentScopes,
-    workspaceModulePermissions,
   ] = await Promise.all([
     repository.getRolePermissions(userProfile.RoleId),
     repository.getActiveAssignmentPermissions(numericUserId),
     repository.getUserPermissionOverrides(numericUserId),
     repository.getActiveAssignmentScopes(numericUserId),
-    repository.getWorkspaceModulePermissions(numericUserId),
   ]);
 
   const permissionMap = buildPermissionMap(rolePermissions);
   applyAssignmentPermissions(permissionMap, assignmentPermissions);
-  applyWorkspaceModulePermissions(permissionMap, workspaceModulePermissions);
   applyUserOverrides(permissionMap, userOverrides);
 
   const permissions = Array.from(permissionMap.values()).sort((a, b) =>
@@ -210,7 +188,7 @@ async function userHasPermission(userId, permissionKey) {
 
   const roleKey = normalizeRoleKey(resolved.user?.roleKey);
 
-  if (roleKey === "superadmin") {
+  if (roleKey === "superadmin" || roleKey === "platformadmin") {
     return true;
   }
 

@@ -1,14 +1,3 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// Operations Platform
-// Platform Sidebar Tree
-// ============================================
-//
-// Purpose:
-// Renders the complete sidebar menu tree for any role.
-// Supports nested children, active routes, and dropdown state.
-// ============================================
-
 import { useLocation } from "react-router-dom";
 
 import { Box, List } from "@mui/material";
@@ -17,6 +6,29 @@ import PlatformSidebarItem from "./PlatformSidebarItem";
 import PlatformSidebarSection from "./PlatformSidebarSection";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { getSidebarItemKey } from "../utils/sidebarHelpers";
+
+const DELETED_EXACT_ROUTES = new Set([
+  "/super-admin/navigation-manager",
+  "/super-admin/permissions",
+  "/super-admin/role-permissions",
+  "/super-admin/user-permission-overrides",
+  "/super-admin/access-levels",
+  "/super-admin/buttons",
+  "/super-admin/widgets",
+  "/super-admin/feature-flags",
+  "/super-admin/assignment-types",
+  "/super-admin/user-assignments",
+  "/super-admin/printing",
+  "/super-admin/it-assets",
+  "/it-assets",
+]);
+
+function isDeletedRoute(item = {}) {
+  const raw = item.path || item.route || "";
+  if (!raw) return false;
+  const path = String(raw).toLowerCase();
+  return DELETED_EXACT_ROUTES.has(path);
+}
 
 export default function PlatformSidebarTree({
   sections = [],
@@ -34,7 +46,7 @@ export default function PlatformSidebarTree({
   return (
     <Box sx={{ px: 1.5, pt: 1.5, pb: 3 }}>
       {sections.map((section, sectionIndex) => {
-        const items = section.items || [];
+        const items = (section.items || []).filter((item) => !isDeletedRoute(item));
 
         if (!items.length) return null;
 

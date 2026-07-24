@@ -12,7 +12,12 @@
  */
 
 const userRepository = require("../repositories/userRepository");
-const { hashPassword } = require("../../../shared/security/password");
+const {
+  hashPassword,
+  meetsPasswordPolicy,
+  generateTemporaryPassword,
+  PASSWORD_POLICY_MESSAGE,
+} = require("../../../shared/security/password");
 const { isMainRole } = require("../../../shared/constants/mainRoles");
 
 function assertMainRole(role) {
@@ -28,6 +33,13 @@ function assertMainRole(role) {
  */
 function isCurrentUserSuperAdmin(currentUser) {
   return currentUser?.role === "SuperAdmin" || currentUser?.roleKey === "SuperAdmin";
+}
+
+function isCurrentUserPlatformAdmin(currentUser) {
+  return (
+    currentUser?.role === "PlatformAdmin" ||
+    currentUser?.roleKey === "PlatformAdmin"
+  );
 }
 
 /**
@@ -295,6 +307,72 @@ async function activateUser(userId) {
   await userRepository.setUserActiveStatus(Number(userId), true);
 }
 
+/**
+ * Replaces a user's password without exposing the existing password hash.
+ */
+async function resetUserPassword(userId, payload = {}, currentUser) {
+  const numericUserId = Number(userId);
+
+  if (
+    !isCurrentUserSuperAdmin(currentUser) &&
+    !isCurrentUserPlatformAdmin(currentUser)
+  ) {
+    const error = new Error(
+      "Only Platform Admin or Super Admin can reset user passwords."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
+    const error = new Error("Valid user ID is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const user = await userRepository.findUserById(numericUserId);
+
+  if (!user) {
+    const error = new Error("User not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (user.IsProtectedRole && !isCurrentUserSuperAdmin(currentUser)) {
+    const error = new Error("Only Super Admin can reset passwords for protected users.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const generatePassword = payload.generatePassword !== false;
+  const password = generatePassword
+    ? generateTemporaryPassword()
+    : String(payload.password || "");
+
+  if (!generatePassword && !meetsPasswordPolicy(password)) {
+    const error = new Error(PASSWORD_POLICY_MESSAGE);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const mustChangePassword = payload.requirePasswordChange !== false;
+  const passwordHash = await hashPassword(password);
+
+  await userRepository.resetUserPassword(
+    numericUserId,
+    passwordHash,
+    mustChangePassword
+  );
+
+  return {
+    userId: numericUserId,
+    fullName: user.FullName,
+    mustChangePassword,
+    accountUnlocked: true,
+    temporaryPassword: generatePassword ? password : null,
+  };
+}
+
 module.exports = {
   getUsers,
   getUserById,
@@ -302,5 +380,6 @@ module.exports = {
   updateUser,
   deactivateUser,
   activateUser,
+  resetUserPassword,
   exportUsers,
 };

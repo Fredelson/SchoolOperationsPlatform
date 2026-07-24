@@ -11,14 +11,14 @@ const {
   updateSystemSetting,
 } = require("../../controllers/superadmin/systemSettingsController");
 
-const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
+
 
 // GET /api/superadmin/system-settings
 router.get(
   "/",
   protect,
-  requirePermission("SystemSettings.View"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   getSystemSettings
 );
 
@@ -26,7 +26,7 @@ router.get(
 router.put(
   "/:id",
   protect,
-  requirePermission("SystemSettings.Edit"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   updateSystemSetting
 );
 

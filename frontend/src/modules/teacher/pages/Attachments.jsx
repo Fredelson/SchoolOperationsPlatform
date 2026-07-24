@@ -5,7 +5,6 @@
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 
 import {
   Box,
@@ -34,9 +33,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import usePageTitle from "@platform/hooks/usePageTitle";
 import AppFilterBar from "@platform/ui/AppFilterBar";
 
-import { useAuth } from "../../../context/AuthContext";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { getMyPrintingAttachments } from "../../../services/printingService";
 
 const getExtension = (fileName = "") => {
   const parts = fileName.toLowerCase().split(".");
@@ -93,8 +90,6 @@ const getFileMeta = (fileName = "") => {
 export default function Attachments() {
   usePageTitle("Attachments");
 
-  const { token } = useAuth();
-
   const [attachments, setAttachments] = useState([]);
   const [search, setSearch] = useState("");
   const [purposeFilter, setPurposeFilter] = useState("All");
@@ -111,13 +106,7 @@ export default function Attachments() {
 
   const fetchAttachments = async () => {
     try {
-      const response = await axios.get(`${API_URL}/requests/attachments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setAttachments(response.data || []);
+      setAttachments((await getMyPrintingAttachments()) || []);
     } catch (error) {
       console.error("Attachments Load Error:", error);
     }

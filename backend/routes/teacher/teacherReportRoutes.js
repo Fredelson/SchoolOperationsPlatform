@@ -11,13 +11,13 @@ const {
 } = require("../../controllers/teacher/teacherReportController");
 
 const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 // GET /api/teacher/reports
 router.get(
   "/",
   protect,
-  requirePermission("reports.view"),
+  requireActiveWorkspace,
   getTeacherReports
 );
 

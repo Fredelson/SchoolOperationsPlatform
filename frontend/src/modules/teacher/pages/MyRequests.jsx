@@ -52,14 +52,15 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import CancelIcon from "@mui/icons-material/Cancel";
 
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 import PageHeader from "../../../components/common/PageHeader";
 import usePageTitle from "@platform/hooks/usePageTitle";
 
 import { useAuth } from "../../../context/AuthContext";
-
-const API_URL = "http://localhost:5000/api";
+import {
+  cancelMyPrintingRequest,
+  getMyPrintingRequests,
+} from "../../../services/printingService";
 
 export default function MyRequests() {
   usePageTitle("MyRequests");
@@ -85,13 +86,7 @@ export default function MyRequests() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(`${API_URL}/requests/my-requests`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setRequests(response.data || []);
+      setRequests((await getMyPrintingRequests()) || []);
     } catch (err) {
       console.error("Fetch My Requests Error:", err);
       setError("Unable to load requests. Please try again.");
@@ -114,17 +109,7 @@ export default function MyRequests() {
     if (!confirmed) return;
 
     try {
-      await axios.put(
-        `${API_URL}/requests/${requestId}/cancel`,
-        {
-          remarks: "Cancelled by teacher",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await cancelMyPrintingRequest(requestId, "Cancelled by requester");
 
       setRequests((prev) =>
         prev.filter((request) => request.RequestId !== requestId)
@@ -210,8 +195,8 @@ export default function MyRequests() {
     (request) => request.Status === "Completed"
   ).length;
 
-  const pendingRequests = requests.filter(
-    (request) => request.Status === "Pending"
+  const pendingRequests = requests.filter((request) =>
+    String(request.Status || "").toLowerCase().includes("pending")
   ).length;
 
   return (

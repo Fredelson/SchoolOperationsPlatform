@@ -18,12 +18,12 @@ const {
   deleteAccessLevel,
 } = require("../../controllers/security/accessLevelController");
 
-const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
 
-router.get("/", protect, requirePermission("access-levels.view"), getAccessLevels);
-router.post("/", protect, requirePermission("access-levels.create"), createAccessLevel);
-router.put("/:id", protect, requirePermission("access-levels.update"), updateAccessLevel);
-router.delete("/:id", protect, requirePermission("access-levels.delete"), deleteAccessLevel);
+
+router.get("/", protect, authorizeRoles("SuperAdmin", "PlatformAdmin", "Admin", "PrintingAdmin"), getAccessLevels);
+router.post("/", protect, authorizeRoles("SuperAdmin", "PlatformAdmin", "Admin", "PrintingAdmin"), createAccessLevel);
+router.put("/:id", protect, authorizeRoles("SuperAdmin", "PlatformAdmin", "Admin", "PrintingAdmin"), updateAccessLevel);
+router.delete("/:id", protect, authorizeRoles("SuperAdmin", "PlatformAdmin", "Admin", "PrintingAdmin"), deleteAccessLevel);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const repository = require("../repositories/assetBorrowRepository");
 const {
   validateReturnParts,
 } = require("../../shared/constants/assetParts");
+const { createMaintenanceLog } = require("../../maintenance/services/assetMaintenanceService");
 
 const borrowAsset = async ({ payload, user, ipAddress }) => {
   const asset = await repository.getAssetById(payload.assetId);
@@ -116,7 +117,7 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     throw error;
   }
 
-  return repository.returnBorrowedAsset({
+  const result = await repository.returnBorrowedAsset({
     asset,
     activeBorrow,
     targetStatusId: targetStatus.ITAssetStatusId,
@@ -127,6 +128,27 @@ const returnBorrowedAsset = async ({ payload, user, ipAddress }) => {
     requiredParts,
     ipAddress,
   });
+
+  if (conditionName === "need maintenance" || conditionName === "need parts") {
+    try {
+      await createMaintenanceLog({
+        payload: {
+          assetId: asset.AssetId,
+          maintenanceType: returnCondition.ConditionName,
+          description: payload.notes || `Asset returned with condition: ${returnCondition.ConditionName}.`,
+        },
+        user,
+        ipAddress,
+      });
+    } catch (maintenanceError) {
+      console.error(
+        "Failed to create maintenance log for returned asset:",
+        maintenanceError.message
+      );
+    }
+  }
+
+  return result;
 };
 
 const getBorrowHistory = async ({ assetId = null, page = 1, limit = 20 }) => {

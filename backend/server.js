@@ -27,6 +27,13 @@ const startServer = async () => {
   try {
     await poolPromise;
 
+    try {
+      const { ensurePartRequirementsConstraint } = require("./modules/itAssets/shared/repositories/assetPartRequirementRepository");
+      await ensurePartRequirementsConstraint();
+    } catch (error) {
+      console.error("Part requirements constraint init failed:", error.message);
+    }
+
     app.listen(PORT, () => {
       console.log(`🚀 ARAB UNITY SCHOOL Backend running on port ${PORT}`);
     });

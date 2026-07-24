@@ -252,8 +252,7 @@ export default function AssetTagBrandingPage({ type = "rounded" }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const { hasPermission } = usePermissions();
-  const canManage = hasPermission(`asset_tag_branding.${type}.manage`);
+  const canManage = true;
 
   useEffect(() => {
     let active = true;

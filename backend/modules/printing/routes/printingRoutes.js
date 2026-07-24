@@ -1,135 +1,91 @@
-// ============================================================
-// Arab Unity School Operations Platform
-// Printing Routes
-// ============================================================
-//
-// Purpose:
-// Defines Printing module API endpoints.
-//
-// Architecture:
-// Routes Layer
-//
-// Final API paths:
-// GET  /api/printing/dashboard
-// GET  /api/printing/requests
-// GET  /api/printing/requests/:id
-// PUT  /api/printing/requests/:id/start
-// PUT  /api/printing/requests/:id/hold
-// PUT  /api/printing/requests/:id/resume
-// PUT  /api/printing/requests/:id/cancel
-// PUT  /api/printing/requests/:id/complete
-// GET  /api/printing/history
-//
-// ============================================================
-
 const express = require("express");
-const router = express.Router();
 
+const { protect } = require("../../../middleware/authMiddleware");
 const {
-  getPrintingDashboard,
-  getPrintingQueue,
-  getPrintingRequestById,
-  startPrinting,
-  holdPrinting,
-  resumePrinting,
-  cancelPrinting,
-  completePrinting,
-  getPrintingHistory,
-} = require("../controllers/printingController");
-
+  requirePrintingCapability,
+} = require("../middleware/printingAccess");
+const { CAPABILITIES } = require("../services/printingAccessService");
 const {
   validatePrintingRequestId,
   validateOptionalRemarks,
   validateCompletePrinting,
 } = require("../validators/printingValidator");
+const controller = require("../controllers/printingController");
 
-const { protect } = require("../../../middleware/authMiddleware");
-const requirePermission = require("../../permissionResolver/middleware/requirePermission");
-const PERMISSIONS = require("../../../shared/permissions/permissionKeys");
-
-// ============================================================
-// All Printing routes require authentication
-// ============================================================
+const router = express.Router();
 
 router.use(protect);
 
-// ============================================================
-// Dashboard / Queue / History
-// ============================================================
-
 router.get(
   "/dashboard",
-  requirePermission(PERMISSIONS.PRINTING.DASHBOARD_VIEW),
-  getPrintingDashboard
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
+  controller.getPrintingDashboard
 );
-
 router.get(
-  "/requests",
-  requirePermission(PERMISSIONS.PRINTING.QUEUE_VIEW),
-  getPrintingQueue
+  "/queue",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
+  controller.getPrintingQueue
 );
-
 router.get(
-  "/history",
-  requirePermission(PERMISSIONS.PRINTING.HISTORY_VIEW),
-  getPrintingHistory
-);
-
-// ============================================================
-// Single Request
-// ============================================================
-
-router.get(
-  "/requests/:id",
-  requirePermission(PERMISSIONS.PRINTING.REQUEST_VIEW),
+  "/queue/:id",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
-  getPrintingRequestById
+  controller.getPrintingRequestById
 );
-
-// ============================================================
-// Workflow Actions
-// ============================================================
-
 router.put(
-  "/requests/:id/start",
-  requirePermission(PERMISSIONS.PRINTING.START),
+  "/queue/:id/claim",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
-  startPrinting
+  controller.claimPrinting
 );
-
 router.put(
-  "/requests/:id/hold",
-  requirePermission(PERMISSIONS.PRINTING.HOLD),
+  "/queue/:id/start",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
+  validatePrintingRequestId,
+  controller.startPrinting
+);
+router.put(
+  "/queue/:id/hold",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
   validateOptionalRemarks,
-  holdPrinting
+  controller.holdPrinting
 );
-
 router.put(
-  "/requests/:id/resume",
-  requirePermission(PERMISSIONS.PRINTING.RESUME),
+  "/queue/:id/resume",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
-  resumePrinting
+  controller.resumePrinting
 );
-
 router.put(
-  "/requests/:id/cancel",
-  requirePermission(PERMISSIONS.PRINTING.CANCEL),
+  "/queue/:id/cancel",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
   validateOptionalRemarks,
-  cancelPrinting
+  controller.cancelPrinting
 );
-
 router.put(
-  "/requests/:id/complete",
-  requirePermission(PERMISSIONS.PRINTING.COMPLETE),
+  "/queue/:id/complete",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
   validatePrintingRequestId,
   validateCompletePrinting,
-  completePrinting
+  controller.completePrinting
 );
 
-// ============================================================
-// Exports
-// ============================================================
+router.get(
+  "/managed-requests",
+  requirePrintingCapability(CAPABILITIES.MANAGE_QUEUE),
+  controller.listManagedRequests
+);
+router.get(
+  "/history",
+  requirePrintingCapability(CAPABILITIES.VIEW_REPORTS),
+  controller.getPrintingHistory
+);
+router.get(
+  "/reports",
+  requirePrintingCapability(CAPABILITIES.VIEW_REPORTS),
+  controller.getPrintingReport
+);
 
 module.exports = router;

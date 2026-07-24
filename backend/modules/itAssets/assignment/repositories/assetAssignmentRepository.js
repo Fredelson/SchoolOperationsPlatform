@@ -475,39 +475,42 @@ const returnAsset = async ({
   try {
     await transaction.begin();
 
-    const assignmentResult = await new sql.Request(transaction)
-      .input("AssetAssignmentId", sql.Int, activeAssignment.AssetAssignmentId)
-      .input("ReturnNotes", sql.NVarChar(sql.MAX), notes || null)
-      .input("ReturnConditionId", sql.Int, returnConditionId || null)
-      .input(
-        "ReturnIssueTypeIdsJson",
-        sql.NVarChar(sql.MAX),
-        null
-      )
-      .query(`
-        UPDATE dbo.ITAssetAssignments
-        SET
-          ReturnedAt = GETDATE(),
-          ReturnNotes = @ReturnNotes,
-          ReturnConditionId = @ReturnConditionId,
-          ReturnIssueTypeIdsJson = @ReturnIssueTypeIdsJson
-        OUTPUT INSERTED.*
-        WHERE AssetAssignmentId = @AssetAssignmentId;
-      `);
+    let assignmentResult = null;
+
+    if (activeAssignment) {
+      assignmentResult = await new sql.Request(transaction)
+        .input("AssetAssignmentId", sql.Int, activeAssignment.AssetAssignmentId)
+        .input("ReturnNotes", sql.NVarChar(sql.MAX), notes || null)
+        .input("ReturnConditionId", sql.Int, returnConditionId || null)
+        .input(
+          "ReturnIssueTypeIdsJson",
+          sql.NVarChar(sql.MAX),
+          null
+        )
+        .query(`
+          UPDATE dbo.ITAssetAssignments
+          SET
+            ReturnedAt = GETDATE(),
+            ReturnNotes = @ReturnNotes,
+            ReturnConditionId = @ReturnConditionId,
+            ReturnIssueTypeIdsJson = @ReturnIssueTypeIdsJson
+          OUTPUT INSERTED.*
+          WHERE AssetAssignmentId = @AssetAssignmentId;
+        `);
+    }
+
+    const previousOwner =
+      activeAssignment?.AssignedToName ||
+      activeAssignment?.AssignedToUserName ||
+      asset.CurrentAssignedName ||
+      asset.CurrentAssignedUserName ||
+      null;
 
     const assetResult = await new sql.Request(transaction)
       .input("AssetId", sql.Int, asset.AssetId)
       .input("ReturnedStatusId", sql.Int, returnedStatusId)
       .input("ReturnConditionId", sql.Int, returnConditionId || null)
-      .input(
-        "PreviousOwner",
-        sql.NVarChar(510),
-        activeAssignment.AssignedToName ||
-          activeAssignment.AssignedToUserName ||
-          asset.CurrentAssignedName ||
-          asset.CurrentAssignedUserName ||
-          null
-      )
+      .input("PreviousOwner", sql.NVarChar(510), previousOwner)
       .query(`
         UPDATE dbo.ITAssets
         SET
@@ -558,16 +561,19 @@ const returnAsset = async ({
         );
       `);
 
-    const assignment = assignmentResult.recordset[0];
+    const assignment = activeAssignment ? assignmentResult.recordset[0] : null;
     const updatedAsset = assetResult.recordset[0];
-    const partRequirements = await insertPartRequirements({
-      transaction,
-      assetId: asset.AssetId,
-      assetAssignmentId: assignment.AssetAssignmentId,
-      parts: requiredParts,
-      requestedByUserId: changedByUserId,
-      notes,
-    });
+    const partRequirements = requiredParts.length
+      ? await insertPartRequirements({
+          transaction,
+          assetId: asset.AssetId,
+          assetAssignmentId: assignment?.AssetAssignmentId || null,
+          assetBorrowId: null,
+          parts: requiredParts,
+          requestedByUserId: changedByUserId,
+          notes,
+        })
+      : [];
 
     await insertAuditLog({
       transaction,

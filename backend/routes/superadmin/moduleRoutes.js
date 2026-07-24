@@ -12,8 +12,8 @@ const {
   updateModule,
 } = require("../../controllers/superadmin/moduleController");
 
-const { protect } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
+
 
 // ============================================
 // Get all modules
@@ -23,7 +23,7 @@ const requirePermission = require("../../modules/permissionResolver/middleware/r
 router.get(
   "/",
   protect,
-  requirePermission("Module.View"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   getAllModules
 );
 
@@ -35,7 +35,7 @@ router.get(
 router.put(
   "/:id",
   protect,
-  requirePermission("Module.Edit"),
+  authorizeRoles("SuperAdmin", "PlatformAdmin"),
   updateModule
 );
 

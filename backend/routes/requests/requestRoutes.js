@@ -39,7 +39,7 @@ const {
 const {
   protect,
 } = require("../../middleware/authMiddleware");
-const requirePermission = require("../../modules/permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../middleware/permissionMiddleware");
 
 // ============================================================
 // Dashboard
@@ -49,7 +49,7 @@ const requirePermission = require("../../modules/permissionResolver/middleware/r
 router.get(
   "/dashboard",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosDashboard
 );
 
@@ -61,7 +61,7 @@ router.get(
 router.get(
   "/approval-history",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosApprovalHistory
 );
 
@@ -73,7 +73,7 @@ router.get(
 router.get(
   "/requests",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosRequests
 );
 
@@ -85,7 +85,7 @@ router.get(
 router.get(
   "/requests/:id",
   protect,
-  requirePermission("requests.view"),
+  requireActiveWorkspace,
   getHosRequestById
 );
 
@@ -97,7 +97,7 @@ router.get(
 router.put(
   "/requests/:id/approve",
   protect,
-  requirePermission("requests.approve"),
+  requireActiveWorkspace,
   approveHosRequest
 );
 
@@ -109,7 +109,7 @@ router.put(
 router.put(
   "/requests/:id/reject",
   protect,
-  requirePermission("requests.reject"),
+  requireActiveWorkspace,
   rejectHosRequest
 );
 

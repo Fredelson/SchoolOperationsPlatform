@@ -25,8 +25,7 @@ const PERMISSIONS = {
     VIEW: "users.view",
     CREATE: "users.create",
     UPDATE: "users.update",
-    ACTIVATE: "users.activate",
-    DEACTIVATE: "users.deactivate",
+    DELETE: "users.delete",
   },
 
   ROLES: {
@@ -36,77 +35,30 @@ const PERMISSIONS = {
     DELETE: "roles.delete",
   },
 
-  ACCESS_LEVELS: {
-    VIEW: "access-levels.view",
-    CREATE: "access-levels.create",
-    UPDATE: "access-levels.update",
-    DELETE: "access-levels.delete",
+  MODULES: {
+    VIEW: "modules.view",
+    CREATE: "modules.create",
+    UPDATE: "modules.update",
+    DELETE: "modules.delete",
   },
 
-  PERMISSIONS: {
-    VIEW: "permissions.view",
-    CREATE: "permissions.create",
-    UPDATE: "permissions.update",
-    DELETE: "permissions.delete",
+  MENUS: {
+    VIEW: "menus.view",
+    CREATE: "menus.create",
+    UPDATE: "menus.update",
+    DELETE: "menus.delete",
   },
 
-  ROLE_PERMISSIONS: {
-    VIEW: "role-permissions.view",
-    CREATE: "role-permissions.create",
-    UPDATE: "role-permissions.update",
-    DELETE: "role-permissions.delete",
+  WORKSPACE: {
+    VIEW: "workspace.view",
+    CONFIGURE: "workspace.configure",
+    ACTIVATE: "workspace.activate",
+    DISABLE: "workspace.disable",
   },
 
-  PERMISSION_GROUPS: {
-    VIEW: "permission-groups.view",
-    CREATE: "permission-groups.create",
-    UPDATE: "permission-groups.update",
-    DELETE: "permission-groups.delete",
-  },
-
-  USER_PERMISSION_OVERRIDES: {
-    VIEW: "user-permission-overrides.view",
-    CREATE: "user-permission-overrides.create",
-    UPDATE: "user-permission-overrides.update",
-    DELETE: "user-permission-overrides.delete",
-  },
-
-  ASSIGNMENT_TYPES: {
-    VIEW: "assignment-types.view",
-    CREATE: "assignment-types.create",
-    UPDATE: "assignment-types.update",
-    DELETE: "assignment-types.delete",
-  },
-
-  USER_ASSIGNMENTS: {
-    VIEW: "user-assignments.view",
-    CREATE: "user-assignments.create",
-    UPDATE: "user-assignments.update",
-    DELETE: "user-assignments.delete",
-  },
-
-  LOOKUPS: {
-    VIEW: "lookups.view",
-  },
-
-  PRINTING: {
-    DASHBOARD_VIEW: "printing.dashboard.view",
-    QUEUE_VIEW: "printing.queue.view",
-    REQUEST_VIEW: "printing.request.view",
-
-    START: "printing.request.start",
-    HOLD: "printing.request.hold",
-    RESUME: "printing.request.resume",
-    COMPLETE: "printing.request.complete",
-    CANCEL: "printing.request.cancel",
-
-    HISTORY_VIEW: "printing.history.view",
-
-    INVENTORY_VIEW: "printing.inventory.view",
-    INVENTORY_UPDATE: "printing.inventory.update",
-
-    PURCHASES_VIEW: "printing.purchases.view",
-    PURCHASES_CREATE: "printing.purchases.create",
+  SYSTEM_SETTINGS: {
+    VIEW: "system_settings.view",
+    UPDATE: "system_settings.update",
   },
 };
 

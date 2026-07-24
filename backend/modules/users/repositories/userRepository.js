@@ -525,6 +525,43 @@ async function setUserActiveStatus(userId, isActive) {
   );
 }
 
+/**
+ * Replaces a user's password and clears login lockout state.
+ */
+async function resetUserPassword(userId, passwordHash, mustChangePassword) {
+  await executeQuery(
+    `
+    UPDATE dbo.Users
+    SET
+      PasswordHash = @PasswordHash,
+      MustChangePassword = @MustChangePassword,
+      IsLocked = 0,
+      FailedLoginAttempts = 0,
+      LockedUntil = NULL,
+      UpdatedAt = GETDATE()
+    WHERE UserId = @UserId
+      AND ISNULL(IsDeleted, 0) = 0;
+    `,
+    [
+      {
+        name: "UserId",
+        type: sql.Int,
+        value: userId,
+      },
+      {
+        name: "PasswordHash",
+        type: sql.NVarChar,
+        value: passwordHash,
+      },
+      {
+        name: "MustChangePassword",
+        type: sql.Bit,
+        value: mustChangePassword,
+      },
+    ]
+  );
+}
+
 module.exports = {
   findAllUsers,
   findUserById,
@@ -533,4 +570,5 @@ module.exports = {
   createUser,
   updateUser,
   setUserActiveStatus,
+  resetUserPassword,
 };

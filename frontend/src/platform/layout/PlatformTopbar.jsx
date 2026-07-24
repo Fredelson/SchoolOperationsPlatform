@@ -2,15 +2,15 @@ import {useEffect,useMemo,useState} from "react";
 import {Alert,Avatar,Badge,Box,Button,Dialog,DialogActions,DialogContent,DialogTitle,Divider,IconButton,InputBase,List,ListItem,ListItemText,Menu,MenuItem,Stack,Typography,alpha,useTheme} from "@mui/material";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import {useLocation,useNavigate} from "react-router-dom";
-import {useAuth} from "../../context/AuthContext";import {usePermissions} from "../../context/PermissionContext";import api from "../../services/api";import useBranding from "../../modules/system/hooks/useBranding";import buildFileUrl from "../utils/buildFileUrl";
+import {useAuth} from "../../context/AuthContext";import {usePermissions} from "../../context/PermissionContext";import api from "../../services/api";
 
 const messages=[{id:1,from:"IT Service Desk",subject:"Operations Platform workspace guide",time:"Today"},{id:2,from:"School Operations",subject:"Weekly administration update",time:"Yesterday"}];
 const normalized=value=>String(value||"").replace(/[\s_-]/g,"").toLowerCase();
 
 export default function PlatformTopbar({height=78,onMenuClick}){
-  const theme=useTheme(),navigate=useNavigate(),location=useLocation(),{user,logout}=useAuth(),{hasPermission}=usePermissions(),{branding}=useBranding();
+  const theme=useTheme(),navigate=useNavigate(),location=useLocation(),{user,logout}=useAuth(),{hasPermission}=usePermissions();
   const liveToken=sessionStorage.getItem("liveModeToken");let liveUser=null;try{if(liveToken)liveUser=JSON.parse(atob(liveToken.split(".")[1].replaceAll("-","+").replaceAll("_","/")))}catch{liveUser=null}const effectiveUser=liveUser?.liveMode?liveUser:user;
-  const role=normalized(effectiveUser?.roleKey||effectiveUser?.role),admin=role==="superadmin"||role==="platformadmin",canNotify=admin&&hasPermission("AuditLog.View");
+  const role=normalized(effectiveUser?.roleKey||effectiveUser?.role),admin=role==="superadmin"||role==="platformadmin",canNotify=admin;
   const[anchor,setAnchor]=useState(null),[panel,setPanel]=useState(null),[activities,setActivities]=useState([]),[readAt,setReadAt]=useState(()=>localStorage.getItem("topbarNotificationsReadAt")||""),[dialog,setDialog]=useState(null);
   useEffect(()=>{if(!canNotify)return;api.get("/superadmin/audit-logs",{params:{limit:12}}).then(r=>setActivities(r.data?.auditLogs||[])).catch(()=>setActivities([]));},[canNotify]);
   const unread=useMemo(()=>activities.filter(x=>!readAt||new Date(x.CreatedAt)>new Date(readAt)).length,[activities,readAt]);
@@ -18,10 +18,9 @@ export default function PlatformTopbar({height=78,onMenuClick}){
   const markRead=()=>{const now=new Date().toISOString();localStorage.setItem("topbarNotificationsReadAt",now);setReadAt(now)};
   const profileRoute=location.pathname.startsWith("/teacher")?"/teacher/profile":location.pathname.startsWith("/hod")?"/hod/profile":location.pathname.startsWith("/hos")?"/hos/profile":location.pathname.startsWith("/printing")?"/printing/profile":location.pathname.startsWith("/library")?"/library/profile":role==="platformadmin"?"/platform-admin/profile":role==="printingadmin"?"/printing/profile":"/super-admin/profile";
   const signOut=()=>{logout();navigate("/login",{replace:true})};
-  const logo=buildFileUrl(branding?.branding?.logoPath||branding?.branding?.smallLogoPath||"");
   const topbar=theme.palette.platform?.topbarBackground||theme.palette.primary.dark,text=theme.palette.primary.contrastText;
   return <Box sx={{height,px:{xs:2,md:4},display:"flex",alignItems:"center",justifyContent:"space-between",gap:2,color:text,background:topbar,position:"fixed",inset:"0 0 auto 0",zIndex:1300,borderBottom:`1px solid ${alpha(text,.15)}`}}>
-    <Stack direction="row" spacing={2} sx={{alignItems:"center",minWidth:0}}><IconButton onClick={onMenuClick} sx={{color:text,display:{lg:"none"}}}><MenuOutlinedIcon/></IconButton>{logo&&<Box component="img" src={logo} alt="School logo" sx={{width:64,height:48,objectFit:"contain",bgcolor:"background.paper",borderRadius:2,p:.5}}/>}<Box><Typography fontWeight={900} noWrap>{effectiveUser?.defaultWorkspaceRoute?.split("/")[1]?.replaceAll("-"," ")||"Operations Platform"}</Typography><Typography variant="caption" sx={{opacity:.8}}>{effectiveUser?.roleName||effectiveUser?.role}</Typography></Box></Stack>
+    <Stack direction="row" sx={{alignItems:"center",minWidth:40,height:"100%"}}><IconButton onClick={onMenuClick} sx={{color:text,display:{lg:"none"}}}><MenuOutlinedIcon/></IconButton></Stack>
     <Box sx={{width:{md:320,xl:460},height:44,px:2,display:{xs:"none",md:"flex"},alignItems:"center",gap:1,borderRadius:99,bgcolor:alpha(text,.1),border:`1px solid ${alpha(text,.2)}`}}><SearchOutlinedIcon/><InputBase fullWidth placeholder="Search workspace..." sx={{color:text}}/></Box>
     <Stack direction="row" spacing={.5} sx={{alignItems:"center"}}>
       {canNotify&&<IconButton aria-label="Notifications" onClick={e=>openMenu(e,"notifications")} sx={{color:text}}><Badge badgeContent={unread} color="error"><NotificationsNoneOutlinedIcon/></Badge></IconButton>}

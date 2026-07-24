@@ -94,7 +94,19 @@ const validateReturnAsset = async (assetId, payload = {}) => {
 
   const activeAssignment = await repository.getActiveAssignment(assetId);
 
-  if (!activeAssignment) {
+  const statusIndicatesAssignment = ["ASSIGNED", "INUSE", "IN_USE"].includes(currentStatus);
+
+  const hasAssignmentInAsset =
+    statusIndicatesAssignment ||
+    asset.CurrentAssignedUserId ||
+    asset.CurrentAssignedName ||
+    asset.CurrentAssignedEmployeeCode ||
+    asset.CurrentAssignedEmail ||
+    asset.CurrentRoomId ||
+    asset.CurrentDepartmentId ||
+    asset.CurrentLocationId;
+
+  if (!activeAssignment && !hasAssignmentInAsset) {
     throw Object.assign(
       new Error("This asset has no active assignment to return."),
       { statusCode: 400 }

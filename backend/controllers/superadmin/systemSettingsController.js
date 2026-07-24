@@ -14,7 +14,7 @@ const { createAuditLog } = require("../../shared/services/auditLogger");
 // ============================================
 // @desc    Get all system settings
 // @route   GET /api/superadmin/system-settings
-// @access  SuperAdmin / SystemSettings.View
+// @access  SuperAdmin / system_settings.view
 // ============================================
 
 const getSystemSettings = async (req, res) => {

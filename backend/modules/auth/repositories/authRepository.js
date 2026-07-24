@@ -53,9 +53,9 @@ async function findActiveUserByIdentifier(identifier) {
       d.DepartmentName,
       u.SectionId,
       s.SectionName,
-      COALESCE(assignmentWorkspace.WorkspaceId, defaultWorkspace.WorkspaceId, roleWorkspace.WorkspaceId) AS DefaultWorkspaceId,
-      COALESCE(assignmentWorkspace.WorkspaceName, defaultWorkspace.WorkspaceName, roleWorkspace.WorkspaceName) AS DefaultWorkspaceName,
-      COALESCE(assignmentWorkspace.DefaultRoute, defaultWorkspace.DefaultRoute, roleWorkspace.DefaultRoute) AS DefaultWorkspaceRoute,
+      COALESCE(assignmentWorkspace.WorkspaceId, roleWorkspace.WorkspaceId) AS DefaultWorkspaceId,
+      COALESCE(assignmentWorkspace.WorkspaceName, roleWorkspace.WorkspaceName) AS DefaultWorkspaceName,
+      COALESCE(assignmentWorkspace.DefaultRoute, roleWorkspace.DefaultRoute) AS DefaultWorkspaceRoute,
       u.LegacyRole,
       u.MustChangePassword,
       u.EmailVerified,
@@ -72,9 +72,6 @@ async function findActiveUserByIdentifier(identifier) {
       ON u.DepartmentId = d.DepartmentId
     LEFT JOIN dbo.Sections s
       ON u.SectionId = s.SectionId
-    LEFT JOIN dbo.Workspaces defaultWorkspace
-      ON defaultWorkspace.WorkspaceId = u.DefaultWorkspaceId
-      AND defaultWorkspace.IsActive = 1
     OUTER APPLY (
       SELECT TOP 1
         w.WorkspaceId,
@@ -163,9 +160,9 @@ async function findActiveUserById(userId) {
       d.DepartmentName,
       u.SectionId,
       s.SectionName,
-      COALESCE(assignmentWorkspace.WorkspaceId, defaultWorkspace.WorkspaceId, roleWorkspace.WorkspaceId) AS DefaultWorkspaceId,
-      COALESCE(assignmentWorkspace.WorkspaceName, defaultWorkspace.WorkspaceName, roleWorkspace.WorkspaceName) AS DefaultWorkspaceName,
-      COALESCE(assignmentWorkspace.DefaultRoute, defaultWorkspace.DefaultRoute, roleWorkspace.DefaultRoute) AS DefaultWorkspaceRoute,
+      COALESCE(assignmentWorkspace.WorkspaceId, roleWorkspace.WorkspaceId) AS DefaultWorkspaceId,
+      COALESCE(assignmentWorkspace.WorkspaceName, roleWorkspace.WorkspaceName) AS DefaultWorkspaceName,
+      COALESCE(assignmentWorkspace.DefaultRoute, roleWorkspace.DefaultRoute) AS DefaultWorkspaceRoute,
       u.LegacyRole,
       u.MustChangePassword,
       u.EmailVerified,
@@ -182,9 +179,6 @@ async function findActiveUserById(userId) {
       ON u.DepartmentId = d.DepartmentId
     LEFT JOIN dbo.Sections s
       ON u.SectionId = s.SectionId
-    LEFT JOIN dbo.Workspaces defaultWorkspace
-      ON defaultWorkspace.WorkspaceId = u.DefaultWorkspaceId
-      AND defaultWorkspace.IsActive = 1
     OUTER APPLY (
       SELECT TOP 1
         w.WorkspaceId,
@@ -265,6 +259,54 @@ async function markLoginSuccess(userId) {
   );
 }
 async function getActiveAssignmentScopes(userId){const result=await query(`SELECT ua.UserAssignmentId,at.AssignmentKey,at.AssignmentName,ua.IsPrimary,s.ScopeType,s.ScopeEntityId,CASE s.ScopeType WHEN 'School' THEN sch.SchoolName WHEN 'Department' THEN d.DepartmentName WHEN 'Section' THEN sec.SectionName WHEN 'YearGroup' THEN yl.YearLevelName WHEN 'Subject' THEN sub.SubjectName WHEN 'Location' THEN l.LocationName WHEN 'Class' THEN c.ClassName WHEN 'Room' THEN rm.RoomName END ScopeName FROM dbo.UserAssignments ua JOIN dbo.AssignmentTypes at ON at.AssignmentTypeId=ua.AssignmentTypeId AND at.IsActive=1 LEFT JOIN dbo.UserAssignmentScopes s ON s.UserAssignmentId=ua.UserAssignmentId AND s.IsActive=1 LEFT JOIN dbo.Schools sch ON s.ScopeType='School' AND sch.SchoolId=s.ScopeEntityId LEFT JOIN dbo.Departments d ON s.ScopeType='Department' AND d.DepartmentId=s.ScopeEntityId LEFT JOIN dbo.Sections sec ON s.ScopeType='Section' AND sec.SectionId=s.ScopeEntityId LEFT JOIN dbo.YearLevels yl ON s.ScopeType='YearGroup' AND yl.YearLevelId=s.ScopeEntityId LEFT JOIN dbo.Subjects sub ON s.ScopeType='Subject' AND sub.SubjectId=s.ScopeEntityId LEFT JOIN dbo.Locations l ON s.ScopeType='Location' AND l.LocationId=s.ScopeEntityId LEFT JOIN dbo.Classes c ON s.ScopeType='Class' AND c.ClassId=s.ScopeEntityId LEFT JOIN dbo.Rooms rm ON s.ScopeType='Room' AND rm.RoomId=s.ScopeEntityId WHERE ua.UserId=@UserId AND ua.IsActive=1 AND (ua.StartDate IS NULL OR ua.StartDate<=CAST(GETDATE() AS date)) AND (ua.EndDate IS NULL OR ua.EndDate>=CAST(GETDATE() AS date)) ORDER BY ua.IsPrimary DESC,ua.CreatedAt,s.ScopeType;`,[{name:"UserId",type:sql.Int,value:userId}]);return result.recordset;}
+async function getAccessibleWorkspaces(userId) {
+  const result = await query(
+    `
+    SELECT DISTINCT
+      workspace.WorkspaceId,
+      workspace.WorkspaceKey,
+      workspace.WorkspaceName,
+      workspace.DefaultRoute,
+      workspace.SortOrder
+    FROM dbo.Workspaces workspace
+    JOIN dbo.Users userRecord ON userRecord.UserId = @UserId
+    WHERE workspace.IsActive = 1
+      AND (
+        workspace.WorkspaceId = userRecord.DefaultWorkspaceId
+        OR EXISTS (
+          SELECT 1
+          FROM dbo.WorkspaceRoles workspaceRole
+          WHERE workspaceRole.WorkspaceId = workspace.WorkspaceId
+            AND workspaceRole.RoleId = userRecord.RoleId
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM dbo.UserAssignments assignment
+          JOIN dbo.AssignmentTypes assignmentType
+            ON assignmentType.AssignmentTypeId = assignment.AssignmentTypeId
+           AND assignmentType.IsActive = 1
+          JOIN dbo.AssignmentTypeWorkspaces assignmentWorkspace
+            ON assignmentWorkspace.AssignmentTypeId = assignment.AssignmentTypeId
+           AND assignmentWorkspace.WorkspaceId = workspace.WorkspaceId
+           AND assignmentWorkspace.IsActive = 1
+          WHERE assignment.UserId = userRecord.UserId
+            AND assignment.IsActive = 1
+            AND (
+              assignment.StartDate IS NULL
+              OR assignment.StartDate <= CAST(GETDATE() AS date)
+            )
+            AND (
+              assignment.EndDate IS NULL
+              OR assignment.EndDate >= CAST(GETDATE() AS date)
+            )
+        )
+      )
+    ORDER BY workspace.SortOrder, workspace.WorkspaceId;
+    `,
+    [{ name: "UserId", type: sql.Int, value: userId }]
+  );
+  return result.recordset;
+}
 async function getPasswordHash(userId){const result=await query(`SELECT PasswordHash FROM dbo.Users WHERE UserId=@UserId AND IsActive=1 AND ISNULL(IsDeleted,0)=0;`,[{name:"UserId",type:sql.Int,value:userId}]);return result.recordset[0]?.PasswordHash||null;}
 async function updatePassword(userId,passwordHash){await query(`UPDATE dbo.Users SET PasswordHash=@PasswordHash,MustChangePassword=0,UpdatedAt=GETDATE() WHERE UserId=@UserId;`,[{name:"UserId",type:sql.Int,value:userId},{name:"PasswordHash",type:sql.NVarChar,value:passwordHash}]);}
 
@@ -274,6 +316,7 @@ module.exports = {
   findActiveUserById,
   markLoginSuccess,
   getActiveAssignmentScopes,
+  getAccessibleWorkspaces,
   getPasswordHash,
   updatePassword,
 };

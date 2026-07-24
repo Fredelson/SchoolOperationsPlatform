@@ -338,6 +338,9 @@ const returnBorrowedAsset = async ({
           CurrentAssignedName = NULL,
           CurrentAssignedEmployeeCode = NULL,
           CurrentAssignedEmail = NULL,
+          CurrentRoomId = NULL,
+          CurrentDepartmentId = NULL,
+          CurrentLocationId = NULL,
           UpdatedAt = GETDATE()
         OUTPUT INSERTED.*
         WHERE AssetId = @AssetId

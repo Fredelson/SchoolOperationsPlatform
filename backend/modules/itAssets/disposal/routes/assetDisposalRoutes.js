@@ -8,9 +8,9 @@ const router = express.Router();
 const controller = require("../controllers/assetDisposalController");
 const validator = require("../validators/assetDisposalValidator");
 const { protect } = require("../../../../middleware/authMiddleware");
-const requirePermission = require("../../../permissionResolver/middleware/requirePermission");
+const { requireActiveWorkspace } = require("../../../../middleware/permissionMiddleware");
 
-router.use(protect, requirePermission("it_assets.disposal.manage"));
+router.use(protect, requireActiveWorkspace);
 
 router.get("/", controller.getDisposals);
 router.get("/pending", controller.getPendingDisposals);

@@ -21,7 +21,7 @@ const getStatusColor = (statusKey = "") => {
 
   if (key === "AVAILABLE") return "success";
   if (key === "ASSIGNED" || key === "IN_USE") return "primary";
-  if (key === "MAINTENANCE") return "warning";
+  if (key === "MAINTENANCE" || key === "UNDERREPAIR" || key === "UNDER_MAINTENANCE" || key === "UNDERMAINTENANCE") return "warning";
 
   return "default";
 };

@@ -14,6 +14,7 @@
 const asyncHandler = require("../../../shared/helpers/asyncHandler");
 const { sendSuccess } = require("../../../shared/helpers/apiResponse");
 const userService = require("../services/userService");
+const activityLogger = require("../../audit/services/activityLogger");
 
 const getUsers = asyncHandler(async (req, res) => {
   const result = await userService.getUsers();
@@ -45,6 +46,33 @@ const activateUser = asyncHandler(async (req, res) => {
   return sendSuccess(res, "User activated successfully.");
 });
 
+const resetUserPassword = asyncHandler(async (req, res) => {
+  const result = await userService.resetUserPassword(
+    req.params.id,
+    req.body,
+    req.user
+  );
+
+  await activityLogger.log({
+    moduleKey: "USER_ACCESS",
+    actionType: "PASSWORD_RESET",
+    entityType: "User",
+    entityId: result.userId,
+    title: `Password reset for ${result.fullName}`,
+    description: `Password reset completed. Change required at next login: ${
+      result.mustChangePassword ? "yes" : "no"
+    }.`,
+    newValue: {
+      mustChangePassword: result.mustChangePassword,
+      accountUnlocked: result.accountUnlocked,
+    },
+    user: req.user,
+    ipAddress: req.ip,
+  });
+
+  return sendSuccess(res, "Password reset successfully.", result);
+});
+
 const exportUsers = asyncHandler(async (req, res) => {
   const result = await userService.exportUsers();
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -59,5 +87,6 @@ module.exports = {
   updateUser,
   deactivateUser,
   activateUser,
+  resetUserPassword,
   exportUsers,
 };
