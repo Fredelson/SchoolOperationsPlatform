@@ -8,7 +8,7 @@
 // Application bootstrap and global providers.
 //
 // Provider Order:
-// BrowserRouter
+// HashRouter
 // AuthProvider
 // PermissionProvider
 // FeatureFlagProvider
@@ -19,7 +19,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import { BrowserRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";
 
 import App from "./App";
 
@@ -44,7 +44,7 @@ if (window.location.hash.startsWith("#liveToken=")) {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
         <PermissionProvider>
           <FeatureFlagProvider>
@@ -58,6 +58,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           </FeatureFlagProvider>
         </PermissionProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>
 );

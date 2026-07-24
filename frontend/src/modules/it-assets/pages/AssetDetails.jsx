@@ -313,28 +313,28 @@ const AssetDetails = () => {
                     Quick Actions
                   </Typography>
                   <Stack spacing={1}>
-                    <AppButton
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<AssignmentIndOutlinedIcon />}
-                      disabled={isAssigned(asset) || disposed || maintenanceUnfinished}
-                      onClick={() => openDialog("assign")}
-                      sx={{ justifyContent: "flex-start" }}
-                    >
-                      Assign Asset
-                    </AppButton>
-                     <AppButton
-                       fullWidth
-                       variant="outlined"
-                       startIcon={<KeyboardReturnOutlinedIcon />}
-                       disabled={!isAssigned(asset) || disposed || maintenanceUnfinished}
-                       onClick={() => openDialog("return")}
-                       sx={{ justifyContent: "flex-start" }}
-                     >
-                       Return Asset
-                     </AppButton>
-                    {canManageLifecycle && (
+{canManageLifecycle && (
                       <>
+                        <AppButton
+                          fullWidth
+                          variant="outlined"
+                          startIcon={<AssignmentIndOutlinedIcon />}
+                          disabled={isAssigned(asset) || disposed || maintenanceUnfinished}
+                          onClick={() => openDialog("assign")}
+                          sx={{ justifyContent: "flex-start" }}
+                        >
+                          Assign Asset
+                        </AppButton>
+                        <AppButton
+                          fullWidth
+                          variant="outlined"
+                          startIcon={<KeyboardReturnOutlinedIcon />}
+                          disabled={!isAssigned(asset) || disposed || maintenanceUnfinished}
+                          onClick={() => openDialog("return")}
+                          sx={{ justifyContent: "flex-start" }}
+                        >
+                          Return Asset
+                        </AppButton>
                         <AppButton
                           fullWidth
                           variant="outlined"

@@ -16,7 +16,7 @@ export default function Maintenance() {
   }, [load]);
   const finish = async (maintenanceLogId) => {
     try {
-      setLoading(true); setError("");
+      setError("");
       await completeItAssetMaintenanceService(maintenanceLogId);
       await load();
     } catch (err) {

@@ -58,7 +58,8 @@ const AssetTable = ({
         </Typography>
       </Box>
 
-      <Table>
+      <Box sx={{ overflowX: "auto" }}>
+      <Table size="small">
         <TableHead>
           <TableRow>
             <TableCell>Asset Tag</TableCell>
@@ -115,6 +116,7 @@ const AssetTable = ({
           ))}
         </TableBody>
       </Table>
+      </Box>
 
       <TablePagination
         component="div"

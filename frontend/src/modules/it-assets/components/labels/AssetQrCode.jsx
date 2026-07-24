@@ -33,12 +33,11 @@ const buildAssetDetailsUrl = (assetId) => {
   }
 
   if (typeof window === "undefined") {
-    return `/it-assets/${normalizedAssetId}`;
+    return `/#/it-assets/${normalizedAssetId}`;
   }
 
-  return `${window.location.origin}/it-assets/${encodeURIComponent(
-    normalizedAssetId
-  )}`;
+  const baseUrl = import.meta.env.VITE_APP_BASE_URL || "";
+  return `${window.location.origin}${baseUrl}/#/it-assets/${encodeURIComponent(normalizedAssetId)}`;
 };
 
 /**

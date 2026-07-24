@@ -97,13 +97,14 @@ export default function AppDataTable({
   // ==========================================
 
   return (
-    <AppCard noPadding>
+    <AppCard noPadding sx={{ overflowX: "auto" }}>
       <TableContainer
         sx={{
           maxHeight: stickyHeader ? maxHeight : "unset",
+          minWidth: 600,
         }}
       >
-        <Table stickyHeader={stickyHeader}>
+        <Table stickyHeader={stickyHeader} size="small">
           <TableHead>
             <TableRow>
               {columns.map((column) => (
@@ -112,6 +113,7 @@ export default function AppDataTable({
                   sx={{
                     fontWeight: 900,
                     whiteSpace: "nowrap",
+                    fontSize: "0.8125rem",
                   }}
                   width={column.width}
                   align={column.align}
@@ -134,6 +136,10 @@ export default function AppDataTable({
                     <TableCell
                       key={column.field}
                       align={column.align}
+                      sx={{
+                        fontSize: "0.8125rem",
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       {column.render
                         ? column.render(row)
@@ -156,6 +162,18 @@ export default function AppDataTable({
           onPageChange={onPageChange}
           onRowsPerPageChange={onRowsPerPageChange}
           rowsPerPageOptions={[10, 25, 50, 100]}
+          sx={{
+            fontSize: "0.8125rem",
+            "& .MuiTablePagination-selectLabel": {
+              fontSize: "0.8125rem",
+            },
+            "& .MuiTablePagination-displayedRows": {
+              fontSize: "0.8125rem",
+            },
+            "& .MuiTablePagination-actions button": {
+              fontSize: "0.8125rem",
+            },
+          }}
         />
       )}
     </AppCard>

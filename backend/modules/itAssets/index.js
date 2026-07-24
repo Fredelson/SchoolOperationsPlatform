@@ -22,6 +22,7 @@ const assetDashboardRoutes = require("./dashboard/routes/assetDashboardRoutes");
 const assetExplorerRoutes = require("./assetExplorer/routes/assetExplorerRoutes");
 const assetImportRoutes = require("./import/routes/itAssetImportRoutes");
 const assetAuditRoutes = require("./audit/routes/assetAuditRoutes");
+const assetTagBrandingRoutes = require("./assetTagBranding/routes/assetTagBrandingRoutes");
 
 // Every IT Asset endpoint requires an authenticated platform session.
 // Workflow-specific routes add their existing action authorization on top.
@@ -52,6 +53,7 @@ router.use("/import", assetImportRoutes);
 router.use("/lookups", itAssetLookupRoutes);
 router.use("/assignments", assetAssignmentRoutes);
 router.use("/assignments", assetAssignmentHistoryRoutes);
+router.use("/asset-tag-branding", assetTagBrandingRoutes);
 router.use("/", itAssetRoutes);
 
 module.exports = router;

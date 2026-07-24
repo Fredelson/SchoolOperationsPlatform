@@ -59,9 +59,9 @@ export default function AssetPrinterTable({
     pageIds.every((assetId) => selectedIds.includes(assetId));
 
   return (
-    <AppCard noPadding>
+    <AppCard noPadding sx={{ overflowX: "auto" }}>
       <TableContainer>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell padding="checkbox">
