@@ -13,7 +13,14 @@
 import { Card, CardContent, Typography, Box } from "@mui/material";
 import { dashboardColors } from "../../theme/dashboardColors";
 
-export default function DashboardCard({ title, subtitle, action, children }) {
+export default function DashboardCard({
+  title,
+  subtitle,
+  action,
+  children,
+  sx = {},
+  contentSx = {},
+}) {
   return (
     <Card
       sx={{
@@ -21,9 +28,16 @@ export default function DashboardCard({ title, subtitle, action, children }) {
         border: `1px solid ${dashboardColors.border}`,
         background: `linear-gradient(180deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
         boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
+        ...sx,
       }}
     >
-      <CardContent sx={{ p: 2.5 }}>
+      <CardContent
+        sx={{
+          p: 2.5,
+          "&:last-child": { pb: 2.5 },
+          ...contentSx,
+        }}
+      >
         {/* Card Header */}
         <Box
           sx={{

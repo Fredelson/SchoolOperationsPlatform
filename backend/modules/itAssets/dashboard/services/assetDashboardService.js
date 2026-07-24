@@ -79,6 +79,7 @@ async function getDashboard(filters = {}) {
 
     charts: {
       assetsByCategory: assetsByCategory.map((item) => ({
+        id: item.ITAssetCategoryId || "uncategorized",
         name: item.CategoryName || "Uncategorized",
         value: item.Total || 0,
       })),

@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  Collapse,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
+import PageHeader from "../../../components/common/PageHeader";
+import KpiGrid from "../../../components/common/KpiGrid";
 import usePageTitle from "../../../platform/hooks/usePageTitle";
 import { useAuth } from "../../../context/AuthContext";
 import {
@@ -14,7 +26,11 @@ import {
 } from "../../../platform/ui";
 import { getItAssetLookupsService } from "../services/itAssetService";
 import { useItAssetDashboard } from "../hooks/useItAssetDashboard";
-import { buildItAssetDashboardCards } from "../cards/dashboardCards";
+import {
+  buildItAssetDashboardCards,
+  buildItAssetDashboardStats,
+} from "../cards/dashboardCards";
+import AssetDashboardOperationsRow from "../components/AssetDashboardOperationsRow";
 import DashboardCharts from "../components/DashboardCharts";
 import DashboardTables from "../components/DashboardTables";
 
@@ -50,7 +66,7 @@ const filteredAssetColumns = [
 ];
 
 const ItAssetDashboard = ({ reportMode = false }) => {
-  usePageTitle(reportMode ? "IT Asset Reports" : "IT Asset Dashboard");
+  usePageTitle(reportMode ? "IT Asset Reports" : "Asset Management");
   const { user } = useAuth();
   const navigate = useNavigate();
   const reportRef = useRef(null);
@@ -137,7 +153,87 @@ const ItAssetDashboard = ({ reportMode = false }) => {
     }
   };
 
-  if (loading && !dashboard) return <AppLoadingState title="Loading IT Asset Dashboard..." />;
+  if (!reportMode) {
+    const dashboardData = dashboard || {};
+    const stats = buildItAssetDashboardStats(dashboardData.kpis).map((stat) => ({
+      ...stat,
+      onClick: stat.path ? () => navigate(stat.path) : undefined,
+    }));
+
+    return (
+      <Box
+        sx={{
+          p: { xs: 1.5, md: 2 },
+          bgcolor: "#f8fafc",
+          minHeight: "100vh",
+        }}
+      >
+        <PageHeader
+          title="Asset Management"
+          subtitle={
+            loading && !dashboard
+              ? "Loading dashboard data..."
+              : "Manage assets, assignments, maintenance, transfers, and operational alerts"
+          }
+          action={
+            <Tooltip title="Refresh dashboard">
+              <span>
+                <IconButton
+                  aria-label="Refresh asset dashboard"
+                  onClick={() => refetch({})}
+                  disabled={loading}
+                  sx={{
+                    width: 42,
+                    height: 42,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                    bgcolor: "background.paper",
+                  }}
+                >
+                  {loading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <RefreshOutlinedIcon />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+          }
+        />
+
+        {error && (
+          <Alert
+            severity="error"
+            action={
+              <AppButton
+                size="small"
+                variant="outlined"
+                onClick={() => refetch({})}
+              >
+                Retry
+              </AppButton>
+            }
+            sx={{ mb: 2 }}
+          >
+            {error}
+          </Alert>
+        )}
+
+        {loading && !dashboard ? (
+          <AppLoadingState title="Loading Asset Management..." />
+        ) : (
+          <>
+            <KpiGrid stats={stats} />
+            <DashboardCharts charts={dashboardData.charts} />
+            <AssetDashboardOperationsRow dashboard={dashboardData} />
+          </>
+        )}
+      </Box>
+    );
+  }
+
+  if (loading && !dashboard) return <AppLoadingState title="Loading IT Asset Reports..." />;
   if (error && !dashboard) return <AppEmptyState title="Unable to load dashboard" message={error} actionLabel="Retry" onAction={() => refetch(activeFilters)} />;
 
   const cards = buildItAssetDashboardCards(dashboard?.kpis).map((card) => ({

@@ -44,6 +44,7 @@ export default function StatCard({
   subtitle,
   icon,
   color = dashboardColors.success,
+  onClick,
 }) {
   const isNegative = String(change || status || "").startsWith("-");
 
@@ -55,6 +56,16 @@ export default function StatCard({
 
   return (
     <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") onClick();
+            }
+          : undefined
+      }
       sx={{
         height: 112,
         minWidth: 0,
@@ -63,6 +74,18 @@ export default function StatCard({
         background: dashboardColors.cardBackground,
         boxShadow: `0 10px 26px ${dashboardColors.shadow}`,
         overflow: "hidden",
+        cursor: onClick ? "pointer" : "default",
+        transition: "transform 160ms ease, box-shadow 160ms ease",
+        ...(onClick && {
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: `0 14px 30px ${dashboardColors.shadowLg}`,
+          },
+          "&:focus-visible": {
+            outline: `2px solid ${color}`,
+            outlineOffset: 2,
+          },
+        }),
       }}
     >
       <CardContent

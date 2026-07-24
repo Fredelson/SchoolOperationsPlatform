@@ -28,6 +28,8 @@ export default function PlatformSidebarSection({
   const sidebarText = theme.palette.primary.contrastText;
   const accent = platform.accent || theme.palette.success.main;
 
+  if (title === "Modules") return null;
+
   return (
     <Box
       component={onToggle ? "button" : "div"}

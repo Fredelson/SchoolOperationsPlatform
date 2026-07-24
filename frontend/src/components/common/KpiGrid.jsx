@@ -39,8 +39,13 @@ export default function KPIGrid({ stats = [], icons = [] }) {
           key={stat.title}
           title={stat.title}
           value={stat.value}
-          icon={icons[index]}
+          change={stat.change}
+          changeLabel={stat.changeLabel}
+          status={stat.status}
+          subtitle={stat.subtitle}
+          icon={icons[index] || stat.icon}
           color={stat.color}
+          onClick={stat.onClick}
         />
       ))}
     </Box>

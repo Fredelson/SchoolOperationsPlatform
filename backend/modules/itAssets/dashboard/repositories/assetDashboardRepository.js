@@ -300,14 +300,15 @@ async function getAssetsByCategory(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
     SELECT
+      c.ITAssetCategoryId,
       c.CategoryName,
       COUNT(*) AS Total
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetCategories c
       ON a.ITAssetCategoryId = c.ITAssetCategoryId
     WHERE a.IsDeleted = 0 ${filter.clause}
-    GROUP BY c.CategoryName
-    ORDER BY Total DESC;
+    GROUP BY c.ITAssetCategoryId, c.CategoryName
+    ORDER BY Total DESC, c.CategoryName;
   `, filter.parameters);
 
   return rows(result);

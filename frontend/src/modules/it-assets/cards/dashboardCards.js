@@ -7,7 +7,9 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
-import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+
+import { dashboardColors } from "../../../theme/dashboardColors";
 
 const percent = (value, total) =>
   total > 0 ? `${((Number(value || 0) / total) * 100).toFixed(1)}% of assets` : "No assets recorded";
@@ -59,11 +61,12 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     md: 3, lg: 3, xl: 1.5,
   },
   {
-    title: "Pending Transfers",
-    value: kpis.pendingTransfers || 0,
-    helperText: "Waiting for completion",
-    icon: createElement(SwapHorizOutlinedIcon),
-    color: "info.main",
+    title: "Disposed Items",
+    value: kpis.disposedAssets || 0,
+    helperText: percent(kpis.disposedAssets, kpis.totalAssets),
+    icon: createElement(DeleteOutlineOutlinedIcon),
+    color: "error.main",
+    path: "/it-assets/disposals",
     md: 3, lg: 3, xl: 1.5,
   },
   {
@@ -92,5 +95,56 @@ export const buildItAssetDashboardCards = (kpis = {}) => [
     color: "error.main",
     path: "/it-assets/assets",
     md: 3, lg: 3, xl: 1.5,
+  },
+];
+
+export const buildItAssetDashboardStats = (kpis = {}) => [
+  {
+    title: "Total Assets",
+    value: Number(kpis.totalAssets || 0).toLocaleString(),
+    subtitle: "registered assets",
+    icon: DevicesOutlinedIcon,
+    color: dashboardColors.assets,
+    path: "/it-assets/assets",
+  },
+  {
+    title: "Assigned",
+    value: Number(kpis.assignedAssets || kpis.assigned || 0).toLocaleString(),
+    subtitle: percent(kpis.assignedAssets, kpis.totalAssets),
+    icon: AssignmentIndOutlinedIcon,
+    color: dashboardColors.info,
+    path: "/it-assets/assignments",
+  },
+  {
+    title: "Available",
+    value: Number(kpis.availableAssets || 0).toLocaleString(),
+    subtitle: "ready for assignment",
+    icon: CheckCircleOutlineOutlinedIcon,
+    color: dashboardColors.success,
+    path: "/it-assets/assets",
+  },
+  {
+    title: "Maintenance",
+    value: Number(kpis.underMaintenanceAssets || 0).toLocaleString(),
+    subtitle: "currently unavailable",
+    icon: BuildOutlinedIcon,
+    color: dashboardColors.warning,
+    path: "/it-assets/maintenance",
+  },
+  {
+    title: "Open Issues",
+    value: Number(kpis.openIssues || kpis.itemsRequiringAttention || 0).toLocaleString(),
+    subtitle: "requiring attention",
+    icon: WarningAmberOutlinedIcon,
+    color: dashboardColors.danger,
+    path: "/it-assets/issues",
+  },
+  {
+    title: "Disposed Items",
+    value: Number(kpis.disposedAssets || 0).toLocaleString(),
+    subtitle: percent(kpis.disposedAssets, kpis.totalAssets),
+    icon: DeleteOutlineOutlinedIcon,
+    color: dashboardColors.danger,
+    path: "/it-assets/disposals",
   },
 ];
