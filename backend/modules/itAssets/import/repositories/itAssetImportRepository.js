@@ -702,14 +702,17 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
         AcquiredChangedDate: row.PurchaseDate || null,
       };
 
+      let assetId;
+
       if (isUpdate) {
         await updateAssetFromImport({
           transaction,
           assetId: existingAssetId,
           data: assetData,
         });
+        assetId = existingAssetId;
       } else {
-        await new sql.Request(transaction)
+        const assetResult = await new sql.Request(transaction)
           .input("AssetTag", sql.NVarChar(200), row.AssetTag)
           .input("ITAssetCategoryId", sql.Int, assetData.ITAssetCategoryId)
           .input("ITAssetModelId", sql.Int, assetData.ITAssetModelId)
@@ -791,9 +794,8 @@ const commitValidStagingRows = async ({ importBatchId, importedBy }) => {
               @SchoolId
             );
           `);
+        assetId = assetResult.recordset[0].AssetId;
       }
-
-      const assetId = isUpdate ? existingAssetId : assetResult.recordset[0].AssetId;
 
       if (row.Remarks) {
         await new sql.Request(transaction)
