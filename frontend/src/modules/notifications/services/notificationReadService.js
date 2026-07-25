@@ -5,11 +5,11 @@ import {
 
 export const getNotificationReadAtService = async () => {
   const response = await getNotificationReadAtApi();
-  const readAt = response?.data?.data?.readAt || null;
+  const readAt = response?.data?.readAt || null;
   return { readAt };
 };
 
 export const markAllNotificationsAsReadService = async () => {
   const response = await markAllNotificationsAsReadApi();
-  return response?.data?.data || { success: true };
+  return response?.data || null;
 };

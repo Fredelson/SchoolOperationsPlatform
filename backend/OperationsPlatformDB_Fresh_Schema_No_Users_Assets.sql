@@ -3150,7 +3150,35 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[UserNotificationPreferences]    Script Date: 10/07/2026 12:54:05 PM ******/
+/****** Object:  Table [dbo].[UserNotificationReads]    Script Date: 24/07/2026 ******/
+
+SET ANSI_NULLS ON
+
+GO
+
+SET QUOTED_IDENTIFIER ON
+
+GO
+
+CREATE TABLE [dbo].[UserNotificationReads](
+
+	[UserId] [int] NOT NULL,
+
+	[ReadAt] [datetime] NOT NULL CONSTRAINT [DF_UserNotificationReads_ReadAt] DEFAULT (getdate()),
+
+ CONSTRAINT [PK_UserNotificationReads] PRIMARY KEY CLUSTERED
+
+(
+
+	[UserId] ASC
+
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+
+) ON [PRIMARY]
+
+GO
+
+/****** Object:  Table [dbo].[UserNotificationPreferences]    Script Date: 10/07/2026 12:54:05 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -7869,7 +7897,19 @@ REFERENCES [dbo].[Workspaces] ([WorkspaceId])
 GO
 ALTER TABLE [dbo].[UserMenuPreferences] CHECK CONSTRAINT [FK_UserMenuPreferences_Workspaces]
 GO
-ALTER TABLE [dbo].[UserNotificationPreferences]  WITH CHECK ADD  CONSTRAINT [FK_UserNotificationPreferences_Channels] FOREIGN KEY([NotificationChannelId])
+ALTER TABLE [dbo].[UserNotificationReads]  WITH CHECK ADD  CONSTRAINT [FK_UserNotificationReads_Users] FOREIGN KEY([UserId])
+
+REFERENCES [dbo].[Users] ([UserId])
+
+ON DELETE CASCADE
+
+GO
+
+ALTER TABLE [dbo].[UserNotificationReads] CHECK CONSTRAINT [FK_UserNotificationReads_Users]
+
+GO
+
+ALTER TABLE [dbo].[UserNotificationPreferences]  WITH CHECK ADD  CONSTRAINT [FK_UserNotificationPreferences_Channels] FOREIGN KEY([NotificationChannelId])
 REFERENCES [dbo].[NotificationChannels] ([NotificationChannelId])
 GO
 ALTER TABLE [dbo].[UserNotificationPreferences] CHECK CONSTRAINT [FK_UserNotificationPreferences_Channels]

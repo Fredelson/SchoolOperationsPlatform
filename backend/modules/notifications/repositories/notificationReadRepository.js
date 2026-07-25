@@ -3,40 +3,35 @@
    ========================================================= */
 
 const sql = require("mssql");
-const { poolPromise } = require("../../../config/db");
 const { executeQuery } = require("../../../shared/database/executeQuery");
 
 const getUserReadAt = async (userId) => {
   if (!userId) return null;
-  try {
-    const result = await executeQuery(
-      `SELECT ReadAt FROM dbo.UserNotificationReads WHERE UserId = @UserId;`,
-      [{ name: "UserId", type: sql.Int, value: Number(userId) }]
-    );
-    return result.recordset[0]?.ReadAt || null;
-  } catch (error) {
-    return null;
-  }
+  const result = await executeQuery(
+    `SELECT ReadAt FROM dbo.UserNotificationReads WHERE UserId = @UserId;`,
+    [{ name: "UserId", type: sql.Int, value: Number(userId) }]
+  );
+  return result.recordset[0]?.ReadAt || null;
 };
 
 const upsertUserReadAt = async (userId) => {
-  if (!userId) return;
-  try {
-    await executeQuery(
-      `
-        MERGE dbo.UserNotificationReads AS target
-        USING (SELECT @UserId AS UserId) AS source
-        ON target.UserId = source.UserId
-        WHEN MATCHED THEN
-          UPDATE SET ReadAt = GETDATE()
-        WHEN NOT MATCHED THEN
-          INSERT (UserId, ReadAt) VALUES (@UserId, GETDATE());
-      `,
-      [{ name: "UserId", type: sql.Int, value: Number(userId) }]
-    );
-  } catch (error) {
-    // Table may not exist yet; mark-as-read is best-effort.
-  }
+  if (!userId) return null;
+  const result = await executeQuery(
+    `
+      DECLARE @ReadAt datetime = GETDATE();
+
+      MERGE dbo.UserNotificationReads WITH (HOLDLOCK) AS target
+      USING (SELECT @UserId AS UserId) AS source
+      ON target.UserId = source.UserId
+      WHEN MATCHED THEN
+        UPDATE SET ReadAt = @ReadAt
+      WHEN NOT MATCHED THEN
+        INSERT (UserId, ReadAt) VALUES (@UserId, @ReadAt)
+      OUTPUT INSERTED.ReadAt;
+    `,
+    [{ name: "UserId", type: sql.Int, value: Number(userId) }]
+  );
+  return result.recordset[0]?.ReadAt || null;
 };
 
 module.exports = {

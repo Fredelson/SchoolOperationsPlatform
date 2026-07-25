@@ -385,7 +385,7 @@ function buildSidebarSections(menus) {
 // - Empty groups are ignored.
 // ============================================
 
-async function getMySidebar(user) {
+async function resolveNavigationAccess(user) {
   const userId =
     user?.UserId ||
     user?.userId ||
@@ -403,7 +403,31 @@ async function getMySidebar(user) {
     bypassPermissions
   );
 
+  return { menus, permissionProfile };
+}
+
+async function getMySidebar(user) {
+  const { menus } = await resolveNavigationAccess(user);
   return buildSidebarSections(menus);
+}
+
+async function getMyModuleAccess(user) {
+  const { menus, permissionProfile } = await resolveNavigationAccess(user);
+  const roleKey = permissionProfile.user?.roleKey || "";
+  const normalizedRoleKey = normalizeToken(roleKey);
+  const moduleKeys = Array.from(
+    new Set(
+      menus
+        .filter((menu) => menu.ModuleKey && menu.ModuleIsEnabled !== false)
+        .map((menu) => menu.ModuleKey)
+    )
+  );
+
+  return {
+    roleKey,
+    isSuperAdmin: normalizedRoleKey === "superadmin",
+    moduleKeys,
+  };
 }
 
 async function getMyRuntimeControls(user) {
@@ -431,5 +455,6 @@ async function getMyRuntimeControls(user) {
 
 module.exports = {
   getMySidebar,
+  getMyModuleAccess,
   getMyRuntimeControls,
 };

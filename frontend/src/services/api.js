@@ -6,6 +6,10 @@
 
 import axios from "axios";
 
+export const API_MUTATION_EVENT = "operations-platform:api-mutation";
+
+const WRITE_METHODS = new Set(["post", "put", "patch", "delete"]);
+
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -32,7 +36,20 @@ api.interceptors.request.use(
 
 // Handle expired / invalid token
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = response.config?.method?.toLowerCase();
+    if (WRITE_METHODS.has(method)) {
+      window.dispatchEvent(
+        new CustomEvent(API_MUTATION_EVENT, {
+          detail: {
+            method,
+            url: response.config?.url || "",
+          },
+        })
+      );
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
