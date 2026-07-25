@@ -174,6 +174,7 @@ const RankedDistribution = ({ data, total }) => {
 
   return (
     <Box
+      className="dashboard-ranked-distribution"
       sx={{
         maxHeight: 360,
         overflowY: "auto",

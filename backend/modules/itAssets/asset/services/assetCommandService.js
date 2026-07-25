@@ -10,26 +10,6 @@ const assetQueryService = require("./assetQueryService");
 const assetValidationService = require("./assetValidationService");
 const assetAuditService = require("../../shared/services/assetAuditService");
 const { normalizeAssetTag } = require("../../shared/helpers/assetTagHelper");
-const { poolPromise } = require("../../../../shared/database");
-const sql = require("mssql");
-
-const logActivity = async ({ user, activityType, activityTitle, activityDescription, entityId }) => {
-  const pool = await poolPromise;
-  await new sql.Request(pool)
-    .input("UserId", sql.Int, user?.UserId || user?.userId || user?.id || null)
-    .input("ModuleKey", sql.NVarChar(200), "IT_ASSETS")
-    .input("EntityType", sql.NVarChar(200), "ITAsset")
-    .input("EntityId", sql.NVarChar(200), String(entityId))
-    .input("ActivityType", sql.NVarChar(200), activityType)
-    .input("ActivityTitle", sql.NVarChar(510), activityTitle)
-    .input("ActivityDescription", sql.NVarChar(sql.MAX), activityDescription)
-    .query(`
-      INSERT INTO dbo.ActivityTimeline
-      (UserId, ModuleKey, EntityType, EntityId, ActivityType, ActivityTitle, ActivityDescription, CreatedAt)
-      VALUES
-      (@UserId, @ModuleKey, @EntityType, @EntityId, @ActivityType, @ActivityTitle, @ActivityDescription, GETDATE());
-    `);
-};
 
 const hasAssignmentTarget = (payload = {}) =>
   Boolean(
@@ -121,14 +101,6 @@ const createAsset = async (payload, currentUser, ipAddress = null) => {
     ipAddress,
   });
 
-  await logActivity({
-    user: currentUser,
-    activityType: "ASSET_CREATED",
-    activityTitle: "Asset Created",
-    activityDescription: `Asset ${createdAsset.AssetTag} was created.`,
-    entityId: createdAsset.AssetId,
-  });
-
   return createdAsset;
 };
 
@@ -165,14 +137,6 @@ const updateAsset = async (assetId, payload, currentUser, ipAddress = null) => {
     ipAddress,
   });
 
-  await logActivity({
-    user: currentUser,
-    activityType: "ASSET_UPDATED",
-    activityTitle: "Asset Updated",
-    activityDescription: `Asset ${updatedAsset.AssetTag} was updated.`,
-    entityId: updatedAsset.AssetId,
-  });
-
   return updatedAsset;
 };
 
@@ -191,14 +155,6 @@ const softDeleteAsset = async (assetId, currentUser, ipAddress = null) => {
     asset: existingAsset,
     user: currentUser,
     ipAddress,
-  });
-
-  await logActivity({
-    user: currentUser,
-    activityType: "ASSET_DELETED",
-    activityTitle: "Asset Deleted",
-    activityDescription: `Asset ${existingAsset.AssetTag} was deleted.`,
-    entityId: existingAsset.AssetId,
   });
 
   return deletedAsset;

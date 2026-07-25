@@ -15,6 +15,7 @@ import Disposals from "../pages/Disposals";
 import Reports from "../pages/Reports";
 import OperationsHistory from "../pages/OperationsHistory";
 import AssetDetails from "../pages/AssetDetails";
+import NewAsset from "../pages/NewAsset";
 
 const itOperationsLayoutRoutes = [
   {
@@ -35,6 +36,11 @@ const itOperationsLayoutRoutes = [
       {
         path: "assets",
         element: <AssetExplorer />,
+      },
+
+      {
+        path: "new",
+        element: <NewAsset />,
       },
 
       {

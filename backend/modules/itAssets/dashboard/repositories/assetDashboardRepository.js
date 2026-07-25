@@ -39,6 +39,72 @@ const buildAssetFilter = (filters = {}, alias = "a") => ({
     ))
     AND (@DateFrom IS NULL OR ${alias}.CreatedAt >= @DateFrom)
     AND (@DateTo IS NULL OR ${alias}.CreatedAt < DATEADD(DAY, 1, @DateTo))
+    AND (
+      @Search IS NULL
+      OR ${alias}.AssetTag LIKE @Search
+      OR ISNULL(${alias}.ModelDescription, '') LIKE @Search
+      OR ISNULL(${alias}.SerialIpMac, '') LIKE @Search
+      OR ISNULL(${alias}.CurrentAssignedName, '') LIKE @Search
+      OR ISNULL(${alias}.CurrentAssignedEmployeeCode, '') LIKE @Search
+      OR ISNULL(${alias}.CurrentAssignedEmail, '') LIKE @Search
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.ITAssetModels searchModel
+        LEFT JOIN dbo.ITAssetBrands searchBrand
+          ON searchModel.ITAssetBrandId = searchBrand.ITAssetBrandId
+        WHERE searchModel.ITAssetModelId = ${alias}.ITAssetModelId
+          AND (
+            searchModel.ModelName LIKE @Search
+            OR ISNULL(searchBrand.BrandName, '') LIKE @Search
+          )
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.ITAssetCategories searchCategory
+        WHERE searchCategory.ITAssetCategoryId = ${alias}.ITAssetCategoryId
+          AND searchCategory.CategoryName LIKE @Search
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.Departments searchDepartment
+        WHERE searchDepartment.DepartmentId = ${alias}.CurrentDepartmentId
+          AND searchDepartment.DepartmentName LIKE @Search
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.Locations searchLocation
+        WHERE searchLocation.LocationId = ${alias}.CurrentLocationId
+          AND searchLocation.LocationName LIKE @Search
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.Rooms searchRoom
+        WHERE searchRoom.RoomId = ${alias}.CurrentRoomId
+          AND searchRoom.RoomName LIKE @Search
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.Users searchUser
+        WHERE searchUser.UserId = ${alias}.CurrentAssignedUserId
+          AND (
+            searchUser.FullName LIKE @Search
+            OR ISNULL(searchUser.EmployeeId, '') LIKE @Search
+            OR ISNULL(searchUser.SchoolEmail, '') LIKE @Search
+          )
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.ITAssetStatuses searchStatus
+        WHERE searchStatus.ITAssetStatusId = ${alias}.ITAssetStatusId
+          AND searchStatus.StatusName LIKE @Search
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM dbo.ITAssetConditions searchCondition
+        WHERE searchCondition.ITAssetConditionId = ${alias}.ITAssetConditionId
+          AND searchCondition.ConditionName LIKE @Search
+      )
+    )
   `,
   parameters: [
     ["CategoryId", filters.categoryId], ["BrandId", filters.brandId],
@@ -50,6 +116,13 @@ const buildAssetFilter = (filters = {}, alias = "a") => ({
     .concat([
       { name: "DateFrom", type: sql.Date, value: toDateOrNull(filters.dateFrom) },
       { name: "DateTo", type: sql.Date, value: toDateOrNull(filters.dateTo) },
+      {
+        name: "Search",
+        type: sql.NVarChar(200),
+        value: String(filters.search || "").trim()
+          ? `%${String(filters.search).trim()}%`
+          : null,
+      },
     ]),
 });
 
@@ -339,9 +412,18 @@ async function getAssetsByStatus(filters) {
   const result = await executeQuery(`
     SELECT
       CASE
-        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
-          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED')
+        WHEN UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED'
           OR UPPER(ISNULL(con.ConditionKey, '')) = 'BEYONDREPAIR' THEN N'Disposed'
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN (
+          'UNDERREPAIR',
+          'UNDERMAINTENANCE',
+          'MAINTENANCE',
+          'BORROWED',
+          'READYFORDISPOSAL',
+          'LOST',
+          'STOLEN',
+          'ARCHIVED'
+        ) THEN ISNULL(s.StatusName, N'Unknown')
         WHEN a.CurrentAssignedUserId IS NOT NULL
           OR a.CurrentAssignedName IS NOT NULL
           OR a.CurrentAssignedEmployeeCode IS NOT NULL
@@ -360,9 +442,18 @@ async function getAssetsByStatus(filters) {
     WHERE a.IsDeleted = 0 ${filter.clause}
     GROUP BY
       CASE
-        WHEN UPPER(ISNULL(s.StatusKey, '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE', 'BORROWED',
-          'READYFORDISPOSAL', 'DISPOSED', 'LOST', 'STOLEN', 'ARCHIVED')
+        WHEN UPPER(ISNULL(s.StatusKey, '')) = 'DISPOSED'
           OR UPPER(ISNULL(con.ConditionKey, '')) = 'BEYONDREPAIR' THEN N'Disposed'
+        WHEN UPPER(ISNULL(s.StatusKey, '')) IN (
+          'UNDERREPAIR',
+          'UNDERMAINTENANCE',
+          'MAINTENANCE',
+          'BORROWED',
+          'READYFORDISPOSAL',
+          'LOST',
+          'STOLEN',
+          'ARCHIVED'
+        ) THEN ISNULL(s.StatusName, N'Unknown')
         WHEN a.CurrentAssignedUserId IS NOT NULL
           OR a.CurrentAssignedName IS NOT NULL
           OR a.CurrentAssignedEmployeeCode IS NOT NULL
@@ -473,9 +564,43 @@ async function getFilteredAssets(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
     SELECT a.AssetId, a.AssetTag, category.CategoryName, brand.BrandName,
-      model.ModelName, status.StatusName, condition.ConditionName,
+      model.ModelName,
+      CASE
+        WHEN UPPER(ISNULL(status.StatusKey, '')) = 'DISPOSED'
+          OR UPPER(ISNULL(condition.ConditionKey, '')) = 'BEYONDREPAIR' THEN N'Disposed'
+        WHEN UPPER(ISNULL(status.StatusKey, '')) IN (
+          'UNDERREPAIR',
+          'UNDERMAINTENANCE',
+          'MAINTENANCE',
+          'BORROWED',
+          'READYFORDISPOSAL',
+          'LOST',
+          'STOLEN',
+          'ARCHIVED'
+        ) THEN ISNULL(status.StatusName, N'Unknown')
+        WHEN a.CurrentAssignedUserId IS NOT NULL
+          OR a.CurrentAssignedName IS NOT NULL
+          OR a.CurrentAssignedEmployeeCode IS NOT NULL
+          OR a.CurrentAssignedEmail IS NOT NULL
+          OR a.CurrentRoomId IS NOT NULL
+          OR a.CurrentDepartmentId IS NOT NULL
+          OR a.CurrentLocationId IS NOT NULL THEN N'Assigned'
+        ELSE N'Available'
+      END AS StatusName,
+      CASE
+        WHEN UPPER(ISNULL(status.StatusKey, '')) = 'DISPOSED'
+          OR UPPER(ISNULL(condition.ConditionKey, '')) = 'BEYONDREPAIR'
+          THEN N'Beyond Repair / Disposed'
+        ELSE condition.ConditionName
+      END AS ConditionName,
       department.DepartmentName, location.LocationName, room.RoomName,
-      a.CurrentAssignedName, a.CreatedAt
+      COALESCE(
+        assignedUser.FullName,
+        NULLIF(LTRIM(RTRIM(a.CurrentAssignedName)), ''),
+        NULLIF(LTRIM(RTRIM(a.CurrentAssignedEmployeeCode)), '')
+      ) AS CurrentAssignedName,
+      a.SerialIpMac,
+      a.CreatedAt
     FROM dbo.ITAssets a
     LEFT JOIN dbo.ITAssetCategories category ON a.ITAssetCategoryId = category.ITAssetCategoryId
     LEFT JOIN dbo.ITAssetModels model ON a.ITAssetModelId = model.ITAssetModelId
@@ -485,6 +610,7 @@ async function getFilteredAssets(filters) {
     LEFT JOIN dbo.Departments department ON a.CurrentDepartmentId = department.DepartmentId
     LEFT JOIN dbo.Locations location ON a.CurrentLocationId = location.LocationId
     LEFT JOIN dbo.Rooms room ON a.CurrentRoomId = room.RoomId
+    LEFT JOIN dbo.Users assignedUser ON a.CurrentAssignedUserId = assignedUser.UserId
     WHERE a.IsDeleted = 0 ${filter.clause}
     ORDER BY a.AssetTag;
   `, filter.parameters);

@@ -22,6 +22,14 @@ export const getItAssetByIdApi = async (assetId) => {
 };
 
 /**
+ * Create one IT asset.
+ */
+export const createItAssetApi = async (payload) => {
+  const response = await api.post("/it-assets", payload);
+  return response.data;
+};
+
+/**
  * Get IT asset timeline by AssetId.
  */
 export const getItAssetTimelineApi = async (assetId) => {

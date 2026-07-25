@@ -8,6 +8,7 @@ import api from "../../../services/api";
 import {
   getItAssetsApi,
   getItAssetByIdApi,
+  createItAssetApi,
   getItAssetTimelineApi,
   getItAssetAuditApi,
   assignItAssetApi,
@@ -58,6 +59,14 @@ export const getItAssetsService = async (params = {}) => {
  */
 export const getItAssetByIdService = async (assetId) => {
   const response = await getItAssetByIdApi(assetId);
+  return response?.data || null;
+};
+
+/**
+ * Create one IT asset.
+ */
+export const createItAssetService = async (payload) => {
+  const response = await createItAssetApi(payload);
   return response?.data || null;
 };
 

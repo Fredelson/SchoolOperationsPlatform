@@ -14,6 +14,10 @@ import { dashboardColors } from "../../../theme/dashboardColors";
 const percent = (value, total) =>
   total > 0 ? `${((Number(value || 0) / total) * 100).toFixed(1)}% of assets` : "No assets recorded";
 
+const maintenanceAssetCount = (kpis = {}) =>
+  Number(kpis.underMaintenanceAssets || 0) +
+  Number(kpis.underRepairAssets || 0);
+
 export const buildItAssetDashboardCards = (kpis = {}) => [
   {
     title: "Total Assets",
@@ -125,8 +129,8 @@ export const buildItAssetDashboardStats = (kpis = {}) => [
   },
   {
     title: "Maintenance",
-    value: Number(kpis.underMaintenanceAssets || 0).toLocaleString(),
-    subtitle: "currently unavailable",
+    value: maintenanceAssetCount(kpis).toLocaleString(),
+    subtitle: "under maintenance / repair",
     icon: BuildOutlinedIcon,
     color: dashboardColors.warning,
     path: "/it-assets/maintenance",
