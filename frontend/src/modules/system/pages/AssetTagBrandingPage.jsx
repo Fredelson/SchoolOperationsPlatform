@@ -16,6 +16,8 @@ import {
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SettingsBackupRestoreOutlinedIcon from "@mui/icons-material/SettingsBackupRestoreOutlined";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 
 import {
   AppButton,
@@ -25,10 +27,13 @@ import {
   AppPageHeader,
 } from "../../../platform/ui";
 import { usePermissions } from "../../../context/PermissionContext";
+import buildFileUrl from "../../../platform/utils/buildFileUrl";
 
 import {
   getAssetTagBranding,
+  removeAssetTagTemplate,
   saveAssetTagBranding,
+  uploadAssetTagTemplate,
 } from "../../it-assets/services/assetTagBrandingService";
 import RoundedAssetLabel from "../../it-assets/components/labels/RoundedAssetLabel";
 import AssetLabel from "../../it-assets/components/labels/AssetLabel";
@@ -249,10 +254,12 @@ export default function AssetTagBrandingPage({ type = "rounded" }) {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [templateUploading, setTemplateUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const canManage = true;
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission(`asset_tag_branding.${type}.manage`);
 
   useEffect(() => {
     let active = true;
@@ -329,6 +336,53 @@ export default function AssetTagBrandingPage({ type = "rounded" }) {
     }
   };
 
+  const applyBrandingResult = (result) => {
+    setData(result);
+    setDraft(clone(result.settings));
+  };
+
+  const uploadTemplate = async (file) => {
+    if (!file || !canManage) return;
+
+    try {
+      setTemplateUploading(true);
+      setError("");
+      setMessage("");
+      const result = await uploadAssetTagTemplate(type, file);
+      applyBrandingResult(result);
+      setMessage("Rounded tag template uploaded and applied.");
+    } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Unable to upload the rounded tag template."
+      );
+    } finally {
+      setTemplateUploading(false);
+    }
+  };
+
+  const removeTemplate = async () => {
+    if (!canManage) return;
+
+    try {
+      setTemplateUploading(true);
+      setError("");
+      setMessage("");
+      const result = await removeAssetTagTemplate(type);
+      applyBrandingResult(result);
+      setMessage("Rounded tag template removed. The generated label is active again.");
+    } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Unable to remove the rounded tag template."
+      );
+    } finally {
+      setTemplateUploading(false);
+    }
+  };
+
   if (loading) {
     return <AppLoadingState title="Loading asset tag branding..." />;
   }
@@ -356,6 +410,8 @@ export default function AssetTagBrandingPage({ type = "rounded" }) {
         "assetQrInstruction",
       ]
     : ["contentLabel", "propertyLabel"];
+  const template = draft?.template || null;
+  const templateUrl = buildFileUrl(template?.filePath || "");
 
   return (
     <Box>
@@ -402,6 +458,90 @@ export default function AssetTagBrandingPage({ type = "rounded" }) {
                 </Grid>
               </Stack>
             </AppCard>
+
+            {isRounded && (
+              <AppCard>
+                <Stack spacing={2}>
+                  <SectionTitle helper="Upload the square artwork without a sample barcode, QR code, or asset number. The live asset data is placed over the template automatically.">
+                    Rounded Tag Template
+                  </SectionTitle>
+
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    alignItems={{ xs: "stretch", sm: "center" }}
+                  >
+                    <Box
+                      sx={{
+                        width: { xs: "100%", sm: 132 },
+                        maxWidth: 180,
+                        aspectRatio: "1 / 1",
+                        flexShrink: 0,
+                        overflow: "hidden",
+                        border: "1px dashed",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        bgcolor: "background.default",
+                      }}
+                    >
+                      {templateUrl ? (
+                        <Box
+                          component="img"
+                          src={templateUrl}
+                          alt="Rounded asset tag template"
+                          sx={{
+                            width: "100%",
+                            height: "100%",
+                            display: "block",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : null}
+                    </Box>
+
+                    <Stack spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography fontWeight={800}>
+                        {template?.fileName || "No template uploaded"}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        PNG, JPG, or WEBP. A 1:1 image gives the cleanest print result.
+                      </Typography>
+
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                        <AppButton
+                          component="label"
+                          variant="outlined"
+                          startIcon={<UploadFileOutlinedIcon />}
+                          disabled={!canManage || templateUploading}
+                        >
+                          {templateUploading ? "Uploading..." : "Upload Template"}
+                          <input
+                            hidden
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = "";
+                              uploadTemplate(file);
+                            }}
+                          />
+                        </AppButton>
+
+                        <AppButton
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteOutlinedIcon />}
+                          disabled={!canManage || templateUploading || !templateUrl}
+                          onClick={removeTemplate}
+                        >
+                          Use Generated Label
+                        </AppButton>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </AppCard>
+            )}
 
             <AppCard>
               <Stack spacing={2}>

@@ -5,6 +5,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import PermissionRoute from "./routes/PermissionRoute";
 
 import OrganizationBranding from "./modules/system/pages/OrganizationBranding";
+import AssetTagBrandingPage from "./modules/system/pages/AssetTagBrandingPage";
 import PlatformLayout from "./platform/layout/PlatformLayout";
 
 import {
@@ -34,7 +35,6 @@ const hodRoles = ["HOD", "SuperAdmin"];
 const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
 
 const libraryRoles = ["Librarian", "LibraryAdmin", "SuperAdmin"];
-const platformAdminRoles = ["SuperAdmin", "Super Admin", "super-admin", "PlatformAdmin"];
 const superAdminRoles = ["SuperAdmin", "Super Admin", "super-admin", "PlatformAdmin", "Platform Admin", "platform-admin"];
 
 const superAdminRoutePermissions = {
@@ -81,6 +81,8 @@ export default function App() {
       <Route path="/system" element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="branding" replace />} />
         <Route path="branding" element={<PermissionRoute permissionKey="Branding.View" requireVisible={true}><OrganizationBranding /></PermissionRoute>} />
+        <Route path="rounded-asset-tag-branding" element={<PermissionRoute permissionKey="asset_tag_branding.rounded.view" requireVisible={true}><AssetTagBrandingPage type="rounded" /></PermissionRoute>} />
+        <Route path="rectangular-asset-tag-branding" element={<PermissionRoute permissionKey="asset_tag_branding.rectangular.view" requireVisible={true}><AssetTagBrandingPage type="rectangular" /></PermissionRoute>} />
       </Route>
 
       <Route path="/dashboard" element={<ProtectedRoute><PlatformLayout /></ProtectedRoute>}>

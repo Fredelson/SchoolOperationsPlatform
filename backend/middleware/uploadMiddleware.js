@@ -59,6 +59,10 @@ const resolveUploadDestination = (req) => {
     return path.join("uploads", "branding", folderName);
   }
 
+  if (url.includes("/it-assets/asset-tag-branding")) {
+    return path.join("uploads", "it-assets", "asset-tag-templates");
+  }
+
   if (url.includes("/uploads/count-pages")) {
     return path.join("uploads", "temp");
   }

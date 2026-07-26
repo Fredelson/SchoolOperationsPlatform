@@ -353,11 +353,33 @@ async function getPartsToOrderSummary(filters) {
 async function getOpenIssueCount(filters) {
   const filter = buildAssetFilter(filters);
   const result = await executeQuery(`
-    SELECT COUNT(*) AS OpenIssues
-    FROM dbo.ITAssetIssueLogs issueLog
-    INNER JOIN dbo.ITAssets a ON issueLog.AssetId = a.AssetId
-    WHERE UPPER(issueLog.IssueStatus) NOT IN ('RESOLVED', 'CLOSED')
-      AND a.IsDeleted = 0 ${filter.clause};
+    SELECT
+      (
+        SELECT COUNT(*)
+        FROM dbo.ITAssetIssueLogs issueLog
+        INNER JOIN dbo.ITAssets a ON issueLog.AssetId = a.AssetId
+        WHERE UPPER(issueLog.IssueStatus) NOT IN ('RESOLVED', 'CLOSED')
+          AND a.IsDeleted = 0 ${filter.clause}
+      )
+      +
+      (
+        SELECT COUNT(*)
+        FROM dbo.ITAssets a
+        INNER JOIN dbo.ITAssetStatuses status
+          ON a.ITAssetStatusId = status.ITAssetStatusId
+        WHERE a.IsDeleted = 0
+          AND UPPER(REPLACE(REPLACE(
+            ISNULL(status.StatusKey, status.StatusName),
+            ' ',
+            ''
+          ), '-', '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE')
+          AND EXISTS (
+            SELECT 1
+            FROM dbo.ITAssetMaintenanceLogs maintenance
+            WHERE maintenance.AssetId = a.AssetId
+          )
+          ${filter.clause}
+      ) AS OpenIssues;
   `, filter.parameters);
 
   return firstOrNull(result);

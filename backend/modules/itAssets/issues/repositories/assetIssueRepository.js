@@ -389,22 +389,123 @@ const resolveIssue = async ({
 const getIssues = async ({ status = null, assetId = null }) => {
   const result = await executeQuery(
     `
-      SELECT
-        il.*,
-        a.AssetTag,
-        a.ModelDescription,
-        it.IssueTypeName,
-        reportedBy.FullName AS ReportedByName,
-        assignedTo.FullName AS AssignedToName
-      FROM dbo.ITAssetIssueLogs il
-      INNER JOIN dbo.ITAssets a ON il.AssetId = a.AssetId
-      INNER JOIN dbo.ITAssetIssueTypes it ON il.IssueTypeId = it.IssueTypeId
-      LEFT JOIN dbo.Users reportedBy ON il.ReportedByUserId = reportedBy.UserId
-      LEFT JOIN dbo.Users assignedTo ON il.AssignedToUserId = assignedTo.UserId
-      WHERE a.IsDeleted = 0
-        AND (@Status IS NULL OR il.IssueStatus = @Status)
-        AND (@AssetId IS NULL OR il.AssetId = @AssetId)
-      ORDER BY il.ReportedAt DESC;
+      WITH RankedMaintenance AS
+      (
+        SELECT
+          ml.*,
+          a.AssetTag,
+          a.ModelDescription,
+          a.UpdatedAt AS AssetUpdatedAt,
+          performedBy.FullName AS PerformedByName,
+          s.StatusKey AS AssetStatusKey,
+          s.StatusName AS AssetStatusName,
+          ROW_NUMBER() OVER (
+            PARTITION BY ml.AssetId
+            ORDER BY ml.PerformedAt DESC, ml.MaintenanceLogId DESC
+          ) AS MaintenanceSequence
+        FROM dbo.ITAssetMaintenanceLogs ml
+        INNER JOIN dbo.ITAssets a ON ml.AssetId = a.AssetId
+        LEFT JOIN dbo.Users performedBy ON ml.PerformedBy = performedBy.UserId
+        LEFT JOIN dbo.ITAssetStatuses s ON a.ITAssetStatusId = s.ITAssetStatusId
+        WHERE a.IsDeleted = 0
+      ),
+      IssueRows AS
+      (
+        SELECT
+          CONCAT('issue-', il.IssueLogId) AS IssueRowId,
+          il.IssueLogId,
+          il.AssetId,
+          il.IssueTypeId,
+          il.ReportedByUserId,
+          il.AssignedToUserId,
+          il.IssueStatus,
+          il.Priority,
+          il.Description,
+          il.Resolution,
+          il.ReportedAt,
+          il.ResolvedAt,
+          a.AssetTag,
+          a.ModelDescription,
+          it.IssueTypeName,
+          reportedBy.FullName AS ReportedByName,
+          assignedTo.FullName AS AssignedToName,
+          CAST('ISSUE' AS nvarchar(50)) AS SourceType,
+          CAST(NULL AS int) AS MaintenanceLogId
+        FROM dbo.ITAssetIssueLogs il
+        INNER JOIN dbo.ITAssets a ON il.AssetId = a.AssetId
+        INNER JOIN dbo.ITAssetIssueTypes it ON il.IssueTypeId = it.IssueTypeId
+        LEFT JOIN dbo.Users reportedBy ON il.ReportedByUserId = reportedBy.UserId
+        LEFT JOIN dbo.Users assignedTo ON il.AssignedToUserId = assignedTo.UserId
+        WHERE a.IsDeleted = 0
+      ),
+      MaintenanceRows AS
+      (
+        SELECT
+          CONCAT('maintenance-', maintenance.MaintenanceLogId) AS IssueRowId,
+          CAST(NULL AS int) AS IssueLogId,
+          maintenance.AssetId,
+          CAST(NULL AS int) AS IssueTypeId,
+          maintenance.PerformedBy AS ReportedByUserId,
+          CAST(NULL AS int) AS AssignedToUserId,
+          CAST(
+            CASE
+              WHEN maintenance.MaintenanceSequence = 1
+                AND UPPER(REPLACE(REPLACE(
+                  ISNULL(maintenance.AssetStatusKey, maintenance.AssetStatusName),
+                  ' ',
+                  ''
+                ), '-', '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE')
+              THEN 'IN_PROGRESS'
+              ELSE 'RESOLVED'
+            END
+            AS nvarchar(50)
+          ) AS IssueStatus,
+          CAST('MEDIUM' AS nvarchar(50)) AS Priority,
+          maintenance.Description,
+          CAST(
+            CASE
+              WHEN maintenance.MaintenanceSequence = 1
+                AND UPPER(REPLACE(REPLACE(
+                  ISNULL(maintenance.AssetStatusKey, maintenance.AssetStatusName),
+                  ' ',
+                  ''
+                ), '-', '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE')
+              THEN NULL
+              ELSE CONCAT('Maintenance completed: ', maintenance.MaintenanceType)
+            END
+            AS nvarchar(max)
+          ) AS Resolution,
+          maintenance.PerformedAt AS ReportedAt,
+          CASE
+            WHEN maintenance.MaintenanceSequence = 1
+              AND UPPER(REPLACE(REPLACE(
+                ISNULL(maintenance.AssetStatusKey, maintenance.AssetStatusName),
+                ' ',
+                ''
+              ), '-', '')) IN ('UNDERREPAIR', 'UNDERMAINTENANCE', 'MAINTENANCE')
+            THEN NULL
+            ELSE ISNULL(maintenance.AssetUpdatedAt, maintenance.PerformedAt)
+          END AS ResolvedAt,
+          maintenance.AssetTag,
+          maintenance.ModelDescription,
+          maintenance.MaintenanceType AS IssueTypeName,
+          maintenance.PerformedByName AS ReportedByName,
+          CAST(NULL AS nvarchar(510)) AS AssignedToName,
+          CAST('MAINTENANCE' AS nvarchar(50)) AS SourceType,
+          maintenance.MaintenanceLogId
+        FROM RankedMaintenance maintenance
+      ),
+      AllIssueRows AS
+      (
+        SELECT * FROM IssueRows
+        UNION ALL
+        SELECT * FROM MaintenanceRows
+      )
+      SELECT *
+      FROM AllIssueRows
+      WHERE (@Status IS NULL OR UPPER(IssueStatus) = UPPER(@Status))
+        AND (@AssetId IS NULL OR AssetId = @AssetId)
+      ORDER BY ReportedAt DESC, IssueRowId DESC;
     `,
     [
       { name: "Status", type: sql.NVarChar(50), value: status || null },
