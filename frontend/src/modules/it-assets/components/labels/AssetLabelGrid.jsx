@@ -35,6 +35,54 @@ import AssetLabel from "./AssetLabel";
 // Shared by the label grid and its existing printer toolbar.
  
 export const ASSET_LABEL_LAYOUTS = {
+  "1x1": {
+    key: "1x1",
+    label: "1 × 1 (Whole A4)",
+    columns: 1,
+    rows: 1,
+    capacity: 1,
+  },
+
+  "1x2": {
+    key: "1x2",
+    label: "1 × 2",
+    columns: 1,
+    rows: 2,
+    capacity: 2,
+  },
+
+  "2x2": {
+    key: "2x2",
+    label: "2 × 2",
+    columns: 2,
+    rows: 2,
+    capacity: 4,
+  },
+
+  "2x3": {
+    key: "2x3",
+    label: "2 × 3",
+    columns: 2,
+    rows: 3,
+    capacity: 6,
+  },
+
+  "3x2": {
+    key: "3x2",
+    label: "3 × 2",
+    columns: 3,
+    rows: 2,
+    capacity: 6,
+  },
+
+  "3x3": {
+    key: "3x3",
+    label: "3 × 3",
+    columns: 3,
+    rows: 3,
+    capacity: 9,
+  },
+
   "3x7": {
     key: "3x7",
     label: "3 × 7",

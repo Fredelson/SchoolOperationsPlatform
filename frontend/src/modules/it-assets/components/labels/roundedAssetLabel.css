@@ -7,6 +7,8 @@
   container-type: inline-size;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   overflow: hidden;
@@ -54,7 +56,7 @@
 
 .rounded-asset-label__template-logo {
   position: absolute;
-  top: 8.5%;
+  top: 10.5%;
   left: 50%;
   width: 22%;
   height: 20.5%;
@@ -77,7 +79,7 @@
 
 .rounded-asset-label__template-qr-card {
   position: absolute;
-  top: 45.45%;
+  top: 47.5%;
   width: 18.5%;
   display: grid;
   align-items: stretch;
@@ -93,14 +95,15 @@
 }
 
 .rounded-asset-label__template-qr-card--website {
-  left: 9.45%;
-  grid-template-rows: minmax(0, 1fr) 17.5%;
+  left: 12.5%;
+  width: 18.5%;
+  grid-template-rows: minmax(0, 1fr) 16.5%;
   gap: 2.5%;
-  aspect-ratio: 0.82 / 1;
+  aspect-ratio: 1 / 1;
 }
 
 .rounded-asset-label__template-qr-card--asset {
-  right: 9.45%;
+  right: 12.5%;
   aspect-ratio: 1 / 1;
 }
 
@@ -140,15 +143,15 @@
 
 .rounded-asset-label__template-barcode {
   position: absolute;
-  top: 54.95%;
-  left: 31.05%;
+  top: 55%;
+  left: 50%;
   width: 37.9%;
   height: 10.75%;
   display: grid;
   place-items: center;
   padding: 0.4% 0;
-  background: var(--round-paper);
   overflow: hidden;
+  transform: translateX(-50%);
 }
 
 .rounded-asset-label__template-barcode svg {
@@ -159,8 +162,8 @@
 
 .rounded-asset-label__template-asset-code {
   position: absolute;
-  top: 69.8%;
-  left: 25.7%;
+  top: calc(65% - 2px);
+  left: 50%;
   width: 48.6%;
   height: 10.2%;
   display: flex;
@@ -173,6 +176,7 @@
   text-transform: uppercase;
   overflow: hidden;
   overflow-wrap: anywhere;
+  transform: translateX(-50%);
 }
 
 .rounded-asset-label::before,
@@ -286,15 +290,15 @@
 }
 
 .rounded-asset-label__arc-text--top {
-  font-size: 5.2px;
+  font-size: clamp(4px, 1.1cqw, 5.2px);
 }
 
 .rounded-asset-label__arc-text--side {
-  font-size: 3.35px;
+  font-size: clamp(3px, 0.8cqw, 3.35px);
 }
 
 .rounded-asset-label__arc-text--bottom {
-  font-size: 2.9px;
+  font-size: clamp(2.5px, 0.7cqw, 2.9px);
 }
 
 .rounded-asset-label__established-badge {

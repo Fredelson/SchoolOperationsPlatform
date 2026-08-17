@@ -14,6 +14,8 @@
   min-width: 0;
   overflow: auto;
   display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
   justify-content: center;
   align-items: flex-start;
   padding: 16px 0 28px;
@@ -23,13 +25,52 @@
 }
 
 .rounded-a4-page {
+  --rounded-a4-preview-width: 794px;
   position: relative;
-  width: var(--rounded-screen-width);
+  width: var(--rounded-a4-preview-width);
+  min-width: var(--rounded-a4-preview-width);
   aspect-ratio: 210 / 297;
   flex: 0 0 auto;
   background: var(--rounded-page-bg);
   box-shadow: var(--rounded-page-shadow);
   overflow: hidden;
+  transform-origin: top center;
+}
+
+/* Responsive screen preview scaling matches the rectangular asset printer */
+@media screen and (min-width: 1280px) {
+  .rounded-a4-page {
+    transform: scale(1);
+    margin-bottom: 0;
+  }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .rounded-a4-page {
+    transform: scale(0.86);
+    margin-bottom: -166px;
+  }
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .rounded-a4-page {
+    transform: scale(0.7);
+    margin-bottom: -337px;
+  }
+}
+
+@media screen and (min-width: 600px) and (max-width: 767px) {
+  .rounded-a4-page {
+    transform: scale(0.58);
+    margin-bottom: -472px;
+  }
+}
+
+@media screen and (max-width: 599px) {
+  .rounded-a4-page {
+    transform: scale(0.42);
+    margin-bottom: -652px;
+  }
 }
 
 .rounded-a4-safe-area {
@@ -44,8 +85,31 @@
   overflow: visible;
 }
 
+.rounded-a4-label-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 1mm;
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.rounded-a4-label-grid-item {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+
+.rounded-a4-label-grid-item > .rounded-a4-label-frame {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  transform: none;
+}
+
 .rounded-a4-label-frame {
-  width: var(--rounded-diameter-percent, 90%);
+  width: min(var(--rounded-diameter, 190mm), var(--rounded-diameter-percent, 90%));
   aspect-ratio: 1 / 1;
   transform:
     translate(var(--rounded-offset-x-screen, 0), var(--rounded-offset-y-screen, 0))
