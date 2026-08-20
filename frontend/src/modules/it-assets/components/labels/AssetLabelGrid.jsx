@@ -6,7 +6,13 @@
 // Purpose:
 // - Arrange IT asset labels on exact A4 pages.
 // - Support multiple A4 pages.
-// - Support four layouts:
+// - Support ten layouts:
+//   - 1 × 1 = 1 label (whole-page)
+//   - 1 × 2 = 2 labels
+//   - 2 × 2 = 4 labels
+//   - 2 × 3 = 6 labels
+//   - 3 × 2 = 6 labels
+//   - 3 × 3 = 9 labels
 //   - 3 × 7 = 21 labels
 //   - 3 × 8 = 24 labels
 //   - 4 × 7 = 28 labels
@@ -37,7 +43,7 @@ import AssetLabel from "./AssetLabel";
 export const ASSET_LABEL_LAYOUTS = {
   "1x1": {
     key: "1x1",
-    label: "1 × 1 (Whole A4)",
+    label: "1 × 1",
     columns: 1,
     rows: 1,
     capacity: 1,

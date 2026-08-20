@@ -222,7 +222,13 @@ export default function RoundedAssetTagPrinter() {
 
   const settings = branding?.settings || {};
   const print = settings.print || {};
+  const [printSettings, setPrintSettings] = useState(settings.print || {});
+
+  useEffect(() => {
+    setPrintSettings(settings.print || {});
+  }, [settings.print]);
   const layoutOptions = [
+    "1x1",
     "1x2",
     "2x2",
     "2x3",
@@ -267,16 +273,49 @@ export default function RoundedAssetTagPrinter() {
       warnings.push("The school website is required for the website QR code.");
     }
 
-    if (!print.labelDiameter || Number(print.labelDiameter) <= 0) {
+    const configuredDiameter = printSettings.labelDiameter ?? print.labelDiameter;
+    if (!configuredDiameter || Number(configuredDiameter) <= 0) {
       warnings.push("Rounded label diameter must be configured before printing.");
     }
 
     return warnings;
-  }, [selectedAssets, print.labelDiameter, settings.visibility, website]);
+  }, [selectedAssets, printSettings.labelDiameter, print.labelDiameter, settings.visibility, website]);
 
+  const A4_WIDTH_MM = 210;
   const printDisabled = loading || !canPrint || validationWarnings.length > 0;
-  const diameter = Number(print.labelDiameter || 190);
-  const diameterPercent = `${Math.min(100, (diameter / 210) * 100)}%`;
+
+  const marginLeftVal = Number(printSettings.marginLeft || print.marginLeft || 10);
+  const marginRightVal = Number(printSettings.marginRight || print.marginRight || 10);
+  const defaultFullPageDiameter = Math.max(0, A4_WIDTH_MM - marginLeftVal - marginRightVal);
+
+  const diameter = Number(
+    printSettings.labelDiameter ?? print.labelDiameter ?? (selectedLayout.key === "1x1" ? defaultFullPageDiameter : 190)
+  );
+
+  const diameterPercent = `${Math.min(100, (diameter / A4_WIDTH_MM) * 100)}%`;
+
+  // Compute cell dimensions (mm) to ensure label fits within each grid cell
+  const A4_HEIGHT_MM = 297;
+  const GRID_GAP_MM = 1;
+  const marginTopVal = Number(printSettings.marginTop || print.marginTop || 12);
+  const marginBottomVal = Number(printSettings.marginBottom || print.marginBottom || 12);
+
+  const cols = selectedLayout.columns;
+  const rows = selectedLayout.rows;
+
+  const usableWidth = Math.max(0, A4_WIDTH_MM - marginLeftVal - marginRightVal);
+  const usableHeight = Math.max(0, A4_HEIGHT_MM - marginTopVal - marginBottomVal);
+
+  const totalHorizontalGap = GRID_GAP_MM * Math.max(0, cols - 1);
+  const totalVerticalGap = GRID_GAP_MM * Math.max(0, rows - 1);
+
+  const cellWidthMm = cols > 0 ? (usableWidth - totalHorizontalGap) / cols : usableWidth;
+  const cellHeightMm = rows > 0 ? (usableHeight - totalVerticalGap) / rows : usableHeight;
+
+  const cellDiameter = Math.min(cellWidthMm, cellHeightMm);
+
+  // Final diameter must not exceed the cell diameter (prevents clipping)
+  const finalDiameter = Math.min(diameter, cellDiameter);
 
   const pages = splitIntoPages(selectedAssets, selectedLayout.capacity);
   const previewPages = pages.slice(0, 1);
@@ -353,14 +392,6 @@ export default function RoundedAssetTagPrinter() {
   return (
     <Box
       className="rounded-print-root"
-      style={{
-        "--rounded-preview-bg": theme.palette.background.default,
-        "--rounded-preview-border": theme.palette.divider,
-        "--rounded-page-bg": theme.palette.common.white,
-        "--rounded-page-shadow": theme.shadows[6],
-        "--rounded-empty-color": theme.palette.text.secondary,
-      }}
-    >
       <Box className="rounded-print-controls">
         <AppBreadcrumbs
           items={[
@@ -593,6 +624,78 @@ export default function RoundedAssetTagPrinter() {
                 </Stack>
               </AppCard>
 
+              <AppCard>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  alignItems={{ xs: "flex-start", md: "center" }}
+                  justifyContent="space-between"
+                  spacing={2}
+                >
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={900}>
+                      Print Settings
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Adjust diameter, offsets and scale for printing.
+                    </Typography>
+                  </Box>
+
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                    <TextField
+                      size="small"
+                      label="Diameter (mm)"
+                      value={printSettings.labelDiameter ?? ""}
+                      onChange={(e) =>
+                        setPrintSettings((prev) => ({
+                          ...prev,
+                          labelDiameter: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      sx={{ width: 140 }}
+                    />
+
+                    <TextField
+                      size="small"
+                      label="H Offset (mm)"
+                      value={printSettings.horizontalOffset ?? ""}
+                      onChange={(e) =>
+                        setPrintSettings((prev) => ({
+                          ...prev,
+                          horizontalOffset: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      sx={{ width: 140 }}
+                    />
+
+                    <TextField
+                      size="small"
+                      label="V Offset (mm)"
+                      value={printSettings.verticalOffset ?? ""}
+                      onChange={(e) =>
+                        setPrintSettings((prev) => ({
+                          ...prev,
+                          verticalOffset: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      sx={{ width: 140 }}
+                    />
+
+                    <TextField
+                      size="small"
+                      label="Scale"
+                      value={printSettings.printScale ?? ""}
+                      onChange={(e) =>
+                        setPrintSettings((prev) => ({
+                          ...prev,
+                          printScale: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      sx={{ width: 120 }}
+                    />
+                  </Stack>
+                </Stack>
+              </AppCard>
+
               <Alert severity="info">
                 Print using 100% or Actual Size. Disable Fit to Page.
               </Alert>
@@ -619,30 +722,30 @@ export default function RoundedAssetTagPrinter() {
         <div className="rounded-a4-preview-wrap">
           {selectedAssets.length > 0 && branding ? (
             previewPages.map((pageAssets, pageIndex) => (
-              <div
-                key={`rounded-a4-page-${pageIndex}`}
-                className="rounded-a4-page"
-                style={{
-                  "--rounded-diameter": `${diameter}mm`,
-                  "--rounded-diameter-percent": diameterPercent,
-                  "--rounded-margin-top": `${Number(print.marginTop || 0)}mm`,
-                  "--rounded-margin-bottom": `${Number(print.marginBottom || 0)}mm`,
-                  "--rounded-margin-left": `${Number(print.marginLeft || 0)}mm`,
-                  "--rounded-margin-right": `${Number(print.marginRight || 0)}mm`,
-                  "--rounded-offset-x": `${Number(print.horizontalOffset || 0)}mm`,
-                  "--rounded-offset-y": `${Number(print.verticalOffset || 0)}mm`,
-                  "--rounded-offset-x-screen": `${Number(print.horizontalOffset || 0) / 2}px`,
-                  "--rounded-offset-y-screen": `${Number(print.verticalOffset || 0) / 2}px`,
-                  "--rounded-print-scale": Number(print.printScale || 1),
-                }}
-              >
+                <div
+                  key={`rounded-a4-page-${pageIndex}`}
+                  className="rounded-a4-page"
+                  style={{
+                    "--rounded-diameter": `${finalDiameter}mm`,
+                    "--rounded-diameter-percent": diameterPercent,
+                    "--rounded-margin-top": `${Number(marginTopVal)}mm`,
+                    "--rounded-margin-bottom": `${Number(marginBottomVal)}mm`,
+                    "--rounded-margin-left": `${Number(marginLeftVal)}mm`,
+                    "--rounded-margin-right": `${Number(marginRightVal)}mm`,
+                    "--rounded-offset-x": `${Number(printSettings.horizontalOffset || print.horizontalOffset || 0)}mm`,
+                    "--rounded-offset-y": `${Number(printSettings.verticalOffset || print.verticalOffset || 0)}mm`,
+                    "--rounded-offset-x-screen": `${Number(printSettings.horizontalOffset || print.horizontalOffset || 0) / 2}px`,
+                    "--rounded-offset-y-screen": `${Number(printSettings.verticalOffset || print.verticalOffset || 0) / 2}px`,
+                    "--rounded-print-scale": Number(printSettings.printScale || print.printScale || 1),
+                  }}
+                >
                 <div className="rounded-a4-safe-area">
                   <div
                     className="rounded-a4-label-grid"
                     data-layout={selectedLayout.key}
                     style={{
-                      gridTemplateColumns: `repeat(${selectedLayout.columns}, 1fr)`,
-                      gridTemplateRows: `repeat(${selectedLayout.rows}, 1fr)`,
+                      gridTemplateColumns: `repeat(${cols}, ${cellWidthMm}mm)`,
+                      gridTemplateRows: `repeat(${rows}, ${cellHeightMm}mm)`,
                     }}
                   >
                     {Array.from({ length: selectedLayout.capacity }).map(
@@ -651,14 +754,7 @@ export default function RoundedAssetTagPrinter() {
                           key={`rounded-asset-cell-${pageIndex}-${index}`}
                           className="rounded-a4-label-grid-item"
                         >
-                          <div
-                            className="rounded-a4-label-frame"
-                            style={{
-                              transform: `scale(${Number(
-                                print.printScale || 1
-                              )})`,
-                            }}
-                          >
+                          <div className="rounded-a4-label-frame">
                             <RoundedAssetLabel
                               asset={pageAssets[index] || {}}
                               branding={branding}
