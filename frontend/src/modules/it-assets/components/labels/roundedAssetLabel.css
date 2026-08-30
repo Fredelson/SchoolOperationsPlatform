@@ -92,6 +92,7 @@
     0 0.24cqw 0.7cqw color-mix(in srgb, var(--round-border) 12%, transparent),
     inset 0 0 0 max(1px, 0.08cqw) color-mix(in srgb, var(--round-inner) 10%, transparent);
   overflow: hidden;
+  transform: translateY(min(5px, 0.7cqw));
 }
 
 .rounded-asset-label__template-qr-card--website {
@@ -111,7 +112,6 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  place-items: center;
   padding: 2.6%;
   background: var(--round-paper);
   overflow: hidden;
@@ -146,12 +146,12 @@
   top: 55%;
   left: 50%;
   width: 37.9%;
-  height: 10.75%;
+  height: 9.25%;
   display: grid;
   place-items: center;
   padding: 0.4% 0;
   overflow: hidden;
-  transform: translateX(-50%);
+  transform: translate(-50%, min(5px, 0.35cqw));
 }
 
 .rounded-asset-label__template-barcode svg {
@@ -164,7 +164,7 @@
   position: absolute;
   top: calc(65% - 2px);
   left: 50%;
-  width: 48.6%;
+  width: 60%;
   height: 10.2%;
   display: flex;
   align-items: center;
@@ -176,6 +176,7 @@
   text-transform: uppercase;
   overflow: hidden;
   overflow-wrap: anywhere;
+  white-space: nowrap;
   transform: translateX(-50%);
 }
 
@@ -353,7 +354,7 @@
   min-width: 0;
   min-height: 0;
   padding: 2.55% 4.8% 3.25%;
-  border: max(1px, 0.25cqw) solid color-mix(in srgb, var(--round-border) 84%, var(--round-bg) 16%);
+  border: 0;
   border-radius: 50%;
   background:
     radial-gradient(
@@ -369,6 +370,18 @@
   overflow: hidden;
 }
 
+.rounded-asset-label__center::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: max(1px, 0.25cqw) solid color-mix(in srgb, var(--round-border) 84%, var(--round-bg) 16%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 max(1px, 0.14cqw) color-mix(in srgb, var(--round-inner) 18%, transparent),
+    0 0.35cqw 1.2cqw color-mix(in srgb, var(--round-border) 10%, transparent);
+  pointer-events: none;
+}
+
 .rounded-asset-label__brand,
 .rounded-asset-label__main,
 .rounded-asset-label__identity,
@@ -381,7 +394,7 @@
 
 .rounded-asset-label__brand {
   display: grid;
-  grid-template-rows: minmax(0, 35%) minmax(0, 45%) minmax(0, 20%);
+  grid-template-rows: minmax(0, 30%) minmax(0, 34%) minmax(0, 18%) minmax(0, 18%);
   align-items: center;
   justify-items: center;
   padding: 0 2.2%;
@@ -431,6 +444,30 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
   align-items: center;
   gap: 2.7%;
+}
+
+.rounded-asset-label__asset-heading {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2.7%;
+}
+
+.rounded-asset-label__asset-heading span {
+  height: max(1px, 0.24cqw);
+  background: var(--round-accent);
+}
+
+.rounded-asset-label__asset-heading-text {
+  min-width: 0;
+  color: var(--round-main);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .rounded-asset-label__tagline-row span,
@@ -494,6 +531,7 @@
   background: var(--round-paper);
   box-shadow: inset 0 0 0 max(1px, 0.1cqw) color-mix(in srgb, var(--round-inner) 14%, transparent);
   overflow: hidden;
+  transform: translateY(min(5px, 0.7cqw));
 }
 
 .rounded-asset-label__qr-box svg {
@@ -520,10 +558,20 @@
 
 .rounded-asset-label__identity {
   display: grid;
-  grid-template-rows: minmax(0, 29%) minmax(0, 71%);
+  grid-template-rows: minmax(0, 18%) minmax(0, 18%) minmax(0, 64%);
   align-items: center;
   justify-items: stretch;
   padding: 1.1% 0.5% 0;
+}
+
+.rounded-asset-label__asset-tag-label {
+  min-width: 0;
+  color: var(--round-main);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .rounded-asset-label__department-row {
@@ -560,6 +608,7 @@
   place-items: center;
   overflow: hidden;
   padding: 1% 4.3% 0;
+  transform: translateY(min(5px, 0.7cqw));
 }
 
 .rounded-asset-label__barcode svg {
@@ -569,7 +618,7 @@
 }
 
 .rounded-asset-label__asset-code {
-  width: 88%;
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -582,6 +631,7 @@
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 

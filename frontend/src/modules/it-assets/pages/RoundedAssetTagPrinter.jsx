@@ -33,9 +33,29 @@ import { getAssetTagBranding } from "../services/assetTagBrandingService";
 import AssetPrinterToolbar from "../components/assetTagPrinter/AssetPrinterToolbar";
 import AssetPrinterTable from "../components/assetTagPrinter/AssetPrinterTable";
 import RoundedAssetLabel from "../components/labels/RoundedAssetLabel";
-import { ASSET_LABEL_LAYOUTS } from "../components/labels/AssetLabelGrid";
 
 import "./roundedAssetTagPrint.css";
+
+const ROUNDED_ASSET_TAG_LAYOUTS = Object.fromEntries(
+  Array.from({ length: 4 }, (_, columnIndex) =>
+    Array.from({ length: 8 }, (_, rowIndex) => {
+      const columns = columnIndex + 1;
+      const rows = rowIndex + 1;
+      const key = `${columns}x${rows}`;
+
+      return [
+        key,
+        {
+          key,
+          label: `${columns} × ${rows}`,
+          columns,
+          rows,
+          capacity: columns * rows,
+        },
+      ];
+    })
+  ).flat()
+);
 
 const valueFrom = (source, keys, fallback = "") => {
   for (const key of keys) {
@@ -227,20 +247,11 @@ export default function RoundedAssetTagPrinter() {
   useEffect(() => {
     setPrintSettings(settings.print || {});
   }, [settings.print]);
-  const layoutOptions = [
-    "1x1",
-    "1x2",
-    "2x2",
-    "2x3",
-    "3x2",
-    "3x3",
-    "3x7",
-    "3x8",
-    "4x7",
-    "4x8",
-  ].map((key) => ASSET_LABEL_LAYOUTS[key]);
+  const layoutOptions = Object.values(ROUNDED_ASSET_TAG_LAYOUTS).filter(
+    (layout) => layout.rows < 4
+  );
   const selectedLayout =
-    ASSET_LABEL_LAYOUTS[layoutKey] || ASSET_LABEL_LAYOUTS["1x2"];
+    ROUNDED_ASSET_TAG_LAYOUTS[layoutKey] || ROUNDED_ASSET_TAG_LAYOUTS["1x2"];
   const school = branding?.organization?.school || {};
   const website = String(school.website || "").trim();
 
@@ -296,7 +307,7 @@ export default function RoundedAssetTagPrinter() {
 
   // Compute cell dimensions (mm) to ensure label fits within each grid cell
   const A4_HEIGHT_MM = 297;
-  const GRID_GAP_MM = 1;
+  const GRID_GAP_MM = 3;
   const marginTopVal = Number(printSettings.marginTop || print.marginTop || 12);
   const marginBottomVal = Number(printSettings.marginBottom || print.marginBottom || 12);
 
@@ -318,7 +329,7 @@ export default function RoundedAssetTagPrinter() {
   const finalDiameter = Math.min(diameter, cellDiameter);
 
   const pages = splitIntoPages(selectedAssets, selectedLayout.capacity);
-  const previewPages = pages.slice(0, 1);
+  const previewPages = pages;
 
   const handlePrint = () => {
     if (printDisabled) return;
@@ -390,8 +401,7 @@ export default function RoundedAssetTagPrinter() {
   }, []);
 
   return (
-    <Box
-      className="rounded-print-root"
+    <Box className="rounded-print-root">
       <Box className="rounded-print-controls">
         <AppBreadcrumbs
           items={[
@@ -732,6 +742,9 @@ export default function RoundedAssetTagPrinter() {
                     "--rounded-margin-bottom": `${Number(marginBottomVal)}mm`,
                     "--rounded-margin-left": `${Number(marginLeftVal)}mm`,
                     "--rounded-margin-right": `${Number(marginRightVal)}mm`,
+                    "--rounded-label-size": `${finalDiameter}mm`,
+                    "--rounded-cell-width": `${cellWidthMm}mm`,
+                    "--rounded-cell-height": `${cellHeightMm}mm`,
                     "--rounded-offset-x": `${Number(printSettings.horizontalOffset || print.horizontalOffset || 0)}mm`,
                     "--rounded-offset-y": `${Number(printSettings.verticalOffset || print.verticalOffset || 0)}mm`,
                     "--rounded-offset-x-screen": `${Number(printSettings.horizontalOffset || print.horizontalOffset || 0) / 2}px`,

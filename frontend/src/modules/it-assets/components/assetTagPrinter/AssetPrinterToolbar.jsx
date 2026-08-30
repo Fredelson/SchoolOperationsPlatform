@@ -76,44 +76,52 @@ export default function AssetPrinterToolbar({
             }
           />
 
-          <FormControl
-            size="small"
-            fullWidth
-            sx={{
-              minWidth: {
-                xs: "100%",
-                lg: 230,
-              },
-              maxWidth: {
-                xs: "100%",
-                lg: 280,
-              },
-            }}
-          >
-            <InputLabel id="asset-label-layout-label">
-              Label layout
-            </InputLabel>
-
-            <Select
-              labelId="asset-label-layout-label"
-              label="Label layout"
-              value={layoutKey}
-              onChange={(event) =>
-                onLayoutChange?.(event.target.value)
-              }
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{
+                minWidth: {
+                  xs: "100%",
+                  lg: 230,
+                },
+                maxWidth: {
+                  xs: "100%",
+                  lg: 280,
+                },
+              }}
             >
-              {Object.values(ASSET_LABEL_LAYOUTS).map(
-                (layout) => (
-                  <MenuItem
-                    key={layout.key}
-                    value={layout.key}
-                  >
-                    {layout.label} — {layout.capacity} per page
-                  </MenuItem>
-                )
-              )}
-            </Select>
-          </FormControl>
+              <InputLabel id="asset-label-layout-label">
+                Label layout
+              </InputLabel>
+
+              <Select
+                labelId="asset-label-layout-label"
+                label="Label layout"
+                value={layoutKey}
+                onChange={(event) =>
+                  onLayoutChange?.(event.target.value)
+                }
+              >
+                {Object.values(ASSET_LABEL_LAYOUTS)
+                  .filter(
+                    (layout) =>
+                      ![
+                        "1x1",
+                        "1x2",
+                        "2x2",
+                        "2x3",
+                        "3x2",
+                        "3x3",
+                      ].includes(layout.key)
+                  )
+                  .map((layout) => (
+                    <MenuItem key={layout.key} value={layout.key}>
+                      {layout.label}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+
         </Stack>
 
         {/* ====================================================

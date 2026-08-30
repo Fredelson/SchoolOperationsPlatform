@@ -197,8 +197,8 @@ export default function RoundedAssetLabel({
 
           <AutoFitText
             className="rounded-asset-label__template-asset-code"
-            max="8.45cqw"
-            min="3.2cqw"
+            max="6.4cqw"
+            min="0.65cqw"
             lines={1}
           >
             {assetCode || (showWarnings ? "ASSET CODE REQUIRED" : "")}
@@ -306,8 +306,16 @@ export default function RoundedAssetLabel({
             {schoolName}
           </AutoFitText>
 
+          <div className="rounded-asset-label__asset-heading">
+            <span />
+            <AutoFitText className="rounded-asset-label__asset-heading-text" max="2.3cqw" min="0.95cqw" lines={1}>
+              IT ASSET
+            </AutoFitText>
+            <span />
+          </div>
+
           {visibility.showSchoolTagline && (
-            <div className="rounded-asset-label__tagline-row">
+            <div className="rounded-asset-label__tagline-row rounded-asset-label__tagline-row--compact">
               <span />
               <AutoFitText
                 className="rounded-asset-label__tagline"
@@ -355,6 +363,10 @@ export default function RoundedAssetLabel({
               <span />
             </div>
 
+            <AutoFitText className="rounded-asset-label__asset-tag-label" max="1.45cqw" min="0.7cqw" lines={1}>
+              ASSET TAG
+            </AutoFitText>
+
             <div className="rounded-asset-label__barcode">
               {visibility.showBarcode && hasBarcode ? (
                 <AssetBarcode
@@ -391,7 +403,7 @@ export default function RoundedAssetLabel({
           </section>
         </main>
 
-        <AutoFitText className="rounded-asset-label__asset-code" max="8.6cqw" min="3.35cqw" lines={2}>
+        <AutoFitText className="rounded-asset-label__asset-code" max="7.2cqw" min="0.65cqw" lines={1}>
           {assetCode || (showWarnings ? "ASSET CODE REQUIRED" : "")}
         </AutoFitText>
 

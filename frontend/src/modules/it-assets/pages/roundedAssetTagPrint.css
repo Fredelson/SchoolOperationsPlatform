@@ -89,33 +89,91 @@
   width: 100%;
   height: 100%;
   display: grid;
-  gap: 1mm;
-  align-items: stretch;
-  justify-items: stretch;
+  gap: 3mm;
+  align-items: center;
+  justify-items: center;
 }
 
 .rounded-a4-label-grid-item {
   width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   display: grid;
   place-items: center;
+  align-self: stretch;
+  justify-self: stretch;
+  overflow: visible;
 }
 
 .rounded-a4-label-grid-item > .rounded-a4-label-frame {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  transform: none;
+  width: min(
+    var(--rounded-label-size, 190mm),
+    var(--rounded-cell-width, 100%),
+    var(--rounded-cell-height, 100%),
+    100%
+  );
+  height: min(
+    var(--rounded-label-size, 190mm),
+    var(--rounded-cell-width, 100%),
+    var(--rounded-cell-height, 100%),
+    100%
+  );
+  min-width: 0;
+  min-height: 0;
+  align-self: center;
+  justify-self: center;
+  transform:
+    translate(var(--rounded-offset-x-screen, 0), var(--rounded-offset-y-screen, 0))
+    scale(var(--rounded-print-scale, 1));
 }
 
 .rounded-a4-label-frame {
-  width: min(var(--rounded-diameter, 190mm), var(--rounded-diameter-percent, 90%));
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(
+    var(--rounded-label-size, var(--rounded-diameter, 190mm)),
+    var(--rounded-cell-width, 100%),
+    var(--rounded-cell-height, 100%),
+    100%
+  );
+  height: min(
+    var(--rounded-label-size, var(--rounded-diameter, 190mm)),
+    var(--rounded-cell-width, 100%),
+    var(--rounded-cell-height, 100%),
+    100%
+  );
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   aspect-ratio: 1 / 1;
+  overflow: visible;
   transform:
     translate(var(--rounded-offset-x-screen, 0), var(--rounded-offset-y-screen, 0))
     scale(var(--rounded-print-scale, 1));
   transform-origin: center;
+}
+
+.rounded-a4-label-frame::before,
+.rounded-a4-label-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.rounded-a4-label-frame::before {
+  inset: -1.1mm;
+  border: 0.15mm dashed rgba(15, 23, 42, 0.8);
+  background: transparent;
+}
+
+.rounded-a4-label-frame::after {
+  inset: 2.2mm;
+  border: 0.18mm solid rgba(15, 23, 42, 0.38);
 }
 
 .rounded-a4-empty {
@@ -148,18 +206,8 @@
     overflow: visible !important;
   }
 
-  body * {
-    visibility: hidden !important;
-  }
-
   .rounded-print-root,
-  .rounded-print-root *,
-  .rounded-a4-page,
-  .rounded-a4-page *,
-  .rounded-a4-safe-area,
-  .rounded-a4-safe-area *,
-  .rounded-a4-label-frame,
-  .rounded-a4-label-frame * {
+  .rounded-print-root * {
     visibility: visible !important;
   }
 
@@ -172,15 +220,16 @@
   }
 
   .rounded-print-controls,
-  .rounded-print-controls *,
-  .rounded-a4-preview-wrap {
-    visibility: hidden !important;
+  .rounded-print-controls * {
+    display: none !important;
   }
 
   .rounded-a4-preview-wrap {
     display: block !important;
+    visibility: visible !important;
     width: 210mm !important;
-    height: 297mm !important;
+    height: auto !important;
+    min-height: 297mm !important;
     margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
@@ -188,8 +237,26 @@
     background: var(--rounded-page-bg) !important;
   }
 
+  .rounded-a4-safe-area,
+  .rounded-a4-label-grid,
+  .rounded-a4-label-grid-item,
+  .rounded-a4-label-frame,
+  .rounded-asset-label {
+    visibility: visible !important;
+  }
+
+  .rounded-a4-safe-area,
+  .rounded-a4-label-grid,
+  .rounded-a4-label-grid-item,
+  .rounded-a4-label-frame,
+  .rounded-asset-label {
+    display: grid !important;
+  }
+
   .rounded-a4-page {
-    position: absolute !important;
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
     top: 0 !important;
     left: 0 !important;
     width: 210mm !important;
@@ -198,6 +265,7 @@
     min-height: 297mm !important;
     margin: 0 !important;
     box-shadow: none !important;
+    break-inside: avoid;
   }
 
   .rounded-a4-safe-area {
@@ -209,10 +277,28 @@
   }
 
   .rounded-a4-label-frame {
-    width: var(--rounded-diameter, 190mm) !important;
-    height: var(--rounded-diameter, 190mm) !important;
+    width: min(
+      var(--rounded-label-size, var(--rounded-diameter, 190mm)),
+      var(--rounded-cell-width, 100%),
+      var(--rounded-cell-height, 100%),
+      100%
+    ) !important;
+    height: min(
+      var(--rounded-label-size, var(--rounded-diameter, 190mm)),
+      var(--rounded-cell-width, 100%),
+      var(--rounded-cell-height, 100%),
+      100%
+    ) !important;
     transform:
       translate(var(--rounded-offset-x, 0mm), var(--rounded-offset-y, 0mm))
       scale(var(--rounded-print-scale, 1)) !important;
+  }
+
+  .rounded-a4-label-frame::before {
+    inset: -1.1mm !important;
+  }
+
+  .rounded-a4-label-frame::after {
+    inset: 2.2mm !important;
   }
 }
