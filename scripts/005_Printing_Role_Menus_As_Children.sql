@@ -3,8 +3,8 @@
 
   Purpose
   -------
-  Keep the Teacher, HOD, and HOS dashboards as top-level workspace menus.
-  Move every other /teacher, /hod, and /hos menu under Printing Management.
+  Keep Teacher, HOD, and HOS printing navigation under separate role parents.
+  Consolidate any remaining role routes without exposing a shared printing parent.
 
   This script is idempotent and can be run more than once in SSMS.
 */
@@ -240,10 +240,59 @@ BEGIN TRY
     menu.SortOrder
   FROM @TargetWorkspaces workspace
   INNER JOIN dbo.Menus menu
-    ON LOWER(menu.Route) LIKE LOWER(workspace.RoutePrefix) + N'%';
-
-  IF NOT EXISTS (SELECT 1 FROM @RoleMenus)
-    THROW 51000, 'No Teacher, HOD, or HOS menus were found.', 1;
+    ON LOWER(menu.Route) LIKE LOWER(workspace.RoutePrefix) + N'%'
+  WHERE NOT
+  (
+    workspace.WorkspaceKey = N'teacher'
+    AND menu.Route IN
+    (
+      N'/teacher/dashboard',
+      N'/teacher/print-management',
+      N'/teacher/create-request',
+      N'/teacher/my-requests',
+      N'/teacher/attachments',
+      N'/teacher/reports'
+    )
+    AND EXISTS
+    (
+      SELECT 1 FROM dbo.Menus roleParent
+      WHERE roleParent.MenuKey = N'TEACHER_PRINTING_ROOT'
+    )
+  )
+  AND NOT
+  (
+    workspace.WorkspaceKey = N'hod'
+    AND menu.Route IN
+    (
+      N'/hod/dashboard',
+      N'/hod/pending-requests',
+      N'/hod/approved-requests',
+      N'/hod/rejected-requests',
+      N'/hod/returned-requests',
+      N'/hod/create-request',
+      N'/hod/my-requests',
+      N'/hod/attachments'
+    )
+    AND EXISTS
+    (
+      SELECT 1 FROM dbo.Menus workflowParent
+      WHERE workflowParent.MenuKey = N'HOD_APPROVAL_WORKFLOW_ROOT'
+    )
+  )
+  AND NOT
+  (
+    workspace.WorkspaceKey IN (N'hos', N'hos-secretary')
+    AND menu.Route IN
+    (
+      N'/hos/dashboard',
+      N'/hos/subject-allocation'
+    )
+    AND EXISTS
+    (
+      SELECT 1 FROM dbo.Menus workflowParent
+      WHERE workflowParent.MenuKey = N'HOS_APPROVAL_WORKFLOW_ROOT'
+    )
+  );
 
   /*
     Dashboard menus stay outside Printing Management.
@@ -477,10 +526,33 @@ BEGIN TRY
         AND existing.MenuId = roleMenu.MenuId
     );
 
+  /*
+    The shared Printing Management root is not the navigation parent for
+    Teacher, HOD, or HOS. Preserve any remaining non-workflow routes as
+    top-level links, then remove the shared root assignment in these workspaces.
+  */
+  UPDATE workspaceMenu
+  SET
+    GroupKey = N'MAIN',
+    GroupName = N'Main',
+    GroupSortOrder = 10,
+    ParentMenuId = NULL,
+    UpdatedAt = GETDATE()
+  FROM dbo.WorkspaceMenus workspaceMenu
+  INNER JOIN @TargetWorkspaces workspace
+    ON workspace.WorkspaceId = workspaceMenu.WorkspaceId
+  WHERE workspaceMenu.ParentMenuId = @PrintingRootMenuId;
+
+  DELETE workspaceMenu
+  FROM dbo.WorkspaceMenus workspaceMenu
+  INNER JOIN @TargetWorkspaces workspace
+    ON workspace.WorkspaceId = workspaceMenu.WorkspaceId
+  WHERE workspaceMenu.MenuId = @PrintingRootMenuId;
+
   COMMIT TRANSACTION;
 
-  PRINT 'Teacher, HOD, and HOS menus were consolidated under Printing Management.';
-  PRINT 'Dashboards remain top-level.';
+  PRINT 'Teacher, HOD, and HOS printing menus use role-specific parents.';
+  PRINT 'The shared Printing Management parent was removed from these workspaces.';
 
   SELECT
     workspace.WorkspaceKey,
@@ -502,13 +574,31 @@ BEGIN TRY
     ON module.ModuleId = menu.ModuleId
   LEFT JOIN dbo.Menus parent
     ON parent.MenuId = workspaceMenu.ParentMenuId
-  WHERE menu.MenuId = @PrintingRootMenuId
+  WHERE menu.MenuKey IN
+  (
+    N'TEACHER_PRINTING_ROOT',
+    N'TEACHER_PRINT_MANAGEMENT',
+    N'HOD_APPROVAL_WORKFLOW_ROOT',
+    N'HOS_APPROVAL_WORKFLOW_ROOT'
+  )
+     OR menu.MenuId = @PrintingRootMenuId
      OR EXISTS
      (
        SELECT 1
        FROM @RoleMenus roleMenu
        WHERE roleMenu.WorkspaceId = workspace.WorkspaceId
          AND roleMenu.MenuId = menu.MenuId
+     )
+     OR workspaceMenu.ParentMenuId IN
+     (
+       SELECT roleParent.MenuId
+       FROM dbo.Menus roleParent
+       WHERE roleParent.MenuKey IN
+       (
+         N'TEACHER_PRINTING_ROOT',
+         N'HOD_APPROVAL_WORKFLOW_ROOT',
+         N'HOS_APPROVAL_WORKFLOW_ROOT'
+       )
      )
   ORDER BY
     workspace.WorkspaceKey,

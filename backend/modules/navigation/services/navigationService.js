@@ -78,7 +78,8 @@ function retainAllowedMenus(rawMenus, allowedPermissions, bypassPermissions) {
   menus.forEach((menu, index) => {
     const isAllowed =
       bypassPermissions ||
-      (menu.PermissionKey && allowedPermissions.has(menu.PermissionKey));
+      !menu.PermissionKey ||
+      allowedPermissions.has(menu.PermissionKey);
 
     if (!isAllowed) return;
 

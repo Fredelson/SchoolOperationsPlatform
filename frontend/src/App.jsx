@@ -10,6 +10,7 @@ import PlatformLayout from "./platform/layout/PlatformLayout";
 
 import {
   TeacherDashboard,
+  TeacherPrintManagement,
   MyRequests,
   CreateRequest,
   RequestDetails,
@@ -100,6 +101,7 @@ export default function App() {
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={teacherRoles}><PlatformLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TeacherDashboard />} />
+        <Route path="print-management" element={<TeacherPrintManagement />} />
         <Route path="profile" element={<Profile />} />
         <Route path="my-requests" element={<MyRequests />} />
         <Route path="create-request" element={<CreateRequest />} />
